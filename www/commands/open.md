@@ -4,15 +4,9 @@ title: open - ///_hyperscript
 
 ## The `open` Command
 
-### Syntax
+The `open` command opens an element, automatically detecting its type and calling the right API.
 
-```ebnf
-open [fullscreen] [<expression>]
-```
-
-### Description
-
-The `open` command opens an element. It automatically detects the element type and calls the right API:
+It handles the following element types:
 
 - `<dialog>` — calls `showModal()`
 - `<details>` — sets the `open` attribute
@@ -20,7 +14,7 @@ The `open` command opens an element. It automatically detects the element type a
 - `fullscreen` — calls `requestFullscreen()` on the target, or on `document.documentElement` if no target is given
 - Other elements — calls `.open()` as a fallback
 
-If no target is given, defaults to `me`.
+If no target is given, it defaults to `me`.
 
 ### Examples
 
@@ -36,4 +30,10 @@ If no target is given, defaults to `me`.
 
 <button _="on click open fullscreen">Go Fullscreen</button>
 <button _="on click open fullscreen #video">Fullscreen Video</button>
+```
+
+### Syntax
+
+```ebnf
+open [fullscreen] [<expression>]
 ```

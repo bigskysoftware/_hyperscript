@@ -4,20 +4,7 @@ title: call - ///_hyperscript
 
 ## The `call` Command
 
-### Syntax
-
-```ebnf
-call <expression>
-get <expression>
-```
-
-### Description
-
-The `call` command allows you evaluate an expression.
-
-The value of this expression will be put into the `it` variable.
-
-`get` is an alias for `call` and can be used if it more clearly expresses the meaning of the code.
+The `call` command evaluates an expression and stores its value in the `it` variable. `get` is an alias for `call` — use whichever reads more naturally in context.
 
 ### Examples
 
@@ -30,4 +17,11 @@ The value of this expression will be put into the `it` variable.
 >
   Click Me!
 </div>
+```
+
+### Syntax
+
+```ebnf
+call <expression>
+get <expression>
 ```

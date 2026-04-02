@@ -2,33 +2,16 @@
 title: socket - ///_hyperscript
 ---
 
-## The `socket` feature
+## The `socket` Feature
+
+The `socket` feature lets you create WebSocket connections declaratively in hyperscript. It also provides a simple [Remote Procedure Call (RPC)](#rpc) mechanism layered on top of the raw socket, so you can call server-side functions as if they were local.
 
 ### Installing
 
 Note: if you want the socket feature, you must either use the "Whole 9 Yards" release of hyperscript, or include the `/dist/socket.js` file.
 
-### Syntax
-
-```
-  socket <socket-name> <socket-url> [with timeout <time expr>]
-    [on message [as json] <command-list>]
-```
-
-<br/>
-
-- `socket-name` is a name for the socket. This is available in the current hypertext scope and exposes additional data about the browser [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) object.
-- `socket-url` is the address that the socket is connected to. Schemes like ws or wss can optionally be specified (like in `socket MySocket ws://myserver.com/example`). If not specified, hyperscript defaults to add the location's scheme-type, host and port (like in `socket MySocket /example`).
-- `with timeout <time expr>` allows you to set a default timeout for [RPC calls](#rpc).
-- `on message` is an optional message handler body that can be run when messages are received. The `message` symbol
-  will be set to the message value. The optional `as json` modifier will convert the message to json before running
-  the handler.
-
-### Description
-
 [Web Sockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) provide a mechanism for two-way communication
-between a browser client and a server. Hyperscript provides a simple way to create them, as well as a simple
-[Remote Procedure Call (RPC)](#rpc) mechanism layered on top of them.
+between a browser client and a server.
 
 Here is a simple web socket declaration in hyperscript:
 
@@ -47,6 +30,8 @@ You can send messages to the socket by using the normal [`send`](/commands/send)
     send myMessage(foo: "bar", doh: 42) to MySocket
 ```
 
+The `socket-url` is the address that the socket is connected to. Schemes like `ws` or `wss` can optionally be specified (like in `socket MySocket ws://myserver.com/example`). If not specified, hyperscript defaults to add the location's scheme-type, host and port (like in `socket MySocket /example`).
+
 ### RPC
 
 Hyperscript provides a simple RPC mechanism layered on top of websockets. Given the socket definition above, you can
@@ -60,7 +45,7 @@ make the following call in hyperscript:
 </button>
 ```
 
-This will end up turning into a message that is send to the server via the socket, with the following format:
+This will turn into a message that is sent to the server via the socket, with the following format:
 
 ```json
 {
@@ -70,13 +55,13 @@ This will end up turning into a message that is send to the server via the socke
 }
 ```
 
-The fields here are
+The fields here are:
 
 - `iid` - the invocation id
 - `function` - the function to invoke
 - `args` - an array of arguments for the function
 
-The server can then invoke the method however it sees fit. It can then respond asynchronously with a response message
+The server can then invoke the method however it sees fit. It can respond asynchronously with a response message
 of the following format:
 
 ```json
@@ -112,4 +97,12 @@ If you wish to modify the default RPC timeout set for the socket, you can use a 
 >
   Get the answer...
 </button>
+```
+
+### Syntax
+
+```ebnf
+socket <socket-name> <socket-url> [with timeout <time-expression>]
+  [on message [as json] <command>+ end]
+end
 ```

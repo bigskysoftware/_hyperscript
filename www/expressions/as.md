@@ -4,17 +4,7 @@ title: as - ///_hyperscript
 
 ## The `as` Expression
 
-### Syntax
-
-```ebnf
-  <expression> as [ a | an ] CONVERSION [ | CONVERSION ]*
-```
-
-### Description
-
-Hyperscript provides a pluggable conversion system with the `as` expression. It will look up the conversion of the given name and apply it to the input expression.
-
-Conversions can be chained using the pipe operator (`|`), where the output of each conversion becomes the input of the next.
+The `as` expression converts a value from one type to another using hyperscript's pluggable conversion system. You can chain multiple conversions together with the pipe operator (`|`).
 
 By default, hyperscript provides the following conversions:
 
@@ -34,7 +24,7 @@ By default, hyperscript provides the following conversions:
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
 
-Some examples:
+### Examples
 
 ```hyperscript
   log '10' as Int                       -- logs 10
@@ -44,6 +34,8 @@ Some examples:
   log #myForm as Values | JSONString    -- logs form data as JSON string
   log #myForm as Values | FormEncoded   -- logs form data as URL-encoded string
 ```
+
+### Custom Conversions
 
 You can add new conversions by adding them to the `_hyperscript.config.conversions` object:
 
@@ -86,4 +78,10 @@ This conversion could now be used like so:
 <button _="on click put 'foo' as MyConversion:Short into my innerHTML">
   Call my conversion
 </button>
+```
+
+### Syntax
+
+```ebnf
+<expression> as [a | an] <conversion> [| <conversion>]*
 ```

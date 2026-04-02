@@ -4,30 +4,25 @@ title: wait - ///_hyperscript
 
 ## The `wait` Command
 
-### Syntax
+The `wait` command pauses execution for a set amount of time or until an event fires. This command is asynchronous -- everything after it is delayed until the wait completes.
 
-```ebnf
-wait (<time expression> | for (<event> [from <source>]) [or ...] )
-```
+### Waiting for Time
 
-### Description
+In the `wait <time>` form, you can use these formats:
 
-The `wait` command can either wait for an event to occur or for a fixed amount of time
+- `10` -- 10 milliseconds
+- `100 ms` -- 100 milliseconds
+- `100 milliseconds` -- 100 milliseconds
+- `1 s` -- 1000 milliseconds
+- `1 seconds` -- 1000 milliseconds
 
-In the form `wait for <event> {or <event>} [from <source>]` the hyperscript will pause until the element receives
-any of the specified events.
+### Waiting for Events
 
-Events may destructure properties into local variables using the `eventName(property1, property2, ...)` form.
+In the `wait for <event>` form, execution pauses until the element receives the specified event. You can wait for multiple events with `or`, and destructure event properties into local variables using `eventName(property1, property2, ...)`.
 
-In the `wait <time-expr>` form, it waits the given amount of time, which can be in the following formats:
+### Mixing Timeouts and Events
 
-- `10` - 10 milliseconds
-- `100 ms` - 100 milliseconds
-- `100 milliseconds` - 100 milliseconds
-- `1 s` - 1000 milliseconds
-- `1 seconds` - 1000 milliseconds
-
-You can also mix timeouts and events, which can be useful to avoid waiting forever for an event:
+You can combine both forms, which is useful to avoid waiting forever:
 
 ```hyperscript
 -- Fail if the thing doesn't load after 1s.
@@ -39,8 +34,6 @@ end
 -- Parens are required for dynamic timeouts.
 wait for click or (config.clickTimeout) ms
 ```
-
-This command is asynchronous. All commands that follow it will be delayed until the wait completes.
 
 ### Examples
 
@@ -58,4 +51,12 @@ This command is asynchronous. All commands that follow it will be delayed until 
 >
   Mouse Dragging...
 </div>
+```
+
+### Syntax
+
+```ebnf
+wait <time-expression>
+wait for <event-name> [from <expression>] (or <event-name> [from <expression>])*
+wait for <event-name> or <time-expression>
 ```

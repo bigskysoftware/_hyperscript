@@ -10,16 +10,6 @@ The `when` feature runs commands in response to a value change. Use it when you 
 For declaring relationships (derived values, DOM updates), see [`live`](/features/live).
 For two-way sync, see [`bind`](/features/bind).
 
-### Syntax
-
-```ebnf
-when <expression> [or <expression>]* changes
-    {<command>}
-[end]
-```
-
-### Description
-
 The `when` feature watches an expression and runs its body whenever the expression's value changes.
 The `it` keyword inside the body refers to the new value of the expression.
 
@@ -99,3 +89,11 @@ complete.
 
 Style references (`*opacity`, `*computed-width`) are not tracked. To react to
 visual changes, track the variable or class that drives the style instead.
+
+### Syntax
+
+```ebnf
+when <expression> [or <expression>]* changes
+    <command>*
+[end]
+```

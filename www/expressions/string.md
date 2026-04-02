@@ -4,7 +4,11 @@ title: string - ///_hyperscript
 
 ## The `string` Expression
 
-### Syntax
+Strings in hyperscript work like JavaScript strings, supporting single quotes, double quotes, and template literals with backticks. Template literals use `$` or `${}` to interpolate expressions.
+
+Note that in some places you can use "naked strings", which are strings without quotes, delimited by whitespace: `/example`
+
+### Examples
 
 ```hyperscript
   set x to "foo" -- double quotes
@@ -13,18 +17,12 @@ title: string - ///_hyperscript
   set hello to `hello ${name}` -- template strings using "${}"
 ```
 
-### Description
-
-String expressions are similar to string expressions in javascript, and support both a quote and double quote delimiter.
-
-Hyperscript supports [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
-like in Javascript by using the back-tic character, and you can use either a `$` or `${}` to include an expression value in the template.
-
-Note that in some places you can use "naked strings", which are strings that do not have a starting quote or double quote.
-Instead they are delimited by whitespace: `/example`
-
-### Examples
-
 ```html
 <div _="on click log 'hello world'">Hello World!</div>
+```
+
+### Syntax
+
+```ebnf
+(<single-quoted-string> | <double-quoted-string> | <template-literal>)
 ```

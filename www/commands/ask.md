@@ -4,16 +4,7 @@ title: ask - ///_hyperscript
 
 ## The `ask` Command
 
-### Syntax
-
-```ebnf
-ask <expression>
-```
-
-### Description
-
-The `ask` command displays a browser `prompt()` dialog with the given message. The user's input is placed into
-[`it`](/expressions/it) (the result). If the user cancels, `it` is `null`.
+The `ask` command displays a browser `prompt()` dialog with the given message. The user's input is placed into [`it`](/expressions/it). If the user cancels, `it` is `null`.
 
 ### Examples
 
@@ -25,4 +16,10 @@ The `ask` command displays a browser `prompt()` dialog with the given message. T
   end
 ">Ask Name</button>
 <span id="greeting"></span>
+```
+
+### Syntax
+
+```ebnf
+ask <expression>
 ```

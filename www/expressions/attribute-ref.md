@@ -4,13 +4,7 @@ title: attribute reference - ///_hyperscript
 
 ## The `attribute reference` Expression
 
-### Syntax
-
-`[<name>[=<value>]]`
-
-### Description
-
-Attribute references are similar to CSS attribute references, and may or may not include a value.
+Attribute references let you get and set HTML attributes on elements, using a syntax similar to CSS attribute selectors.
 
 ### Examples
 
@@ -22,4 +16,10 @@ Attribute references are similar to CSS attribute references, and may or may not
 <button type="button" _="on click add [@type='submit']">Change My Type!</button>
 
 <button type="button" _="on click my @type to 'submit'">Change My Type As Well!</button>
+```
+
+### Syntax
+
+```ebnf
+[@<name>[=<value>]]
 ```

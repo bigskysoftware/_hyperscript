@@ -4,35 +4,25 @@ title: show - ///_hyperscript
 
 ## The `show` Command
 
-### Syntax
+The `show` command makes a hidden element visible using a configurable strategy. The default strategy is `display`.
 
-```ebnf
-show [target] [with <hide-show-strategy>[: <argument>]] [when <expr>]
-```
+### Strategies
 
-### Description
+The following built-in strategies are available:
 
-The `show` command allows you to show an element in the DOM using various strategies. The default strategy is `display`.
-
-By default, the following strategies are available:
-
-- `display` - toggle display between `none` and `block`
-- `visibility` - toggle visibility between `hidden` and `visible`
-- `opacity` - toggle visibility between `0` and `1`
+- `display` -- toggles display between `none` and `block`
+- `visibility` -- toggles visibility between `hidden` and `visible`
+- `opacity` -- toggles opacity between `0` and `1`
 
 You can also use the style-literal form (e.g. `*display`).
 
-You can change the default hide/show strategy by setting `_hyperscript.config.defaultHideShowStrategy`
+The `display` strategy accepts an argument to specify the display type when showing (e.g. `show:inline`). The default is `block`.
 
-You can add new hide/show strategies by setting the `hyperscript.config.hideShowStrategies` object.
+You can change the default strategy by setting `_hyperscript.config.defaultHideShowStrategy`, or add new strategies via `_hyperscript.config.hideShowStrategies`.
 
-Note that the `display` strategy can take an argument to specify the type of display to use when showing. The default
-is `block`
+### Filtering with `when`
 
-The `when` clause allows you filter what elements are shown in the `target`.  The expression will be evaluated for
-each element in `target` and, if the result is true, the element will be shown.  If it is false, the element will be
-hidden.  The `it` symbol will be set to the current element, allowing you to express conditions against each element
-in `target`
+The `when` clause lets you filter which elements are shown in the target. The expression is evaluated for each element -- if true, the element is shown; if false, it's hidden. Use `it` to refer to the current element.
 
 ### Examples
 
@@ -53,26 +43,27 @@ in `target`
 <input type="text" placeholder="Search..."
      _="on keyup
           show <p/> in #quotes when its textContent contains my value">
-
 ```
 
-### Tailwind CSS extensions
+### Tailwind CSS Extensions
 
-In case you are using Tailwind CSS, you may want to use their utility classes.
+If you're using Tailwind CSS, you can use their utility classes instead. Set `_hyperscript.config.defaultHideShowStrategy` to one of:
 
-You will have to set `_hyperscript.config.defaultHideShowStrategy` to one of this options :
-
-- `twDisplay` - remove class `hidden` [Display - Tailwind](https://tailwindcss.com/docs/display#hidden)
-- `twVisibility` - remove class `invisible` [Visibility - Tailwind](https://tailwindcss.com/docs/visibility#making-elements-invisible)
-- `twOpacity` - remove class `opacity-0` [Opacity - Tailwind](https://tailwindcss.com/docs/opacity)
-
-### Examples
+- `twDisplay` -- removes class `hidden` ([Display - Tailwind](https://tailwindcss.com/docs/display#hidden))
+- `twVisibility` -- removes class `invisible` ([Visibility - Tailwind](https://tailwindcss.com/docs/visibility#making-elements-invisible))
+- `twOpacity` -- removes class `opacity-0` ([Opacity - Tailwind](https://tailwindcss.com/docs/opacity))
 
 ```html
 <div _="on load wait 2s then show">I'll show after a few seconds!</div>
 
-<!-- Or by specifying the strategy name directly between : twDisplay, twVisibility, twOpacity -->
+<!-- Or by specifying the strategy name directly -->
 <div _="on load wait 2s then show with *twOpacity">
   I'll show after a few seconds with Tailwind CSS opacity!
 </div>
+```
+
+### Syntax
+
+```ebnf
+show [<expression>] [with <hide-show-strategy>[: <argument>]] [when <expression>]
 ```

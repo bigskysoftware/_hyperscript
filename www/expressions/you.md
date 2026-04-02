@@ -4,19 +4,7 @@ title: you/yourself/your - ///_hyperscript
 
 ## The `you/yourself/your` Reference
 
-### Syntax
-
-```ebnf
-  you
-```
-
-### Description
-
-The `you` reference is available within the [tell command](/commands/tell) as a reference to current node being acted upon.
-
-If it makes the code more readable in English, `yourself` can be used as an alias.
-
-For [possessive expressions](/expressions/possessive), `your` will also work, as in `your property` instead of `you.property`.
+The `you` reference is available inside the [tell command](/commands/tell), where it refers to the current element being acted upon. You can use `yourself` as an alias if it reads better, and `your` works for [possessive expressions](/expressions/possessive) (e.g., `your property` instead of `you.property`).
 
 ### Examples
 
@@ -36,9 +24,15 @@ tell <[disabled=true]/>
 end
 ```
 
-This uses a [possessive expression](/expressions/possessive) to [decrement](/commands/decrement) the value of every element targeted
+This uses a [possessive expression](/expressions/possessive) to [increment](/commands/increment) the value of every element targeted
 
 ```hyperscript
 tell <.counter/>
     increment your value
+```
+
+### Syntax
+
+```ebnf
+(you | yourself)
 ```

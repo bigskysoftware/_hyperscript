@@ -2,7 +2,7 @@
  * Internal parse elements used by the kernel grammar
  */
 
-import { Command, Feature } from './base.js';
+import { ParseElement, Command, Feature } from './base.js';
 
 /**
  * EmptyCommandListCommand - Placeholder for empty command lists
@@ -41,11 +41,11 @@ export class UnlessStatementModifier extends Command {
 /**
  * HyperscriptProgram - Root node for a parsed hyperscript document
  */
-export class HyperscriptProgram {
+export class HyperscriptProgram extends ParseElement {
     constructor(features) {
+        super();
         this.type = "hyperscript";
         this.features = features;
-        this.errors = [];
     }
 
     apply(target, source, args, runtime) {
@@ -61,10 +61,11 @@ export class HyperscriptProgram {
  * Never executed — element won't apply() if errors exist.
  */
 export class FailedFeature extends Feature {
-    constructor(error) {
+    constructor(error, keyword) {
         super();
         this.type = "failedFeature";
-        this.error = error;
+        this.keyword = keyword;
+        this.errors.push(error);
     }
 
     install() {}
@@ -76,10 +77,11 @@ export class FailedFeature extends Feature {
  * Never executed — element won't apply() if errors exist.
  */
 export class FailedCommand extends Command {
-    constructor(error) {
+    constructor(error, keyword) {
         super();
         this.type = "failedCommand";
-        this.error = error;
+        this.keyword = keyword;
+        this.errors.push(error);
     }
 
     resolve() {}

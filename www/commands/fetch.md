@@ -4,33 +4,19 @@ title: fetch - ///_hyperscript
 
 ## The `fetch` Command
 
-### Syntax
+The `fetch` command issues an HTTP request using the browser's [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch). The result is saved into the `it` variable, and the command is asynchronous.
 
-```ebnf
-fetch <stringLike> [ as [ a | an ]( json | JSON | html | HTML | response | text | String | CONVERSION ) ] [<object literal> | 'with' <naked named arguments>]
-```
+By default the response is processed as text, but you can change this with the `as` modifier:
+- `as JSON` -- parse as JSON
+- `as HTML` -- parse as HTML
+- `as response` -- return the raw Response object
+- `as <Conversion>` -- use any [conversion](/expressions/as) on the response text
 
-### Description
-
-The `fetch` command issues a [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch) request to the
-given URL. The URL can either be a naked URL or a string literal.
-
-By default the result will be processed as text, but you can have it processed
-as JSON, as HTML, or as a raw response object by adding the `as JSON`, `as HTML`
-or `as response` modifiers.
-
-Additionally, you can use any [conversion](/expressions/as) directly on the
-response text.
-
-This command saves the result into the `it` variable.
-
-This command is asynchronous.
+The URL can be a naked URL or a string literal.
 
 ### Timeouts & Cancelling
 
-The `fetch` command supports both timeouts as well as request cancellation.
-
-To add a timeout to a request syntactically, you can use add a `timeout` property using the `with` form:
+You can add a timeout to a request using the `with` form:
 
 ```html
 <button _="on click fetch /example with timeout:300ms
@@ -60,7 +46,7 @@ To cancel a fetch request, send a `fetch:abort` event to the element that trigge
 
 ### Dynamic URLs with Template Literals
 
-If you need to fetch from a dynamically-generated URL, just use a [template literal string](/expressions/string/) (the ones with the backticks) as the URL.  For example:
+If you need to fetch from a dynamically-generated URL, use a [template literal string](/expressions/string/) as the URL:
 
 ```hyperscript
 set userId to my [@data-userId]
@@ -69,8 +55,7 @@ fetch `/users/${userId}/profile` as JSON  -- parsed into an object
 
 ### Events
 
-The `fetch` command features a few events that can be listened to (using hyperscript or javascript) to do things
-like configure the fetch options, update UI state, etc.
+The `fetch` command fires several events you can listen to (using hyperscript or JavaScript) for configuring requests, updating UI state, etc.
 
 |  event | description
 |-------|-------------
@@ -80,7 +65,7 @@ like configure the fetch options, update UI state, etc.
 |`fetch:afterRequest`| Fired after a fetch response has been processed.
 |`fetch:error`| Fired when an error occurs.
 
-Below are a two examples showing how to configure an `X-AuthToken` header using the `fetch:beforeRequest` event:
+Below are two examples showing how to configure an `X-AuthToken` header using the `fetch:beforeRequest` event:
 
 ```html
 <body _="on fetch:beforeRequest(headers)
@@ -118,4 +103,10 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
                  put "${the result + 1}" into my innerHTML'>
   Increment!
 </div>
+```
+
+### Syntax
+
+```ebnf
+fetch <string-like> [as [a | an] (json | html | response | text | <conversion>)] [<object-literal> | with <named-args>]
 ```

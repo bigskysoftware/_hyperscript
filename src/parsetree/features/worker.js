@@ -12,7 +12,7 @@ export class WorkerFeature extends Feature {
 
     static parse(parser) {
         if (parser.matchToken("worker")) {
-            parser.raiseParseError(
+            parser.raiseError(
                 "In order to use the 'worker' feature, include " +
                     "the _hyperscript worker plugin. See " +
                     "https://hyperscript.org/features/worker/ for " +

@@ -4,16 +4,9 @@ title: positional expression - ///_hyperscript
 
 ## The `positional` Expressions
 
-### Syntax
+Positional expressions let you pick an element out of an array or array-like object by position. If applied to a DOM element, the element's children are used.
 
-```ebnf
-  (first | last | random) [(in | of | from)] <expression>
-```
-
-### Description
-
-Positional expressions allow you to select an element from an array or array-like object. If they are applied to a
-DOM element, the children of the DOM object will be used.
+### Examples
 
 ```html
 <div _="on click log first in me">... Log my first child ...</div>
@@ -23,4 +16,10 @@ DOM element, the children of the DOM object will be used.
   Log my last child
   ...
 </div>
+```
+
+### Syntax
+
+```ebnf
+(first | last | random) [in | of | from] <expression>
 ```

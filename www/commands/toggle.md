@@ -4,38 +4,19 @@ title: toggle - ///_hyperscript
 
 ## The `toggle` Command
 
-### Syntax
+The `toggle` command flips classes, attributes, or visibility on and off -- the simplest way to create interactive UI.
 
-```ebnf
-toggle ({<class-ref>} | <attribute-ref> | between <class-ref> and <class-ref> | between <attribute-ref> and <attribute-ref>)
- [on <expression>]
-  [(for <time expression>) |
-   (until <event name> [from <expression>]]`
+You can toggle:
 
-toggle [the | my] ('*opacity' | '*visibility' | '*display')
- [of <expression>]
-  [(for <time expression>) |
-   (until <event name> [from <expression>]]`
-```
-
-### Description
-
-The `toggle` command allows you to toggle:
-
- * A class or set of classes (via a [class ref](/expressions/class-reference))
-
+* A class or set of classes (via a [class ref](/expressions/class-reference))
 * An attribute (via an [attribute ref](/expressions/attribute-ref))
+* The visibility of an element via `opacity`, `visibility`, or `display`
 
-* Or the visibility of an element via `opacity`, `visibility` or `display`
+The target defaults to the current element, or you can specify one with `on` (for classes/attributes) or `of` (for visibility).
 
-on either the current element or, if a [target expression](/expressions)
-is provided, to the targeted element(s).
+Use `toggle between .class1 and .class2` to flip between two classes, or `toggle between @attr1='val1' and @attr2='val2'` to flip between two attributes.
 
-You can use the form `toggle between .class1 and .class2` to flip between two classes, or `toggle between @attr1='val1' and @attr2='val2'` to flip between two attributes.
-
-If you provide a `for <time expression>` the class or attribute will be toggled for that amount of time.
-
-If you provide an `until <event name>` the class or attribute will be toggled until the given event is received.
+If you provide `for <time expression>`, the toggle reverts after that duration. If you provide `until <event name>`, it reverts when that event is received.
 
 ### Examples
 
@@ -60,4 +41,16 @@ If you provide an `until <event name>` the class or attribute will be toggled un
 <button _="on click toggle *display of the next <div/>">
   Toggle Me!
 </button>
+```
+
+### Syntax
+
+```ebnf
+toggle <class-ref>+ [on <expression>]
+toggle <attribute-ref> [on <expression>]
+toggle between <class-ref> and <class-ref> [on <expression>]
+toggle between <attribute-ref> and <attribute-ref> [on <expression>]
+toggle [the | my] <visibility> [of <expression>]
+
+Options: [for <time-expression> | until <event-name> [from <expression>]]
 ```

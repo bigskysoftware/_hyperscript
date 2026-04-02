@@ -4,17 +4,9 @@ title: pseudo-commands - ///_hyperscript
 
 ## Pseudo-Commands
 
-### Syntax
+Pseudo-commands let you call any method on an object as if it were a top-level hyperscript command. If hyperscript doesn't have a built-in command for what you need, you can often just use the method directly.
 
-```ebnf
-  <method name>(<arg list>) [(to | on | with | into | from | at)] <expression>
-```
-
-### Description
-
-Pseudo-commands allow you to treat a method on an object as a top level command. The method name must be followed by
-an argument list, then optional prepositional syntax to clarify the code, then an expression. The method will be
-looked up on the value returned by the expression and executed.
+The method name must be followed by an argument list in parentheses, then an optional preposition (`to`, `on`, `with`, `into`, `from`, `at`) for readability, then an expression to call the method on.
 
 ### Examples
 
@@ -107,4 +99,10 @@ Finally, attempting to use the `increment()` function as a pseudo-command will f
   increment(:x, 2)
 </button>
 <output></output>
+```
+
+### Syntax
+
+```ebnf
+<method-name>(<arg-list>) [(to | on | with | into | from | at)] <expression>
 ```

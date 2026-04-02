@@ -40,7 +40,7 @@ export class PseudoCommand extends Command {
         }
 
         if (expr.type !== "functionCall") {
-            parser.raiseParseError("Pseudo-commands must be function calls");
+            parser.raiseError("Pseudo-commands must be function calls");
         }
 
         if (root.type === "functionCall" && root.root.root == null) {
