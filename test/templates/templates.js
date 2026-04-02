@@ -324,4 +324,143 @@ test.describe('Templating', () => {
         const res = await evaluate(() => window.res)
         expect(res).toBe('&lt;div class=&quot;a&quot; data-x=&#039;b&#039;&gt;&amp;')
     })
+
+    test('supports for...else with non-empty collection', async ({html, evaluate}) => {
+        await html('<template>#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [1, 2, 3], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Found: 1\nFound: 2\nFound: 3\n')
+    })
+
+    test('supports for...else with empty collection', async ({html, evaluate}) => {
+        await html('<template>#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('No items found\n')
+    })
+
+    test('supports for...else with null collection', async ({html, evaluate}) => {
+        await html('<template>#for item in items\nFound: ${item}\n#else\nNothing to show\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: null, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Nothing to show\n')
+    })
+
+    test('supports conditional expressions with if', async ({html, evaluate}) => {
+        await html('<template>Result: ${value if condition}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with value: value, condition: condition then put it into window.res", {
+                locals: { value: 'Hello', condition: true, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Result: Hello')
+    })
+
+    test('supports conditional expressions with if (false condition)', async ({html, evaluate}) => {
+        await html('<template>Result: ${value if condition}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with value: value, condition: condition then put it into window.res", {
+                locals: { value: 'Hello', condition: false, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Result: ')
+    })
+
+    test('supports conditional expressions with if...else', async ({html, evaluate}) => {
+        await html('<template>Result: ${value if condition else fallback}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with value: value, condition: condition, fallback: fallback then put it into window.res", {
+                locals: { value: 'Hello', condition: false, fallback: 'Goodbye', tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Result: Goodbye')
+    })
+
+    test('supports conditional expressions with complex expressions', async ({html, evaluate}) => {
+        await html('<template>Status: ${user.name if user.active else "Inactive"}</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with user: user then put it into window.res", {
+                locals: { user: { name: 'Alice', active: true }, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Status: Alice')
+    })
+
+    test('supports conditional expressions in loops', async ({html, evaluate}) => {
+        await html('<template>#for item in items\n${item.name if item.show else "Hidden"}\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: {
+                    items: [
+                        { name: 'Apple', show: true },
+                        { name: 'Banana', show: false },
+                        { name: 'Cherry', show: true }
+                    ],
+                    tmpl
+                }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('Apple\nHidden\nCherry\n')
+    })
+
+    test('supports continue in template for loops', async ({html, evaluate}) => {
+        await html('<template>#for item in items\n#if item === 2\n#continue\n#end\n${item}\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [1, 2, 3, 4], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('1\n3\n4\n')
+    })
+
+    test('supports break in template for loops', async ({html, evaluate}) => {
+        await html('<template>#for item in items\n#if item === 3\n#break\n#end\n${item}\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [1, 2, 3, 4, 5], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('1\n2\n')
+    })
+
+    test('break prevents else clause from executing', async ({html, evaluate}) => {
+        await html('<template>#for item in items\n#if item === 2\n#break\n#end\n${item}\n#else\nNo items\n#end\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [1, 2, 3], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('1\n')
+    })
 })
