@@ -2,6 +2,13 @@
 # Run with: just -f tools/justfile <recipe>
 # Or: cd tools && just <recipe>
 
+# Clean all build artifacts
+clean:
+    rm -rf jetbrains/.gradle jetbrains/.intellijPlatform jetbrains/build
+    rm -rf common/tree-sitter-hyperscript/src common/tree-sitter-hyperscript/build
+    rm -rf lsp/node_modules vscode/node_modules
+    rm -rf common/tree-sitter-hyperscript/node_modules
+
 # Rebuild the shared IIFE from src/
 build-iife:
     cd .. && npx esbuild src/_hyperscript.js --bundle --format=iife --platform=browser --target=es2022 --outfile=tools/common/_hyperscript.iife.js
