@@ -4,15 +4,7 @@ title: continue - ///_hyperscript
 
 ## The `continue` Command
 
-### Syntax
-
-```ebnf
-continue
-```
-
-### Description
-
-The `continue` command works inside any `repeat` block.  It exits the current iteration of the loop and begins at the top of the next iteration.
+The `continue` command skips the rest of the current iteration in a `repeat` loop and jumps to the top of the next iteration.
 
 ### Example
 
@@ -22,4 +14,10 @@ repeat 3 times
     continue
     append "skipped " to #message -- this command will be skipped
  end
+```
+
+### Syntax
+
+```ebnf
+continue
 ```

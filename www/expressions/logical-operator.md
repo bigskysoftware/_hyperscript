@@ -4,15 +4,7 @@ title: logical operator - ///_hyperscript
 
 ## The `logical operator` Expression
 
-### Syntax
-
-`x and y`
-`x or y`
-`not x`
-
-### Description
-
-Logical operators are similar to logical operators in javascript, but use the english words rather than symbols.
+Logical operators work like their JavaScript counterparts but use English words (`and`, `or`, `not`) instead of symbols.
 
 Note that all logical operators have the same precedence, but if multiple distinct operators are used the expression must be parenthesized to avoid ambiguity.
 
@@ -26,4 +18,12 @@ Note that all logical operators have the same precedence, but if multiple distin
 >
   Activate Me
 </div>
+```
+
+### Syntax
+
+```ebnf
+<expression> and <expression>
+<expression> or <expression>
+not <expression>
 ```

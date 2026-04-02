@@ -4,16 +4,7 @@ title: render - ///_hyperscript
 
 ## The `render` Command
 
-### Syntax
-
-```ebnf
-render <template-element> [with <name>: <expr>, ...]
-```
-
-### Description
-
-The `render` command implements a template language for generating HTML strings from `<template>` elements.
-The result is placed into `it` / `the result`.
+The `render` command generates HTML strings from `<template>` elements using a simple template language. The result is placed into `it` / `the result`.
 
 Templates have three rules:
 
@@ -89,4 +80,10 @@ With `html` set to `"<b>bold</b>"`, this produces:
 ```
   Escaped: &lt;b&gt;bold&lt;/b&gt;
   Raw: <b>bold</b>
+```
+
+### Syntax
+
+```ebnf
+render <template-element> [with <name>: <expression>, ...]
 ```

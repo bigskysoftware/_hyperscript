@@ -4,21 +4,9 @@ title: remove - ///_hyperscript
 
 ## The `remove` Command
 
-### Syntax
+The `remove` command removes an element from the DOM, or removes classes, attributes, or CSS properties from elements.
 
-```ebnf
-remove <class-ref+ or attribute-ref or object-literal or expression> [from <target-expression>] [when <expr>]
-```
-
-### Description
-
-The `remove` command allows you to remove an element from the DOM, or to remove
-a class, property, or CSS properties from an element node.
-
-The `when` clause allows you to filter what elements have the class, property or CSS removed in the `target`.  The expression will be evaluated for
-each element in `target` and, if the result is true, the value will be removed.  If it is false, the value
-will be added back.  The `it` symbol will be set to the current element, allowing you to express conditions against each element
-in `target`.
+The `when` clause lets you filter which elements are affected. The expression is evaluated for each element in the target -- if it returns true, the value is removed; if false, it's added back. Use `it` to refer to the current element.
 
 ### Examples
 
@@ -46,4 +34,10 @@ in `target`.
 <div _="on click remove .highlight from .item when it matches .old">
   Conditionally Remove Class!
 </div>
+```
+
+### Syntax
+
+```ebnf
+remove (<class-ref>+ | <attribute-ref> | <object-literal> | <expression>) [from <expression>] [when <expression>]
 ```

@@ -4,19 +4,9 @@ title: send - ///_hyperscript
 
 ## The `send`/`trigger` Command
 
-### Syntax
+The `send` command fires an event at a target element. You can pass data along with the event using named arguments, which are available on `event.detail`.
 
-```ebnf
- send <event-name>[(<named arguments>)] [to <expression>]
- trigger <event-name>[(<named arguments>)] [on <expression>]
-```
-
-### Description
-
-The `send` command sends an event to the given target. Arguments can optionally be provided in a named argument list
-and will be passed in the `event.detail` object.
-
-You can alternatively use the equivalent `trigger` syntax.
+The `trigger` keyword is an equivalent alternative -- use whichever reads more naturally.
 
 ### Examples
 
@@ -33,4 +23,11 @@ You can alternatively use the equivalent `trigger` syntax.
         on doIt(answer) log `The answer is $answer`">
   Click Me!
 </div>
+```
+
+### Syntax
+
+```ebnf
+send <event-name>[(<named-arguments>)] [to <expression>]
+trigger <event-name>[(<named-arguments>)] [on <expression>]
 ```

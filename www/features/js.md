@@ -4,13 +4,7 @@ title: js - ///_hyperscript
 
 ## The `js` Feature (top-level)
 
-### Syntax
-
-`js <js-body> end`
-
-- `js-body` is some JavaScript code.
-
-### Description
+The top-level `js` feature lets you drop into JavaScript within a `<script type=text/hyperscript>` block. This is useful for defining helper functions that you can then call from your hyperscript code.
 
 **Note:** This page is about the top-level JS feature. \_hyperscript also supports [inline JS as a command](/commands/js/), say, inside an event listener or function.
 
@@ -67,3 +61,11 @@ worker MyWorker
 `this` inside a `js` block is the global scope (`window`, or `self` in workers).
 
 {% include "js_end.md" %}
+
+### Syntax
+
+```ebnf
+js
+  <javascript-body>
+end
+```

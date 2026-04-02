@@ -4,18 +4,9 @@ title: scroll - ///_hyperscript
 
 ## The `scroll` Command
 
-### Syntax
+The `scroll` command scrolls elements into view or scrolls by a relative amount, with control over position, animation, and container.
 
-```ebnf
-scroll to [the] [top|middle|bottom] [left|center|right] [of] <expr> [(+|-) <number> [px]] [in <container>] [smoothly|instantly]
-scroll [<target>] [up|down|left|right] by <number> [px] [smoothly|instantly]
-```
-
-### Description
-
-The `scroll` command has two forms:
-
-**Scroll to** scrolls an element into view. You can control the scroll position with vertical modifiers
+There are two forms. **Scroll to** scrolls an element into view. You can control the scroll position with vertical modifiers
 (`top`, `middle`, `bottom`) and horizontal modifiers (`left`, `center`, `right`). Add a pixel offset
 with `+` or `-` to pad the final scroll position. Use `in <container>` to scroll within a specific
 scrollable parent without affecting outer scroll containers.
@@ -57,4 +48,11 @@ Both forms support `smoothly` (animated) or `instantly` (immediate jump).
 <button _="on click scroll #panel right by 100px">
   Scroll Panel Right
 </button>
+```
+
+### Syntax
+
+```ebnf
+scroll to [the] [top | middle | bottom] [left | center | right] [of] <expression> [(+ | -) <number> [px]] [in <expression>] [smoothly | instantly]
+scroll [<expression>] [up | down | left | right] by <number> [px] [smoothly | instantly]
 ```

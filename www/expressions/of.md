@@ -4,15 +4,9 @@ title: of - ///_hyperscript
 
 ## The `of` Expression
 
-### Syntax
+The `of` expression lets you reverse the normal order of property access for more natural, readable code. Instead of `window.location`, you can write `the location of the window`.
 
-```ebnf
-  <expression> of <expression>
-```
-
-### Description
-
-The `of` expression allows you to reverse the normal order of property accessors for clearer code.
+### Examples
 
 So this:
 
@@ -31,3 +25,9 @@ Can be rewritten like this:
 ```
 
 Where we have converted `window.location` into the form `the location of the window`.
+
+### Syntax
+
+```ebnf
+<expression> of <expression>
+```

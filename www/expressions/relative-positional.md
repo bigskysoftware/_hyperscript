@@ -4,30 +4,23 @@ title: relative positional expression - ///_hyperscript
 
 ## The `relative positional` Expression
 
-### Syntax
+Relative positional expressions let you find an element relative to another element in the DOM using `next` and `previous`. The search does a linear depth-first walk over the DOM, including elements adjacent to parent elements.
 
-```ebnf
-  (next|previous) <css expression> [from <expression>] [within <expression>] [with wrapping]
-```
+You can use the `from` clause to start the search from a different element (defaults to the current element). The `within` clause restricts the search to a subtree of the DOM (defaults to the entire document). Add `with wrapping` to have the search wrap around.
 
-### Description
+These are useful for things like building a custom focus ring.
 
-Relative positional expressions allow you to select an element relative to another element in the DOM, using the
-`next` and `previous` keywords.  The command will scan forward (`next`) or backwards (`previous`) in a linear depth-first
-walk over the DOM, including elements adjacent to parent elements.
-
-You can use the `from` clause to start the linear forward search from another element.  The default element to start
-the search from is the current element that the script is on.
-
-You can use the `within` clause to restrict the search to a given subset of the DOM.  The default is the entire document.
-
-You can have the search wrap around by adding the `with wrapping` clause at the end of the expression.
-
-These expressions can be used, for example, to create a custom focus ring.
+### Examples
 
 ```html
 <button _="on click toggle .hidden on the next <div/>">Toggle Hidden</button>
 <div class="hidden">
   ...
 </div>
+```
+
+### Syntax
+
+```ebnf
+(next | previous) <css-selector> [from <expression>] [within <expression>] [with wrapping]
 ```

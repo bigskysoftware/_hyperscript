@@ -4,15 +4,7 @@ title: break - ///_hyperscript
 
 ## The `break` Command
 
-### Syntax
-
-```ebnf
-break
-```
-
-### Description
-
-The `break` command works inside any `repeat` block.  It exits the loop.
+The `break` command exits the current `repeat` loop immediately.
 
 ### Example
 
@@ -24,4 +16,10 @@ repeat 3 times
     end
     append "Value is still empty... <br/>" to #message
  end
+```
+
+### Syntax
+
+```ebnf
+break
 ```

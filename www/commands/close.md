@@ -4,23 +4,15 @@ title: close - ///_hyperscript
 
 ## The `close` Command
 
-### Syntax
+The `close` command closes an element by automatically detecting its type and calling the appropriate API. If you don't specify a target, it defaults to `me`.
 
-```ebnf
-close [fullscreen] [<expression>]
-```
-
-### Description
-
-The `close` command closes an element. It automatically detects the element type and calls the right API:
+The element type determines the behavior:
 
 - `<dialog>` — calls `close()`
 - `<details>` — removes the `open` attribute
 - Elements with a `popover` attribute — calls `hidePopover()`
 - `fullscreen` — calls `document.exitFullscreen()`
 - Other elements — calls `.close()` as a fallback
-
-If no target is given, defaults to `me`.
 
 ### Examples
 
@@ -31,4 +23,10 @@ If no target is given, defaults to `me`.
 </dialog>
 
 <button _="on click close fullscreen">Exit Fullscreen</button>
+```
+
+### Syntax
+
+```ebnf
+close [fullscreen] [<expression>]
 ```

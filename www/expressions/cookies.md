@@ -4,19 +4,9 @@ title: cookies - ///_hyperscript
 
 ## The `cookies` Symbol
 
-### Syntax
+The `cookies` symbol gives you a clean API for working with browser cookies, making them behave more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) instead of the awkward [`document.cookie`](https://developer.mozilla.org/en-US/docs/web/api/document/cookie) string API.
 
-```ebnf
-  cookies
-```
-
-### Description
-
-The cookies symbol is not a proper expression, but rather a value assigned, by default, to the `cookies` symbol.  This
-value presents a better API than the standard [`document.cookie`](https://developer.mozilla.org/en-US/docs/web/api/document/cookie)
-API, making cookies work more like [`window.localStorage`](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
-
-The API of the `cookies` symbol is as follows:
+### API
 
 | name                         | description                                                   | example                       |
 |------------------------------|---------------------------------------------------------------|-------------------------------|
@@ -27,7 +17,9 @@ The API of the `cookies` symbol is as follows:
 | cookies.clear(<cookie name>) | clears a given cookie                                         | `cookies.clear('foo')`        |
 | cookies.clearAll()           | clears all cookies                                            | `cookies.clearAll()`     |
 
-In addition to this, the `cookies` symbol can be iterated over:
+### Iterating
+
+The `cookies` symbol can be iterated over:
 
 ```hyperscript
     for c in cookies
@@ -35,18 +27,19 @@ In addition to this, the `cookies` symbol can be iterated over:
     end
 ```
 
-You can also assign a simple javascript object to a given cookie name in order to pass values for 
+### Setting Cookie Attributes
+
+You can assign a simple javascript object to a given cookie name in order to pass values for
 [specialized attributes](https://developer.mozilla.org/en-US/docs/web/api/document/cookie#write_a_new_cookie) like `expires`:
 
 ```hyperscript
   set cookies['My-Cookie'] to {value: "true", maxAge: 600}
 ```
 
-The attributes of the the javascript object will be interpreted as follows:
+The attributes of the javascript object will be interpreted as follows:
 
 * `value` will be the value of the cookie
 * All other properties will be kebab-cased from camel case and set as part of the cookie string, as specified [here](https://developer.mozilla.org/en-US/docs/web/api/document/cookie#write_a_new_cookie).
-
 
 ### Examples
 
@@ -54,4 +47,10 @@ The attributes of the the javascript object will be interpreted as follows:
 <button _="on click set cookies.hello to 'world'">
     Set the cookie 'hello' to 'world'!
 </button>
+```
+
+### Syntax
+
+```ebnf
+cookies
 ```

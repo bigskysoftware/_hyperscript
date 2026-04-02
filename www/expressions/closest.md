@@ -4,16 +4,9 @@ title: closest - ///_hyperscript
 
 ## The `closest` Expression
 
-### Syntax
+The `closest` expression finds the nearest ancestor element matching a CSS selector. By default it starts from the current element, but you can specify a different starting point with the `to` clause.
 
-```ebnf
-  closest <css expression> [to <expression>]
-```
-
-### Description
-
-The `closest` expression allows you to find the closest matching element to a given DOM element. By default
-it will use the current element.
+### Examples
 
 ```html
 <div _="on click add .clicked to the closest <section/>">...</div>
@@ -21,4 +14,10 @@ it will use the current element.
 <div _="on click add .clicked to the closest <div/> to the parentElement of me">
   ...
 </div>
+```
+
+### Syntax
+
+```ebnf
+closest <css-selector> [to <expression>]
 ```

@@ -4,13 +4,7 @@ title: query reference - ///_hyperscript
 
 ## The `query reference` Expression
 
-### Syntax
-
-`<<css query>/>'
-
-### Description
-
-The query reference expression allows you to embed arbitrary [CSS selectors](https://www.w3schools.com/cssref/css_selectors.asp) in hyperscript. It will evaluate to all matching elements.
+A query reference lets you embed an arbitrary [CSS selector](https://www.w3schools.com/cssref/css_selectors.asp) directly in your hyperscript. It evaluates to all matching elements.
 
 ### Examples
 
@@ -20,4 +14,10 @@ The query reference expression allows you to embed arbitrary [CSS selectors](htt
 <div _="on click add .clicked to <button:not(.clicked)/>">
   Add .clicked to all buttons that don't have .clicked on it already...
 </div>
+```
+
+### Syntax
+
+```ebnf
+<<css-selector>/>
 ```

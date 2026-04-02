@@ -4,21 +4,17 @@ title: append - ///_hyperscript
 
 ## The `append` Command
 
-### Syntax
+The `append` command adds a value to the end of a string, array, or HTML element. If you don't specify a target, it writes to the standard `result` variable.
 
-```ebnf
-append <string> [to <string> | <array> | <HTML Element>]
-```
+The behavior depends on the target type:
 
-### Description
-
-The `append` command adds a string value to the end of another string, array, or HTML Element. If no target variable is defined, then the standard `result` variable is used by default.
+- **String** — uses `+=` to concatenate to the end of the variable.
+- **Array** — uses `Array.push()` to add a new item.
+- **HTML Element** — appends to the element's `innerHTML`.
 
 ### Examples
 
 #### Append to a string
-
-If you target a string variable, then `append` uses `+=` to add the string to the end of the target variable.
 
 ```hyperscript
 set fullName to "John"
@@ -27,8 +23,6 @@ append " Connor" to fullName
 ```
 
 #### Append to an array
-
-If you target an array variable, then `append` uses `Array.push()` to add a new item to the end of the array.
 
 ```hyperscript
 set resultArray to []
@@ -40,15 +34,13 @@ append 3 to resultArray
 
 #### Append to an HTML Element
 
-If you target an HTML Element, then the value is appended to the end of the element's `innerHTML`
-
 ```hyperscript
 append "<i>More HTML here</i>" to #myDIV
 ```
 
 #### Use `append` to collect content
 
-If no target variable is provided, `append` writes to the standard `result` variable by default. In some cases this can help you to write even more compact code. But, be careful! Many other commands will also write to the `result` (or `it`) variable, which can overwrite your work.
+If no target variable is provided, `append` writes to the standard `result` variable by default. This can help you write more compact code — but be careful, many other commands also write to `result` (or `it`), which can overwrite your work.
 
 ```hyperscript
 set result to "<div>"
@@ -62,4 +54,10 @@ repeat for person in people
 end
 append "</div>"
 put it into #people
+```
+
+### Syntax
+
+```ebnf
+append <expression> [to <string> | <array> | <element>]
 ```
