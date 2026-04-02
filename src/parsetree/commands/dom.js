@@ -1092,7 +1092,7 @@ export class SpeakCommand extends Command {
             } else if (parser.matchToken("volume")) {
                 volume = parser.requireElement("expression");
             } else {
-                parser.raiseError("Expected voice, rate, pitch, or volume");
+                parser.raiseExpected('voice', 'rate', 'pitch', 'volume');
             }
         }
         return new SpeakCommand(text, voice, rate, pitch, volume);

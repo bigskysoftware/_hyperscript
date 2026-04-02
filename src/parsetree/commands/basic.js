@@ -419,7 +419,7 @@ export class PickCommand extends Command {
 
     static parseSource(parser) {
         if (!parser.matchAnyToken("of", "from")) {
-            parser.raiseError("Expected 'of' or 'from'");
+            parser.raiseExpected('of', 'from');
         }
         return parser.requireElement("expression");
     }
