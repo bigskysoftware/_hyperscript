@@ -128,7 +128,7 @@ export class GetCommand extends Command {
         if (!isCall && !parser.matchToken("get")) return;
         var expr = parser.requireElement("expression");
         if (isCall && expr && expr.type !== "functionCall") {
-            parser.raiseParseError("Must be a function invocation");
+            parser.raiseError("Must be a function invocation");
         }
         return new GetCommand(expr);
     }

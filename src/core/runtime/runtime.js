@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
-import { formatErrors } from '../tokenizer.js';
+import { formatErrors } from '../parser.js';
 
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();

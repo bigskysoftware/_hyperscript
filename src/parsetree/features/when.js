@@ -37,7 +37,7 @@ export class WhenFeature extends Feature {
             var expr = exprs[i];
             if (expr.type === "symbol" && expr.scope === "default"
                 && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
-                parser.raiseParseError(
+                parser.raiseError(
                     "Cannot watch local variable '" + expr.name + "'. " +
                     "Local variables are not reactive. Use '$" + expr.name +
                     "' (global) or ':" + expr.name + "' (element-scoped) instead."

@@ -36,7 +36,7 @@ export class BindFeature extends Feature {
         }
 
         if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
-            parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
+            parser.raiseError("bind requires a connector: 'and', 'with', or 'to'");
         }
 
         var right = parser.requireElement("expression");

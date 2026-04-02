@@ -105,7 +105,7 @@ class VisibilityCommand extends Command {
         name = name || configDefault || "display";
         var value = strategies[name];
         if (value == null) {
-            parser.raiseParseError("Unknown show/hide strategy : " + name);
+            parser.raiseError("Unknown show/hide strategy : " + name);
         }
         return value;
     }
@@ -149,7 +149,7 @@ export class AddCommand extends Command {
             if (attributeRef == null) {
                 cssDeclaration = parser.parseElement("styleLiteral");
                 if (cssDeclaration == null) {
-                    parser.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseError("Expected either a class reference or attribute expression");
                 }
             }
         } else {
@@ -270,7 +270,7 @@ export class RemoveCommand extends Command {
                 if (cssDeclaration == null) {
                     elementExpr = parser.parseElement("expression");
                     if (elementExpr == null) {
-                        parser.raiseParseError(
+                        parser.raiseError(
                             "Expected either a class reference, attribute expression or value expression"
                         );
                     }
@@ -293,7 +293,7 @@ export class RemoveCommand extends Command {
 
         if (parser.matchToken("when")) {
             if (elementExpr) {
-                parser.raiseParseError("'when' clause is not supported when removing elements");
+                parser.raiseError("'when' clause is not supported when removing elements");
             }
             var when = parser.requireElement("expression");
         }
@@ -426,7 +426,7 @@ export class ToggleCommand extends VisibilityCommand {
                 var betweenAttr = true;
                 var attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
-                    parser.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseError("Expected either a class reference or attribute expression");
                 }
                 parser.requireToken("and");
                 var attributeRef2 = parser.requireElement("attributeRef");
@@ -436,7 +436,7 @@ export class ToggleCommand extends VisibilityCommand {
             if (classRef == null) {
                 attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
-                    parser.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseError("Expected either a class reference or attribute expression");
                 }
             } else {
                 classRefs = [classRef];
@@ -718,7 +718,7 @@ export class TakeCommand extends Command {
             if (!weAreTakingClasses) {
                 attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
-                    parser.raiseParseError("Expected either a class reference or attribute expression");
+                    parser.raiseError("Expected either a class reference or attribute expression");
                 }
 
                 if (parser.matchToken("with")) {
@@ -1092,7 +1092,7 @@ export class SpeakCommand extends Command {
             } else if (parser.matchToken("volume")) {
                 volume = parser.requireElement("expression");
             } else {
-                parser.raiseParseError("Expected voice, rate, pitch, or volume");
+                parser.raiseError("Expected voice, rate, pitch, or volume");
             }
         }
         return new SpeakCommand(text, voice, rate, pitch, volume);

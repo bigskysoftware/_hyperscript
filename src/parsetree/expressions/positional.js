@@ -265,7 +265,7 @@ export class ClosestExpr extends Expression {
         if (css == null) {
             var expr = parser.requireElement("expression");
             if (expr.css == null) {
-                parser.raiseParseError("Expected a CSS expression");
+                parser.raiseError("Expected a CSS expression");
             } else {
                 css = expr.css;
             }
