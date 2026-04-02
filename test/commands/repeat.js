@@ -371,4 +371,12 @@ test.describe("the repeat command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("5");
 	});
+
+	test("for loop over undefined skips without error", async ({html, find}) => {
+		await html(
+			"<div _='on click repeat for x in doesNotExist put x at end of me end then put \"done\" into me'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("done");
+	});
 });
