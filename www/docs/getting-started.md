@@ -96,7 +96,7 @@ You can also add hyperscript within script tags that are denoted as `text/hypers
 
 Features defined in script tags will apply to the `body`.
 
-Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](#workers)).
+Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](/docs/advanced/#workers)).
 
 To use a feature like workers you can install the extension directly by including `/dist/ext/worker.js` after you
 include hyperscript.

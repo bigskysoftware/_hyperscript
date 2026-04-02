@@ -198,7 +198,7 @@ Here is an example of a click handler that uses an element scoped variable to ma
 <output>--</output>
 {% endexample %}
 
-This script also uses the implicit `it` symbol, which we will discuss [below](#special-names--symbols).
+This script also uses the implicit `it` symbol, which we will discuss [below](#zoo).
 
 You can also initialize element-scoped variables at the top level using the [`set` feature](/features/set):
 
@@ -248,7 +248,7 @@ This will store the value 10 in the attribute `my-attr` on the current element:
 Note that, unlike regular variables, attributes can only store strings.  Anything else you store in them will be converted
 to a string.
 
-You can remember the `@` sign as the **at**tribute operator.  We will discuss other DOM literals [below](#dom-literals).
+You can remember the `@` sign as the **at**tribute operator.  We will discuss other DOM literals [below](/docs/dom/#dom-literals).
 
 Here is the above example, rewritten to use an attribute rather than an element-scoped variable:
 
@@ -337,7 +337,7 @@ Here is a table of available symbols:
 
 Note that the `target` is the element that the event *originally* occurred on.
 
-Event handlers, discussed [below](#event), may be placed on parent elements to take advantage
+Event handlers, discussed [below](/docs/events/#event), may be placed on parent elements to take advantage
 of [event bubbling](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling_and_capture)
 which can reduce redundancy in code.
 
@@ -446,7 +446,7 @@ If you wish to assign an identifier to the new object you can use the ` called `
   log myURL
   ~~~
 
-You can also use [query literals](/expressions/query-reference), discussed [below](#dom-literals), to create new HTML content:
+You can also use [query literals](/expressions/query-reference), discussed [below](/docs/dom/#dom-literals), to create new HTML content:
 
   ~~~ hyperscript
   make an <a.navlink/> then put it after me
@@ -469,7 +469,7 @@ The `+` operator concatenates arrays, producing a new array without mutating the
   set c to a + 5          -- c is [1, 2, 5]
   ~~~
 
-You can use the `first`, `last` and `random` keywords, discussed [below](#positional), with arrays:
+You can use the `first`, `last` and `random` keywords, discussed [below](/docs/dom/#positional), with arrays:
 
   ~~~ hyperscript
   set myArr to [1, 2, 3]
@@ -481,7 +481,7 @@ You can use the `first`, `last` and `random` keywords, discussed [below](#positi
 ##### Closures
 
 Hyperscript does not encourage the use of closures or callbacks nearly as much as JavaScript.  Rather, it uses
-[async transparency](#async) to handle many of the situations in which JavaScript would use them.
+[async transparency](/docs/network/#async) to handle many of the situations in which JavaScript would use them.
 
 However, there is one area where closures provide a lot of value in hyperscript: data structure manipulation.  The
 hyperscript syntax for closures is inspired by [haskell](https://www.haskell.org/), starting with a `\` character,
@@ -744,7 +744,7 @@ Loops support the [`break`](/commands/break) and [`continue`](/commands/continue
   end
   ~~~
 
-You can also use events to signal when a loop ends, see [the async section on loops](#async_loops)
+You can also use events to signal when a loop ends, see [the async section on loops](/docs/network/#async_loops)
 
 #### Tell Blocks {#tell}
 

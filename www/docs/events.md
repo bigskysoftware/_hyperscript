@@ -378,7 +378,7 @@ message of the exception:
        log "An error occurred: " + error
   ~~~
 
-Note that exception handling in hyperscript respects the [async-transparent](#async) behavior of the language.
+Note that exception handling in hyperscript respects the [async-transparent](/docs/network/#async) behavior of the language.
 
 #### Finally Blocks {#finally}
 

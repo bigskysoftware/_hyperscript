@@ -258,7 +258,7 @@ Hyperscript is directly integrated with JavaScript, providing ways to use them s
 
 ### Calling JavaScript {#js-call}
 
-Any JavaScript function may be called directly from Hyperscript. See: [calling functions](#calling-functions).
+Any JavaScript function may be called directly from Hyperscript. See: [calling functions](/docs/language/#calling-functions).
 
   ~~~ html
   <button _="on click call alert('Hello from JavaScript!')">
@@ -294,7 +294,7 @@ JavaScript at the top-level may be defined using the same [`js` command](/comman
 
 You may use inline JavaScript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
 
-This feature is useful in [workers](#workers), when you want to pass JavaScript across to the worker's
+This feature is useful in [workers](/docs/advanced/#workers), when you want to pass JavaScript across to the worker's
 implementation:
 
   ~~~ html
