@@ -26,62 +26,61 @@ export class ParseRecoverySentinel extends Error {
     }
 }
 
-export function formatErrors(errors) {
-    if (!errors.length) return "";
-    var source = errors[0].source;
-    var lines = source.split("\n");
-
-    // Group errors by line number
-    var byLine = new Map();
-    for (var e of errors) {
-        var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
-        if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
-        byLine.get(lineIdx).push(e);
-    }
-
-    var maxLine = Math.max(...byLine.keys()) + 1;
-    var gutter = String(maxLine).length;
-    var pad = " ".repeat(gutter + 5);
-    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
-    var prevLineIdx = -1;
-    var out = "";
-
-    for (var [lineIdx, lineErrors] of sortedLines) {
-        if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
-            out += " ".repeat(gutter + 1) + "...\n";
-        } else if (prevLineIdx === -1 && lineIdx > 0) {
-            out += " ".repeat(gutter + 1) + "...\n";
-        }
-        prevLineIdx = lineIdx;
-
-        var lineNum = String(lineIdx + 1).padStart(gutter);
-        var contextLine = lines[lineIdx] || "";
-        out += "  " + lineNum + " | " + contextLine + "\n";
-
-        lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
-
-        var underlineChars = Array(contextLine.length + 10).fill(" ");
-        for (var e of lineErrors) {
-            var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
-            var len = Math.max(1, e.token?.value?.length || 1);
-            for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
-        }
-        out += pad + underlineChars.join("").trimEnd() + "\n";
-
-        for (var e of lineErrors) {
-            var col = e.token?.line ? e.token.column : 0;
-            out += pad + " ".repeat(col) + e.message + "\n";
-        }
-    }
-    return out;
-}
-
 export class Parser {
     #kernel;
 
     constructor(kernel, tokens) {
         this.#kernel = kernel;
         this.tokens = tokens;
+    }
+
+    static formatErrors(errors) {
+        if (!errors.length) return "";
+        var source = errors[0].source;
+        var lines = source.split("\n");
+
+        var byLine = new Map();
+        for (var e of errors) {
+            var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+            if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+            byLine.get(lineIdx).push(e);
+        }
+
+        var maxLine = Math.max(...byLine.keys()) + 1;
+        var gutter = String(maxLine).length;
+        var pad = " ".repeat(gutter + 5);
+        var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+        var prevLineIdx = -1;
+        var out = "";
+
+        for (var [lineIdx, lineErrors] of sortedLines) {
+            if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+                out += " ".repeat(gutter + 1) + "...\n";
+            } else if (prevLineIdx === -1 && lineIdx > 0) {
+                out += " ".repeat(gutter + 1) + "...\n";
+            }
+            prevLineIdx = lineIdx;
+
+            var lineNum = String(lineIdx + 1).padStart(gutter);
+            var contextLine = lines[lineIdx] || "";
+            out += "  " + lineNum + " | " + contextLine + "\n";
+
+            lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+
+            var underlineChars = Array(contextLine.length + 10).fill(" ");
+            for (var e of lineErrors) {
+                var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+                var len = Math.max(1, e.token?.value?.length || 1);
+                for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+            }
+            out += pad + underlineChars.join("").trimEnd() + "\n";
+
+            for (var e of lineErrors) {
+                var col = e.token?.line ? e.token.column : 0;
+                out += pad + " ".repeat(col) + e.message + "\n";
+            }
+        }
+        return out;
     }
 
     // ===========================
