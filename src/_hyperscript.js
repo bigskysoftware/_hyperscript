@@ -4,7 +4,7 @@
 // Import core modules
 import {Tokenizer} from './core/tokenizer.js';
 import {LanguageKernel} from './core/kernel.js';
-import {Parser, formatErrors} from './core/parser.js';
+import {Parser} from './core/parser.js';
 import {Runtime} from './core/runtime/runtime.js';
 import {HyperscriptModule} from './core/runtime/collections.js';
 import {config} from './core/config.js';
@@ -101,7 +101,7 @@ function evaluate(src, ctx, args) {
     let element = kernel.parse(tokenizer, src);
 
     if (element && element.errors && element.errors.length > 0) {
-        throw new Error(element.errors[0].message + "\n\n" + formatErrors(element.errors));
+        throw new Error(element.errors[0].message + "\n\n" + Parser.formatErrors(element.errors));
     }
 
     if (element.execute) {
