@@ -10,6 +10,9 @@ function escapeHTML(html) {
 		.replace(/\x27/g, "&#039;");
 }
 
+/**
+ * TemplateTextCommand - Parses template text and resolves expressions
+ */
 class TemplateTextCommand extends Command {
 	constructor(parts) {
 		super();
@@ -127,15 +130,12 @@ class TemplateTextCommand extends Command {
             vals.map((val, i) => stringify(val, this.parts[i])).join('')
         );
         return ctx.meta.runtime.findNext(this, ctx);
-    //     if (val === undefined || val === null) return '';
-    //     if (part.escape) return escapeHTML(String(val));
-    //     return String(val);
-    // }).join('');
-	// 	ctx.meta.__ht_template_result.push(result);
-	// 	return ctx.meta.runtime.findNext(this, ctx);
 	}
 }
 
+/**
+ * RenderCommand - Renders a template string
+ */
 class RenderCommand extends Command {
 	static keyword = "render";
 
