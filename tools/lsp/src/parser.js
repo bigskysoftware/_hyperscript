@@ -21,11 +21,17 @@ function init(workspaceRoot) {
 
   const stubs = fs.readFileSync(path.join(COMMON, 'browser-stubs.js'), 'utf8');
   const walker = fs.readFileSync(path.join(COMMON, 'tree-walker.js'), 'utf8');
+  const completionsJs = fs.readFileSync(path.join(COMMON, 'completions.js'), 'utf8');
+  const hoverJs = fs.readFileSync(path.join(COMMON, 'hover.js'), 'utf8');
+  const docs = fs.readFileSync(path.join(COMMON, 'docs.json'), 'utf8');
 
   context = vm.createContext({});
   vm.runInContext(stubs, context);
   vm.runInContext(iifeSource, context);
   vm.runInContext(walker, context);
+  vm.runInContext(completionsJs, context);
+  vm.runInContext(hoverJs, context);
+  vm.runInContext('__hsInitDocs(' + docs + ')', context);
 }
 
 function loadIife(workspaceRoot) {
@@ -67,4 +73,34 @@ function parse(source) {
   }
 }
 
-module.exports = { init, parse };
+/**
+ * Get completions using the shared JS logic.
+ * @param {string} source
+ * @param {number} offset
+ * @param {string[]} cssClasses
+ * @param {string[]} cssIds
+ * @returns {Array<{label: string, detail: string, kind: string}>}
+ */
+function getCompletions(source, offset, cssClasses, cssIds) {
+  if (!context) throw new Error('Parser not initialized');
+  context.__src = source;
+  context.__offset = offset;
+  context.__cssClasses = cssClasses;
+  context.__cssIds = cssIds;
+  const result = vm.runInContext('__hsGetCompletions(__src, __offset, __cssClasses, __cssIds)', context);
+  return result;
+}
+
+/**
+ * Get hover documentation using the shared JS logic.
+ * @param {string} word
+ * @returns {{ keyword: string, syntax: string|null, description: string, category: string }|null}
+ */
+function getHover(word) {
+  if (!context) throw new Error('Parser not initialized');
+  context.__word = word;
+  const result = vm.runInContext('__hsGetHover(__word)', context);
+  return result;
+}
+
+module.exports = { init, parse, getCompletions, getHover };
