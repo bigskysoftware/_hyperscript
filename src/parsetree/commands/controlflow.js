@@ -26,7 +26,7 @@ class WaitATick extends Command {
  * RepeatLoopCommand - The actual loop iteration logic
  */
 class RepeatLoopCommand extends Command {
-    constructor(config, loop) {
+    constructor(config, loop, elseBranch) {
         super();
         this.identifier = config.identifier;
         this.indexIdentifier = config.indexIdentifier;
@@ -40,6 +40,7 @@ class RepeatLoopCommand extends Command {
         this.whileExpr = config.whileExpr;
         this.bottomTested = config.bottomTested;
         this.loop = loop;
+        this.elseBranch = elseBranch;
         this.args = { whileValue: config.whileExpr, times: config.times };
     }
 
@@ -81,10 +82,15 @@ class RepeatLoopCommand extends Command {
             if (this.indexIdentifier) {
                 context.locals[this.indexIdentifier] = iteratorInfo.index;
             }
+            iteratorInfo.didIterate = true;
             iteratorInfo.index++;
             return this.loop;
         } else {
+            var didIterate = iteratorInfo.didIterate;
             context.meta.iterators[this.slot] = null;
+            if (!didIterate && this.elseBranch) {
+                return this.elseBranch;
+            }
             return context.meta.runtime.findNext(this.parent, context);
         }
     }
@@ -235,6 +241,11 @@ export class RepeatCommand extends Command {
             }
         }
 
+        var elseBranch = null;
+        if (parser.matchToken("else")) {
+            elseBranch = parser.parseElement("commandList");
+        }
+
         if (parser.hasMore()) {
             parser.requireToken("end");
         }
@@ -260,10 +271,13 @@ export class RepeatCommand extends Command {
             bottomTested: bottomTested
         };
 
-        const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+        const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop, elseBranch);
         const repeatCommand = new RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
 
         parser.setParent(loop, repeatLoopCommand);
+        if (elseBranch) {
+            parser.setParent(elseBranch, repeatCommand);
+        }
         parser.setParent(repeatLoopCommand, repeatCommand);
 
         return repeatCommand;
@@ -292,6 +306,9 @@ export class RepeatCommand extends Command {
             } else {
                 iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
             }
+        } else if (this.repeatLoopCommand.elseBranch) {
+            // Null/undefined collection with an else clause — use empty iterator so else triggers
+            iteratorInfo.iterator = [][Symbol.iterator]();
         }
 
         if (this.evt) {
