@@ -14,7 +14,7 @@ thankless task, with each vendor having its own specialized APIs
 That said, all tools should follow a common pattern:
 
 * Each tool should use the hyperscript javascript parser(s) itself to parse code
-  * e.g. for the JetBrains plugin we use Rhino to host the parser
+  * e.g. for the JetBrains plugin we use GraalVM to host the parser
 * Common functionality should be hosted in the `/common` directory
   * As much as possible, code should be shared across tools in this directory
 * Generally the simplest possible approach should be used, only use complicated solutions if absolutely necessary

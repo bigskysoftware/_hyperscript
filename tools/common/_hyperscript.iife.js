@@ -7,69 +7,11 @@
   };
 
   // src/core/tokenizer.js
-  var ParseError = class {
-    constructor(message, token, source) {
-      this.message = message;
-      this.token = token;
-      this.source = source;
-      this.line = token?.line ?? null;
-      this.column = token?.column ?? null;
-    }
-  };
-  var ParseRecoverySentinel = class extends Error {
-    constructor(parseError) {
-      super(parseError.message);
-      this.parseError = parseError;
-    }
-  };
-  function formatErrors(errors) {
-    if (!errors.length) return "";
-    var source = errors[0].source;
-    var lines = source.split("\n");
-    var byLine = /* @__PURE__ */ new Map();
-    for (var e of errors) {
-      var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
-      if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
-      byLine.get(lineIdx).push(e);
-    }
-    var maxLine = Math.max(...byLine.keys()) + 1;
-    var gutter = String(maxLine).length;
-    var pad = " ".repeat(gutter + 5);
-    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
-    var prevLineIdx = -1;
-    var out = "";
-    for (var [lineIdx, lineErrors] of sortedLines) {
-      if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      } else if (prevLineIdx === -1 && lineIdx > 0) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      }
-      prevLineIdx = lineIdx;
-      var lineNum = String(lineIdx + 1).padStart(gutter);
-      var contextLine = lines[lineIdx] || "";
-      out += "  " + lineNum + " | " + contextLine + "\n";
-      lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
-      var underlineChars = Array(contextLine.length + 10).fill(" ");
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
-        var len = Math.max(1, e.token?.value?.length || 1);
-        for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
-      }
-      out += pad + underlineChars.join("").trimEnd() + "\n";
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : 0;
-        out += pad + " ".repeat(col) + e.message + "\n";
-      }
-    }
-    return out;
-  }
   var Tokens = class {
     #tokens;
     #consumed = [];
     #lastConsumed = null;
     #follows = [];
-    #errors = [];
-    #recoveryMode = false;
     source;
     constructor(tokens, source) {
       this.#tokens = tokens;
@@ -81,16 +23,6 @@
     }
     get consumed() {
       return this.#consumed;
-    }
-    // ----- Error recovery -----
-    enableRecovery() {
-      this.#recoveryMode = true;
-    }
-    get recoveryMode() {
-      return this.#recoveryMode;
-    }
-    get errors() {
-      return this.#errors;
     }
     // ----- Debug -----
     toString() {
@@ -165,22 +97,6 @@
         if (match) return match;
       }
     }
-    // ----- Token requiring -----
-    requireToken(value, type) {
-      var token = this.matchToken(value, type);
-      if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
-    }
-    requireOpToken(value) {
-      var token = this.matchOpToken(value);
-      if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
-    }
-    requireTokenType(...types) {
-      var token = this.matchTokenType(...types);
-      if (token) return token;
-      this.raiseError("Expected one of " + JSON.stringify(types));
-    }
     // ----- Token consuming -----
     consumeToken() {
       var match = this.#tokens.shift();
@@ -236,27 +152,6 @@
     }
     restoreFollows(f) {
       this.#follows = f;
-    }
-    // ----- Error handling -----
-    raiseError(message) {
-      message = message || "Unexpected Token : " + this.currentToken().value;
-      var currentToken = this.currentToken();
-      var parseError = new ParseError(message, currentToken, this.source);
-      if (this.#recoveryMode) {
-        this.#errors.push(parseError);
-        throw new ParseRecoverySentinel(parseError);
-      }
-      var lines = this.source.split("\n");
-      var lineIdx = currentToken?.line ? currentToken.line - 1 : lines.length - 1;
-      var contextLine = lines[lineIdx] || "";
-      var col = currentToken?.line ? currentToken.column : Math.max(0, contextLine.length - 1);
-      var tokenLen = Math.max(1, currentToken?.value?.length || 1);
-      var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
-      var error = new Error(formatted);
-      error["tokens"] = this;
-      error["token"] = currentToken;
-      error["consumed"] = this.#consumed;
-      throw error;
     }
   };
   var OP_TABLE = {
@@ -728,7 +623,22 @@
   };
 
   // src/parsetree/base.js
-  var ParseElement = class {
+  var ParseElement = class _ParseElement {
+    errors = [];
+    collectErrors(visited) {
+      if (!visited) visited = /* @__PURE__ */ new Set();
+      if (visited.has(this)) return [];
+      visited.add(this);
+      var all = [...this.errors];
+      for (var key of Object.keys(this)) {
+        for (var item of [this[key]].flat()) {
+          if (item instanceof _ParseElement) {
+            all.push(...item.collectErrors(visited));
+          }
+        }
+      }
+      return all;
+    }
     sourceFor() {
       return this.programSource.substring(this.startToken.start, this.endToken.end);
     }
@@ -830,11 +740,11 @@
       }
     }
   };
-  var HyperscriptProgram = class {
+  var HyperscriptProgram = class extends ParseElement {
     constructor(features) {
+      super();
       this.type = "hyperscript";
       this.features = features;
-      this.errors = [];
     }
     apply(target, source, args, runtime2) {
       for (const feature of this.features) {
@@ -843,19 +753,21 @@
     }
   };
   var FailedFeature = class extends Feature {
-    constructor(error) {
+    constructor(error, keyword) {
       super();
       this.type = "failedFeature";
-      this.error = error;
+      this.keyword = keyword;
+      this.errors.push(error);
     }
     install() {
     }
   };
   var FailedCommand = class extends Command {
-    constructor(error) {
+    constructor(error, keyword) {
       super();
       this.type = "failedCommand";
-      this.error = error;
+      this.keyword = keyword;
+      this.errors.push(error);
     }
     resolve() {
     }
@@ -1159,6 +1071,62 @@
   };
 
   // src/core/parser.js
+  var ParseError = class {
+    constructor(message, token, source) {
+      this.message = message;
+      this.token = token;
+      this.source = source;
+      this.line = token?.line ?? null;
+      this.column = token?.column ?? null;
+    }
+  };
+  var ParseRecoverySentinel = class extends Error {
+    constructor(parseError) {
+      super(parseError.message);
+      this.parseError = parseError;
+    }
+  };
+  function formatErrors(errors) {
+    if (!errors.length) return "";
+    var source = errors[0].source;
+    var lines = source.split("\n");
+    var byLine = /* @__PURE__ */ new Map();
+    for (var e of errors) {
+      var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+      if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+      byLine.get(lineIdx).push(e);
+    }
+    var maxLine = Math.max(...byLine.keys()) + 1;
+    var gutter = String(maxLine).length;
+    var pad = " ".repeat(gutter + 5);
+    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+    var prevLineIdx = -1;
+    var out = "";
+    for (var [lineIdx, lineErrors] of sortedLines) {
+      if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+        out += " ".repeat(gutter + 1) + "...\n";
+      } else if (prevLineIdx === -1 && lineIdx > 0) {
+        out += " ".repeat(gutter + 1) + "...\n";
+      }
+      prevLineIdx = lineIdx;
+      var lineNum = String(lineIdx + 1).padStart(gutter);
+      var contextLine = lines[lineIdx] || "";
+      out += "  " + lineNum + " | " + contextLine + "\n";
+      lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+      var underlineChars = Array(contextLine.length + 10).fill(" ");
+      for (var e of lineErrors) {
+        var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+        var len = Math.max(1, e.token?.value?.length || 1);
+        for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+      }
+      out += pad + underlineChars.join("").trimEnd() + "\n";
+      for (var e of lineErrors) {
+        var col = e.token?.line ? e.token.column : 0;
+        out += pad + " ".repeat(col) + e.message + "\n";
+      }
+    }
+    return out;
+  }
   var Parser = class _Parser {
     #kernel;
     constructor(kernel2, tokens) {
@@ -1172,7 +1140,9 @@
       return this.tokens.consumeWhitespace();
     }
     requireOpToken(value) {
-      return this.tokens.requireOpToken(value);
+      var token = this.matchOpToken(value);
+      if (token) return token;
+      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
     matchAnyOpToken(...ops) {
       return this.tokens.matchAnyOpToken(...ops);
@@ -1184,13 +1154,17 @@
       return this.tokens.matchOpToken(value);
     }
     requireTokenType(...types) {
-      return this.tokens.requireTokenType(...types);
+      var token = this.matchTokenType(...types);
+      if (token) return token;
+      this.raiseError("Expected one of " + JSON.stringify(types));
     }
     matchTokenType(...types) {
       return this.tokens.matchTokenType(...types);
     }
     requireToken(value, type) {
-      return this.tokens.requireToken(value, type);
+      var token = this.matchToken(value, type);
+      if (token) return token;
+      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
     peekToken(value, peek, type) {
       return this.tokens.peekToken(value, peek, type);
@@ -1258,8 +1232,10 @@
     parseAnyOf(types) {
       return this.#kernel.parseAnyOf(types, this);
     }
-    raiseParseError(message) {
-      return this.#kernel.raiseParseError(this.tokens, message);
+    raiseError(message) {
+      message = message || "Unexpected Token : " + this.currentToken().value;
+      var parseError = new ParseError(message, this.currentToken(), this.source);
+      throw new ParseRecoverySentinel(parseError);
     }
     // ===========================
     // Parser-owned methods
@@ -1334,7 +1310,7 @@
   };
 
   // src/core/kernel.js
-  var LanguageKernel = class _LanguageKernel {
+  var LanguageKernel = class {
     #grammar = {};
     #commands = {};
     #features = {};
@@ -1389,12 +1365,13 @@
     }
     parseCommandList(parser) {
       if (parser.hasMore()) {
+        var keyword = parser.currentToken().value;
         var cmd;
         try {
           cmd = parser.parseElement("command");
         } catch (e) {
           if (e instanceof ParseRecoverySentinel) {
-            cmd = new FailedCommand(e.parseError);
+            cmd = new FailedCommand(e.parseError, keyword);
             this.#syncToCommand(parser);
           } else {
             throw e;
@@ -1456,7 +1433,7 @@
       if (checkExpr && this.#assignableExpressions.includes(checkExpr.type)) {
         return expr;
       } else {
-        parser.raiseParseError(
+        parser.raiseError(
           "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
         );
       }
@@ -1476,12 +1453,13 @@
       if (leaf) {
         return this.parseElement("indirectExpression", parser, leaf);
       }
-      parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
+      parser.raiseError("Unexpected value: " + parser.currentToken().value);
     }
     parseHyperscriptProgram(parser) {
       var features = [];
       if (parser.hasMore()) {
         while (parser.currentToken().type !== "EOF") {
+          var keyword = parser.currentToken().value;
           if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
             try {
               var feature = parser.requireElement("feature");
@@ -1489,7 +1467,7 @@
               parser.matchToken("end");
             } catch (e) {
               if (e instanceof ParseRecoverySentinel) {
-                features.push(new FailedFeature(e.parseError));
+                features.push(new FailedFeature(e.parseError, keyword));
                 this.#syncToFeature(parser);
               } else {
                 throw e;
@@ -1497,19 +1475,17 @@
             }
           } else if (parser.currentToken().value === "end") {
             break;
-          } else if (parser.tokens.recoveryMode) {
+          } else {
             try {
-              parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+              parser.raiseError();
             } catch (e) {
               if (e instanceof ParseRecoverySentinel) {
-                features.push(new FailedFeature(e.parseError));
+                features.push(new FailedFeature(e.parseError, keyword));
                 this.#syncToFeature(parser);
               } else {
                 throw e;
               }
             }
-          } else {
-            break;
           }
         }
       }
@@ -1543,7 +1519,7 @@
     }
     requireElement(type, parser, message, root) {
       var result = this.parseElement(type, parser, root);
-      if (!result) _LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
+      if (!result) parser.raiseError(message || "Expected " + type);
       return result;
     }
     parseAnyOf(types, parser) {
@@ -1675,26 +1651,21 @@
     featureStart(token) {
       return this.#features[token.value || ""];
     }
-    static raiseParseError(tokens, message) {
-      tokens.raiseError(message);
-    }
-    raiseParseError(tokens, message) {
-      tokens.raiseError(message);
-    }
     parseHyperScript(tokens) {
-      tokens.enableRecovery();
       var parser = new Parser(this, tokens);
       var result;
+      var lastError = null;
       try {
         result = parser.parseElement("hyperscript");
-        if (tokens.hasMore()) this.raiseParseError(tokens);
+        if (tokens.hasMore()) parser.raiseError();
       } catch (e) {
         if (!(e instanceof ParseRecoverySentinel)) throw e;
+        lastError = e.parseError;
       }
-      if (result) {
-        result.errors = tokens.errors;
-        return result;
-      }
+      if (!result) result = new HyperscriptProgram([]);
+      result.errors = result.collectErrors();
+      if (lastError) result.errors.push(lastError);
+      return result;
     }
     #syncToFeature(parser) {
       parser.tokens.clearFollows();
@@ -1713,28 +1684,29 @@
     }
     parse(tokenizer2, src) {
       var tokens = tokenizer2.tokenize(src);
-      tokens.enableRecovery();
       var parser = new Parser(this, tokens);
-      var result;
+      var result, lastError;
       try {
         if (parser.commandStart(tokens.currentToken())) {
           result = this.requireElement("commandList", parser);
-          if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
+          if (tokens.hasMore()) parser.raiseError();
           parser.ensureTerminated(result);
         } else if (parser.featureStart(tokens.currentToken())) {
           result = this.requireElement("hyperscript", parser);
-          if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
+          if (tokens.hasMore()) parser.raiseError();
         } else {
           result = this.requireElement("expression", parser);
-          if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
+          if (tokens.hasMore()) parser.raiseError();
         }
       } catch (e) {
         if (!(e instanceof ParseRecoverySentinel)) throw e;
+        lastError = e.parseError;
       }
-      if (result) {
-        result.errors = tokens.errors;
-      } else if (tokens.errors.length > 0) {
-        result = { type: "empty", errors: tokens.errors };
+      if (!result && lastError) {
+        result = { type: "empty", errors: [lastError] };
+      } else if (result) {
+        result.errors = result.collectErrors();
+        if (lastError) result.errors.push(lastError);
       }
       return result;
     }
@@ -3875,7 +3847,7 @@
         urRoot = urRoot.root;
       }
       if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-        parser.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+        parser.raiseError("Cannot take a property of a non-symbol: " + urRoot.type);
       }
       var attribute = urRoot.type === "attributeRef";
       var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
@@ -4242,7 +4214,7 @@
         initialMathOp = initialMathOp || mathOp;
         var operator = mathOp.value;
         if (initialMathOp.value !== operator) {
-          parser.raiseParseError("You must parenthesize math operations with different operators");
+          parser.raiseError("You must parenthesize math operations with different operators");
         }
         var rhs = parser.parseElement("unaryExpression");
         expr = new _MathOperator(expr, operator, rhs);
@@ -4409,7 +4381,7 @@
           } else if (parser.matchToken("follow")) {
             operator = "not follow";
           } else {
-            parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
+            parser.raiseError("Expected matches, contains, starts with, ends with, precede, or follow");
           }
         }
       }
@@ -4499,7 +4471,7 @@
       while (logicalOp) {
         initialLogicalOp = initialLogicalOp || logicalOp;
         if (initialLogicalOp.value !== logicalOp.value) {
-          parser.raiseParseError("You must parenthesize logical operations with different operators");
+          parser.raiseError("You must parenthesize logical operations with different operators");
         }
         var rhs = parser.requireElement("comparisonOperator");
         const operator = logicalOp.value;
@@ -5267,7 +5239,7 @@
       if (css == null) {
         var expr = parser.requireElement("expression");
         if (expr.css == null) {
-          parser.raiseParseError("Expected a CSS expression");
+          parser.raiseError("Expected a CSS expression");
         } else {
           css = expr.css;
         }
@@ -5658,7 +5630,7 @@
     }
     static parseSource(parser) {
       if (!parser.matchAnyToken("of", "from")) {
-        parser.raiseParseError("Expected 'of' or 'from'");
+        parser.raiseError("Expected 'of' or 'from'");
       }
       return parser.requireElement("expression");
     }
@@ -6281,7 +6253,7 @@
         parser.requireToken("of");
       }
       if (operationToken == null) {
-        parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+        parser.raiseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
       }
       var target = parser.requireElement("expression");
       while (target.type === "parenthesized") target = target.expr;
@@ -6948,7 +6920,7 @@
       if (!isCall && !parser.matchToken("get")) return;
       var expr = parser.requireElement("expression");
       if (isCall && expr && expr.type !== "functionCall") {
-        parser.raiseParseError("Must be a function invocation");
+        parser.raiseError("Must be a function invocation");
       }
       return new _GetCommand(expr);
     }
@@ -6992,7 +6964,7 @@
         rootRoot = rootRoot.root;
       }
       if (expr.type !== "functionCall") {
-        parser.raiseParseError("Pseudo-commands must be function calls");
+        parser.raiseError("Pseudo-commands must be function calls");
       }
       if (root.type === "functionCall" && root.root.root == null) {
         if (parser.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
@@ -7138,7 +7110,7 @@
       name = name || configDefault || "display";
       var value = strategies[name];
       if (value == null) {
-        parser.raiseParseError("Unknown show/hide strategy : " + name);
+        parser.raiseError("Unknown show/hide strategy : " + name);
       }
       return value;
     }
@@ -7172,7 +7144,7 @@
         if (attributeRef == null) {
           cssDeclaration = parser.parseElement("styleLiteral");
           if (cssDeclaration == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
         }
       } else {
@@ -7302,7 +7274,7 @@
           if (cssDeclaration == null) {
             elementExpr = parser.parseElement("expression");
             if (elementExpr == null) {
-              parser.raiseParseError(
+              parser.raiseError(
                 "Expected either a class reference, attribute expression or value expression"
               );
             }
@@ -7323,7 +7295,7 @@
       }
       if (parser.matchToken("when")) {
         if (elementExpr) {
-          parser.raiseParseError("'when' clause is not supported when removing elements");
+          parser.raiseError("'when' clause is not supported when removing elements");
         }
         var when = parser.requireElement("expression");
       }
@@ -7459,7 +7431,7 @@
           var betweenAttr = true;
           var attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
           parser.requireToken("and");
           var attributeRef2 = parser.requireElement("attributeRef");
@@ -7469,7 +7441,7 @@
         if (classRef == null) {
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
         } else {
           classRefs = [classRef];
@@ -7718,7 +7690,7 @@
         if (!weAreTakingClasses) {
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
           if (parser.matchToken("with")) {
             replacementValue = parser.requireElement("expression");
@@ -8023,7 +7995,7 @@
         } else if (parser.matchToken("volume")) {
           volume = parser.requireElement("expression");
         } else {
-          parser.raiseParseError("Expected voice, rate, pitch, or volume");
+          parser.raiseError("Expected voice, rate, pitch, or volume");
         }
       }
       return new _SpeakCommand(text, voice, rate, pitch, volume);
@@ -8245,7 +8217,7 @@
           targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
           properties.push(new StyleRefValue(firstProp.name));
         } else {
-          parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+          parser.raiseError("Expected a style reference (e.g. *opacity) for transition");
         }
         if (parser.matchToken("from")) {
           from.push(parser.requireElement("expression"));
@@ -8663,7 +8635,7 @@
               } else if (parser.matchToken("threshold")) {
                 intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
               } else {
-                parser.raiseParseError("Unknown intersection config specification");
+                parser.raiseError("Unknown intersection config specification");
               }
             } while (parser.matchToken("and"));
           }
@@ -8692,12 +8664,12 @@
                 if (attribute.value.startsWith("@")) {
                   mutationSpec["attributeFilter"].push(attribute.value.substring(1));
                 } else {
-                  parser.raiseParseError(
+                  parser.raiseError(
                     "Only shorthand attribute references are allowed here"
                   );
                 }
               } else {
-                parser.raiseParseError("Unknown mutation config specification");
+                parser.raiseError("Unknown mutation config specification");
               }
             } while (parser.matchToken("or"));
             if (mutationSpec["attributes"] || mutationSpec["attributeFilter"]) {
@@ -8727,7 +8699,7 @@
               parser.popFollow();
             }
             if (!from) {
-              parser.raiseParseError('Expected either target value or "elsewhere".');
+              parser.raiseError('Expected either target value or "elsewhere".');
             }
           }
         }
@@ -8899,7 +8871,7 @@
       let setCmd = parser.parseElement("setCommand");
       if (setCmd) {
         if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
-          parser.raiseParseError("variables declared at the feature level must be element or DOM scoped.");
+          parser.raiseError("variables declared at the feature level must be element or DOM scoped.");
         }
         let setFeature = new _SetFeature(setCmd);
         parser.ensureTerminated(setCmd);
@@ -8951,7 +8923,7 @@
     static keyword = "worker";
     static parse(parser) {
       if (parser.matchToken("worker")) {
-        parser.raiseParseError(
+        parser.raiseError(
           "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
         );
         return void 0;
@@ -9104,7 +9076,7 @@
       for (var i = 0; i < exprs.length; i++) {
         var expr = exprs[i];
         if (expr.type === "symbol" && expr.scope === "default" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
-          parser.raiseParseError(
+          parser.raiseError(
             "Cannot watch local variable '" + expr.name + "'. Local variables are not reactive. Use '$" + expr.name + "' (global) or ':" + expr.name + "' (element-scoped) instead."
           );
         }
@@ -9178,7 +9150,7 @@
         parser.popFollow();
       }
       if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
-        parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
+        parser.raiseError("bind requires a connector: 'and', 'with', or 'to'");
       }
       var right = parser.requireElement("expression");
       return new _BindFeature(left, right);
@@ -9645,11 +9617,7 @@
     ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
     let element = kernel.parse(tokenizer, src);
     if (element && element.errors && element.errors.length > 0) {
-      var error = element.errors[0];
-      throw new Error(formatErrors(element.errors));
-    }
-    if (!element) {
-      throw new Error("Failed to parse: " + src);
+      throw new Error(element.errors[0].message + "\n\n" + formatErrors(element.errors));
     }
     if (element.execute) {
       element.execute(ctx);

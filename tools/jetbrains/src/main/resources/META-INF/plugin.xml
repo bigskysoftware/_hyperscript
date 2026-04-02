@@ -40,6 +40,14 @@
             language="Hyperscript"
             implementationClass="org.hyperscript.plugin.completion.HyperscriptCompletionContributor"/>
 
+        <!-- Cmd-B / Cmd-click navigation for #id references -->
+        <gotoDeclarationHandler
+            implementation="org.hyperscript.plugin.references.HyperscriptIdGotoHandler"/>
+
+        <!-- Auto-popup completions after # -->
+        <typedHandler
+            implementation="org.hyperscript.plugin.completion.HyperscriptAutoPopupHandler"/>
+
         <!-- Parse-error diagnostics via GraalVM -->
         <annotator
             language="Hyperscript"

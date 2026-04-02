@@ -9,4 +9,6 @@ tmp/
 test/.bundle/
 test-results/
 www/_site/
-/tools/jetbrains/build/
+tools/jetbrains/.gradle/
+tools/jetbrains/.intellijPlatform/
+tools/jetbrains/build/

@@ -20,7 +20,6 @@ import org.hyperscript.plugin.graalvm.GraalParserService
 class HyperscriptAnnotator : Annotator {
 
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-        // Only annotate the file-level element, not every token
         if (element !is PsiFile) return
         if (element.language != HyperscriptLanguage.INSTANCE) return
 
@@ -33,9 +32,11 @@ class HyperscriptAnnotator : Annotator {
         if (result.success) return
 
         for (error in result.errors) {
-            val offset = computeOffset(source, error.line, error.column)
-            val startOffset = offset.coerceIn(0, source.length)
-            val endOffset = findTokenEnd(source, startOffset).coerceIn(startOffset, source.length)
+            // Prefer token start/end for precise highlighting
+            val startOffset = (error.start ?: computeOffset(source, error.line, error.column))
+                .coerceIn(0, source.length)
+            val endOffset = (error.end ?: findTokenEnd(source, startOffset))
+                .coerceIn(startOffset, source.length)
 
             if (startOffset >= source.length) {
                 holder.newAnnotation(HighlightSeverity.ERROR, error.message)

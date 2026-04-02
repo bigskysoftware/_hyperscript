@@ -2,16 +2,16 @@ package org.hyperscript.plugin.completion
 
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.icons.AllIcons
+import com.intellij.openapi.components.service
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttribute
-import com.intellij.psi.xml.XmlTag
 import com.intellij.util.ProcessingContext
 import org.hyperscript.plugin.HyperscriptLanguage
+import org.hyperscript.plugin.graalvm.GraalParserService
+import org.hyperscript.plugin.graalvm.TreeNode
 import org.hyperscript.plugin.lexer.HyperscriptLexer
-import org.hyperscript.plugin.lexer.HyperscriptTokenTypes
 
 class HyperscriptCompletionContributor : CompletionContributor() {
     init {
@@ -25,8 +25,12 @@ class HyperscriptCompletionContributor : CompletionContributor() {
 
 /**
  * Context-sensitive completion provider.
- * Uses the lexer to tokenize text before the cursor and determines
- * which completions are appropriate based on the preceding tokens.
+ *
+ * Primary strategy: parse the text before cursor via GraalVM, walk the
+ * parse tree to find the deepest node at cursor, use FailedCommand/FailedFeature
+ * keyword and node types for context.
+ *
+ * Fallback: lexer-based heuristics when the tree doesn't give a clear answer.
  */
 private class HyperscriptCompletionProvider : CompletionProvider<CompletionParameters>() {
 
@@ -77,8 +81,117 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
         return if (injectionHost !== injectedFile) injectionHost else null
     }
 
+    // ================================================================
+    // Tree-based context detection
+    // ================================================================
+
+    /**
+     * Find the deepest node in the tree that contains the given offset.
+     * Returns the path from root to deepest node.
+     */
+    private fun findNodePath(node: TreeNode, offset: Int): List<TreeNode> {
+        val path = mutableListOf(node)
+
+        // Find deepest child that contains offset
+        for (child in node.children) {
+            val childStart = child.start ?: continue
+            val childEnd = child.end ?: continue
+            if (offset in childStart..childEnd) {
+                path.addAll(findNodePath(child, offset))
+                return path
+            }
+        }
+
+        // Also check: if offset is past the last child's end, we're at the end
+        // of this node — still in its scope
+        return path
+    }
+
+    /**
+     * Determine completion context from the parse tree at cursor position.
+     * Returns null if the tree doesn't give a clear enough answer (fall back to lexer).
+     */
+    private fun contextFromTree(tree: TreeNode, cursorOffset: Int): CompletionContext? {
+        val path = findNodePath(tree, cursorOffset)
+        if (path.isEmpty()) return null
+
+        val deepest = path.last()
+        val parentType = if (path.size >= 2) path[path.size - 2].type else null
+
+        // FailedCommand — the keyword tells us what command was being parsed
+        if (deepest.type == "failedCommand") {
+            return contextForFailedCommand(deepest.keyword, path)
+        }
+
+        // FailedFeature — the keyword tells us what feature was being parsed
+        if (deepest.type == "failedFeature") {
+            return contextForFailedFeature(deepest.keyword)
+        }
+
+        // At the end of a successfully parsed feature — offer commands
+        // Check if cursor is past all children in an on/init/def feature
+        if (deepest.type in setOf("onFeature", "defFeature", "initFeature")) {
+            return CompletionContext.COMMAND
+        }
+
+        // Inside a command list — offer commands
+        if (deepest.type == "emptyCommandListCommand") {
+            return CompletionContext.COMMAND
+        }
+
+        // At root level (hyperscript program) — offer features
+        if (deepest.type == "hyperscript") {
+            return CompletionContext.FEATURE_START
+        }
+
+        return null
+    }
+
+    /** Map a failed command keyword to the appropriate completion context */
+    private fun contextForFailedCommand(keyword: String?, path: List<TreeNode>): CompletionContext {
+        return when (keyword) {
+            // Commands that failed while parsing — offer their grammar continuations
+            "toggle", "add", "remove", "take" -> CompletionContext.CLASS_OR_ATTRIBUTE
+            "put" -> CompletionContext.EXPRESSION  // put <expr> into/after/before...
+            "set" -> CompletionContext.EXPRESSION
+            "get", "call" -> CompletionContext.EXPRESSION
+            "send", "trigger" -> CompletionContext.EVENT_NAME
+            "fetch" -> CompletionContext.NONE  // expects URL
+            "go" -> CompletionContext.GO_ARG
+            "make" -> CompletionContext.MAKE_ARG
+            "wait" -> CompletionContext.WAIT_ARG
+            "repeat", "for" -> CompletionContext.REPEAT_ARG
+            "if", "unless", "while", "until", "when" -> CompletionContext.EXPRESSION
+            "tell" -> CompletionContext.EXPRESSION
+            "transition" -> CompletionContext.EXPRESSION
+            "log" -> CompletionContext.EXPRESSION
+            "show", "hide" -> CompletionContext.EXPRESSION
+            "as" -> CompletionContext.TYPE_NAME
+            "default" -> CompletionContext.EXPRESSION
+            "increment", "decrement" -> CompletionContext.EXPRESSION
+            // Unknown command keyword — probably a typo, offer commands
+            else -> CompletionContext.COMMAND
+        }
+    }
+
+    /** Map a failed feature keyword to the appropriate completion context */
+    private fun contextForFailedFeature(keyword: String?): CompletionContext {
+        return when (keyword) {
+            "on" -> CompletionContext.EVENT_NAME
+            "def" -> CompletionContext.NONE  // expects function name
+            "behavior" -> CompletionContext.NONE  // expects behavior name
+            "set" -> CompletionContext.EXPRESSION
+            "init" -> CompletionContext.COMMAND
+            else -> CompletionContext.FEATURE_START
+        }
+    }
+
+    // ================================================================
+    // Lexer-based context detection (fallback)
+    // ================================================================
+
     /** Determine the completion context from tokens before cursor */
-    private fun determineContext(tokens: List<Pair<String, String>>): CompletionContext {
+    private fun contextFromLexer(tokens: List<Pair<String, String>>): CompletionContext {
         if (tokens.isEmpty()) return CompletionContext.FEATURE_START
 
         val last = tokens.last()
@@ -86,109 +199,40 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
         val lastType = last.first
         val secondLast = tokens.getOrNull(tokens.size - 2)
 
-        // After '.' (CSS class ref) → offer CSS classes from page
         if (lastType == "OPERATOR" && lastVal == ".") return CompletionContext.CSS_CLASS
         if (lastType == "CSS_CLASS") return CompletionContext.CSS_CLASS
-
-        // After '#' (CSS id ref) → offer IDs from page
         if (lastType == "OPERATOR" && lastVal == "#") return CompletionContext.CSS_ID
         if (lastType == "CSS_ID") return CompletionContext.CSS_ID
 
-        // After 'on' → event names
-        if (lastVal == "on" && lastType == "KEYWORD") {
-            return CompletionContext.EVENT_NAME
-        }
+        if (lastVal == "on" && lastType == "KEYWORD") return CompletionContext.EVENT_NAME
+        if (lastVal == "then") return CompletionContext.COMMAND
+        if (lastVal == "end") return CompletionContext.FEATURE_START
+        if (secondLast?.second == "on" && secondLast.first == "KEYWORD") return CompletionContext.POST_EVENT
 
-        // After 'then' → commands
-        if (lastVal == "then") {
-            return CompletionContext.COMMAND
-        }
-
-        // After 'end' → new feature or more commands
-        if (lastVal == "end") {
-            return CompletionContext.FEATURE_START
-        }
-
-        // After event name (previous token was 'on') → event modifiers or commands
-        if (secondLast?.second == "on" && secondLast.first == "KEYWORD") {
-            return CompletionContext.POST_EVENT
-        }
-
-        // After target modifiers (from, in, to, into, on, at) → target expressions
         if (lastVal in setOf("from", "in", "to", "into", "at", "of", "over", "before", "after")) {
             return CompletionContext.TARGET
         }
+        if (lastVal == "as") return CompletionContext.TYPE_NAME
+        if (lastVal == "wait") return CompletionContext.WAIT_ARG
+        if (lastVal == "repeat") return CompletionContext.REPEAT_ARG
+        if (lastVal in setOf("if", "when", "unless", "while", "until")) return CompletionContext.EXPRESSION
+        if (lastVal in setOf("toggle", "add", "remove", "take")) return CompletionContext.CLASS_OR_ATTRIBUTE
+        if (lastVal in setOf("put", "set", "get", "log")) return CompletionContext.EXPRESSION
+        if (lastVal in setOf("send", "trigger")) return CompletionContext.EVENT_NAME
+        if (lastVal == "make") return CompletionContext.MAKE_ARG
+        if (lastVal == "go") return CompletionContext.GO_ARG
+        if (lastVal == "fetch") return CompletionContext.NONE
+        if (lastVal == "is") return CompletionContext.IS_CHECK
 
-        // After 'as' → type names
-        if (lastVal == "as") {
-            return CompletionContext.TYPE_NAME
-        }
-
-        // After 'wait' → time or 'for'
-        if (lastVal == "wait") {
-            return CompletionContext.WAIT_ARG
-        }
-
-        // After 'repeat' → loop modifiers
-        if (lastVal == "repeat") {
-            return CompletionContext.REPEAT_ARG
-        }
-
-        // After 'if' or 'else if' or 'when' → expressions
-        if (lastVal == "if" || lastVal == "when" || lastVal == "unless" || lastVal == "while" || lastVal == "until") {
-            return CompletionContext.EXPRESSION
-        }
-
-        // After 'toggle', 'add', 'remove', 'take' → class/attribute targets
-        if (lastVal in setOf("toggle", "add", "remove", "take")) {
-            return CompletionContext.CLASS_OR_ATTRIBUTE
-        }
-
-        // After 'put', 'set', 'get' → expressions
-        if (lastVal in setOf("put", "set", "get")) {
-            return CompletionContext.EXPRESSION
-        }
-
-        // After 'send', 'trigger' → event name to send
-        if (lastVal in setOf("send", "trigger")) {
-            return CompletionContext.EVENT_NAME
-        }
-
-        // After 'make' → 'a' or 'an'
-        if (lastVal == "make") {
-            return CompletionContext.MAKE_ARG
-        }
-
-        // After 'go' → 'to', 'back', 'forward'
-        if (lastVal == "go") {
-            return CompletionContext.GO_ARG
-        }
-
-        // After 'fetch' → expects URL (no completions)
-        if (lastVal == "fetch") {
-            return CompletionContext.NONE
-        }
-
-        // After 'log' → expression
-        if (lastVal == "log") {
-            return CompletionContext.EXPRESSION
-        }
-
-        // After 'is' → type checks or comparisons
-        if (lastVal == "is") {
-            return CompletionContext.IS_CHECK
-        }
-
-        // After a command that takes expressions (most identifiers after a command)
-        // Check if we're mid-command (look back for a command keyword)
         val commandIdx = tokens.indexOfLast { it.first == "KEYWORD" && it.second in COMMAND_NAMES }
-        if (commandIdx >= 0) {
-            return CompletionContext.MID_COMMAND
-        }
+        if (commandIdx >= 0) return CompletionContext.MID_COMMAND
 
-        // Default: probably at start of a new command
         return CompletionContext.COMMAND
     }
+
+    // ================================================================
+    // Completion generation
+    // ================================================================
 
     override fun addCompletions(
         parameters: CompletionParameters,
@@ -197,52 +241,77 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
     ) {
         val text = parameters.position.containingFile?.text ?: return
         val offset = parameters.offset
-
-        // Tokenize everything before cursor (excluding the IntelliJ dummy identifier)
         val beforeCursor = text.substring(0, minOf(offset, text.length))
+
+        // Try tree-based context first
+        var ctx: CompletionContext? = null
+        try {
+            val project = parameters.position.project
+            val service = project.service<GraalParserService>()
+            val parseResult = service.parse(beforeCursor)
+            if (parseResult.tree != null) {
+                ctx = contextFromTree(parseResult.tree, beforeCursor.length)
+            }
+        } catch (_: Exception) {
+            // Fall through to lexer-based
+        }
+
+        // Fall back to lexer-based heuristics
+        if (ctx == null) {
+            val tokens = tokenize(beforeCursor)
+            ctx = contextFromLexer(tokens)
+        }
+
+        // Also check for CSS class/ID via lexer (tree won't help with these)
         val tokens = tokenize(beforeCursor)
-        val ctx = determineContext(tokens)
+        val lastToken = tokens.lastOrNull()
+        if (lastToken != null) {
+            if (lastToken.first == "CSS_CLASS" ||
+                lastToken.first == "OPERATOR" && lastToken.second == ".") {
+                ctx = CompletionContext.CSS_CLASS
+            } else if (lastToken.first == "CSS_ID" ||
+                lastToken.first == "OPERATOR" && lastToken.second == "#" ||
+                lastToken.first == "BAD_CHARACTER" && lastToken.second == "#") {
+                ctx = CompletionContext.CSS_ID
+            }
+        }
 
         when (ctx) {
             CompletionContext.FEATURE_START -> {
-                addAll(result, FEATURES, "feature", bold = true, priority = 100.0)
-                addAll(result, COMMANDS, "command", priority = 50.0)
+                addAll(result, FEATURES, bold = true, priority = 100.0)
+                addAll(result, COMMANDS, priority = 50.0)
             }
             CompletionContext.EVENT_NAME -> {
                 addEvents(result, priority = 100.0)
             }
             CompletionContext.POST_EVENT -> {
-                // After "on click" — event modifiers, then commands
                 addKeywords(result, listOf(
                     "from" to "filter by source element",
                     "elsewhere" to "only if target is not me",
                     "debounced at" to "debounce event",
                     "throttled at" to "throttle event",
                     "queue" to "queue strategy (all/first/last/none)",
-                ), "modifier", priority = 100.0)
-                addAll(result, COMMANDS, "command", priority = 80.0)
+                ), priority = 100.0)
+                addAll(result, COMMANDS, priority = 80.0)
             }
             CompletionContext.COMMAND -> {
-                addAll(result, COMMANDS, "command", bold = true, priority = 100.0)
-                addAll(result, CONTROL_FLOW, "control", priority = 90.0)
+                addAll(result, COMMANDS, bold = true, priority = 100.0)
+                addAll(result, CONTROL_FLOW, priority = 90.0)
             }
             CompletionContext.TARGET -> {
-                addAll(result, TARGETS, "target", bold = true, priority = 100.0)
-                addAll(result, BUILTINS, "value", priority = 80.0)
+                addAll(result, TARGETS, bold = true, priority = 100.0)
+                addAll(result, BUILTINS, priority = 80.0)
             }
             CompletionContext.EXPRESSION -> {
-                addAll(result, BUILTINS, "value", bold = true, priority = 100.0)
-                addAll(result, TARGETS, "target", priority = 80.0)
-                addAll(result, EXPRESSION_KW, "keyword", priority = 70.0)
+                addAll(result, BUILTINS, bold = true, priority = 100.0)
+                addAll(result, TARGETS, priority = 80.0)
+                addAll(result, EXPRESSION_KW, priority = 70.0)
             }
             CompletionContext.TYPE_NAME -> {
-                addKeywords(result, TYPE_NAMES, "type", priority = 100.0)
+                addKeywords(result, TYPE_NAMES, priority = 100.0)
             }
             CompletionContext.WAIT_ARG -> {
-                addKeywords(result, listOf(
-                    "for" to "wait for an event",
-                ), "keyword", priority = 100.0)
-                // Time units will be typed as numbers
+                addKeywords(result, listOf("for" to "wait for an event"), priority = 100.0)
             }
             CompletionContext.REPEAT_ARG -> {
                 addKeywords(result, listOf(
@@ -251,10 +320,9 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                     "while" to "repeat while condition",
                     "until" to "repeat until condition",
                     "in" to "repeat for items in collection",
-                ), "modifier", priority = 100.0)
+                ), priority = 100.0)
             }
             CompletionContext.CLASS_OR_ATTRIBUTE -> {
-                // Offer CSS classes/IDs from the page, plus modifiers
                 val hostFile = getHostFile(parameters)
                 for (cls in extractCssClasses(hostFile)) {
                     val el = LookupElementBuilder.create(".$cls").withTypeText("class").bold()
@@ -265,10 +333,11 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                     result.addElement(PrioritizedLookupElement.withPriority(el, 90.0))
                 }
                 addKeywords(result, listOf(
+                    "between" to "toggle between two values",
                     "on" to "target element",
                     "from" to "source element",
                     "to" to "target element",
-                ), "modifier", priority = 50.0)
+                ), priority = 50.0)
             }
             CompletionContext.CSS_CLASS -> {
                 val hostFile = getHostFile(parameters)
@@ -288,7 +357,7 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                 addKeywords(result, listOf(
                     "a" to "make a <tag/>",
                     "an" to "make an <tag/>",
-                ), "keyword", priority = 100.0)
+                ), priority = 100.0)
             }
             CompletionContext.GO_ARG -> {
                 addKeywords(result, listOf(
@@ -296,7 +365,7 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                     "back" to "go back in history",
                     "forward" to "go forward in history",
                     "to url" to "navigate to URL",
-                ), "modifier", priority = 100.0)
+                ), priority = 100.0)
             }
             CompletionContext.IS_CHECK -> {
                 addKeywords(result, listOf(
@@ -308,20 +377,19 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                     "greater than" to "comparison",
                     "less than or equal to" to "comparison",
                     "greater than or equal to" to "comparison",
-                ), "check", priority = 100.0)
+                ), priority = 100.0)
             }
             CompletionContext.MID_COMMAND -> {
-                // In the middle of a command — offer modifiers, targets, values
-                addAll(result, MID_COMMAND_MODIFIERS, "modifier", priority = 80.0)
-                addAll(result, BUILTINS, "value", priority = 70.0)
-                addAll(result, TARGETS, "target", priority = 60.0)
-                addKeywords(result, listOf("then" to "chain next command"), "flow", priority = 90.0)
+                addAll(result, MID_COMMAND_MODIFIERS, priority = 80.0)
+                addAll(result, BUILTINS, priority = 70.0)
+                addAll(result, TARGETS, priority = 60.0)
+                addKeywords(result, listOf("then" to "chain next command"), priority = 90.0)
             }
             CompletionContext.NONE -> { /* no completions */ }
         }
     }
 
-    private fun addAll(result: CompletionResultSet, items: List<Pair<String, String>>, category: String, bold: Boolean = false, priority: Double = 0.0) {
+    private fun addAll(result: CompletionResultSet, items: List<Pair<String, String>>, bold: Boolean = false, priority: Double = 0.0) {
         for ((kw, desc) in items) {
             var el = LookupElementBuilder.create(kw).withTypeText(desc)
             if (bold) el = el.bold()
@@ -329,8 +397,8 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
         }
     }
 
-    private fun addKeywords(result: CompletionResultSet, items: List<Pair<String, String>>, category: String, bold: Boolean = false, priority: Double = 0.0) {
-        addAll(result, items, category, bold, priority)
+    private fun addKeywords(result: CompletionResultSet, items: List<Pair<String, String>>, bold: Boolean = false, priority: Double = 0.0) {
+        addAll(result, items, bold, priority)
     }
 
     private fun addEvents(result: CompletionResultSet, priority: Double = 0.0) {
@@ -500,21 +568,21 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
 }
 
 private enum class CompletionContext {
-    FEATURE_START,   // beginning of text or after 'end' — offer features
-    EVENT_NAME,      // after 'on' — offer event names
-    POST_EVENT,      // after 'on click' — offer event modifiers then commands
-    COMMAND,         // command position — offer commands
-    TARGET,          // after from/in/to/etc — offer target expressions
-    EXPRESSION,      // expression position — offer values and targets
-    TYPE_NAME,       // after 'as' — offer type names
-    WAIT_ARG,        // after 'wait' — offer 'for' or time
-    REPEAT_ARG,      // after 'repeat' — offer loop modifiers
-    CLASS_OR_ATTRIBUTE, // after toggle/add/remove — .class or @attr
-    MAKE_ARG,        // after 'make' — offer 'a'/'an'
-    GO_ARG,          // after 'go' — offer 'to'/'back'/'forward'
-    IS_CHECK,        // after 'is' — offer type checks/comparisons
-    MID_COMMAND,     // mid-command — offer modifiers and values
-    CSS_CLASS,       // after '.' — offer CSS classes from HTML
-    CSS_ID,          // after '#' — offer IDs from HTML
-    NONE,            // no completions
+    FEATURE_START,
+    EVENT_NAME,
+    POST_EVENT,
+    COMMAND,
+    TARGET,
+    EXPRESSION,
+    TYPE_NAME,
+    WAIT_ARG,
+    REPEAT_ARG,
+    CLASS_OR_ATTRIBUTE,
+    MAKE_ARG,
+    GO_ARG,
+    IS_CHECK,
+    MID_COMMAND,
+    CSS_CLASS,
+    CSS_ID,
+    NONE,
 }

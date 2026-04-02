@@ -71,8 +71,8 @@ class HyperscriptLexer : LexerBase() {
             // Attribute ref: @name
             c == '@' -> readAttributeRef()
 
-            // CSS id: #name (but not ## or other operator combos)
-            c == '#' && peekIsAlphaOrDash(1) -> readCssId()
+            // CSS id: #name or just # (for completion)
+            c == '#' && (peekIsAlphaOrDash(1) || peek(1) == null || peek(1)?.isWhitespace() == true || peek(1) == '"' || peek(1) == '\'') -> readCssId()
 
             // Numbers
             c.isDigit() -> readNumber()
