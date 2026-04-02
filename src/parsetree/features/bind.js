@@ -240,11 +240,10 @@ function _addResetListener(source, dest, target, runtime) {
     var form = source.element.closest("form");
     if (!form) return;
 
-    var resetHandler = function () {
-        setTimeout(function () {
+    var resetHandler = () => {
+        setTimeout(() => {
             if (!target.isConnected) return;
-            var val = source.read();
-            dest.write(val);
+            dest.write(source.read());
         }, 0);
     };
     form.addEventListener("reset", resetHandler);
