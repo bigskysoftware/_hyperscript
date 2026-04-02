@@ -11,6 +11,58 @@ function escapeHTML(html) {
 }
 
 /**
+ * splitConditionalExpr - Find top-level 'if'/'else' keywords in an expression string
+ *
+ * Uses token-based scanning to correctly skip 'if'/'else' that appear inside
+ * nested parens, brackets, or braces
+ * Returns { valueStr, conditionStr, elseStr } or null if no top-level 'if' found.
+ */
+function splitConditionalExpr(exprStr) {
+    var tokens = new Tokenizer().tokenize(exprStr);
+    var depth = 0;
+    var ifStart = -1, ifEnd = -1;
+    var elseStart = -1, elseEnd = -1;
+
+    while (tokens.hasMore()) {
+        var tok = tokens.consumeToken();
+        var v = tok.value;
+        if (v === '(' || v === '[' || v === '{') depth++;
+        else if (v === ')' || v === ']' || v === '}') depth--;
+        else if (depth === 0 && tok.type === 'IDENTIFIER') {
+            if (v === 'if' && ifStart === -1) { ifStart = tok.start; ifEnd = tok.end; }
+            else if (v === 'else' && ifStart !== -1) { elseStart = tok.start; elseEnd = tok.end; break; }
+        }
+    }
+
+    if (ifStart === -1) return null;
+
+    var valueStr = exprStr.slice(0, ifStart).trim();
+    var conditionStr = elseStart !== -1
+        ? exprStr.slice(ifEnd, elseStart).trim()
+        : exprStr.slice(ifEnd).trim();
+    var elseStr = elseStart !== -1 ? exprStr.slice(elseEnd).trim() : null;
+
+    if (!valueStr || !conditionStr) return null;
+
+    return { valueStr, conditionStr, elseStr };
+}
+
+/**
+ * collectTemplateErrors - Recursively walk a command list and gather parse errors
+ */
+function collectTemplateErrors(cmd, errors) {
+    while (cmd) {
+        if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
+        if (cmd.trueBranch) collectTemplateErrors(cmd.trueBranch, errors);
+        if (cmd.falseBranch) collectTemplateErrors(cmd.falseBranch, errors);
+        if (cmd.loop) collectTemplateErrors(cmd.loop, errors);
+        if (cmd.loopCommand) collectTemplateErrors(cmd.loopCommand, errors);
+        if (cmd.elseBranch) collectTemplateErrors(cmd.elseBranch, errors);
+        cmd = cmd.next;
+    }
+}
+
+/**
  * TemplateTextCommand - Handles template text lines with ${} interpolation
  *
  * Registered for the TEMPLATE_LINE token type. Parses ${expr} expressions
@@ -66,24 +118,21 @@ export class TemplateTextCommand extends Command {
             }
 
             // Parse conditional syntax: ${value if condition} or ${value if condition else elseValue}
-            var conditionalMatch = exprStr.match(/^(.+?)\s+if\s+(.+?)(?:\s+else\s+(.+))?$/);
-            if (conditionalMatch) {
+            // Use token-based splitting to correctly handle expressions containing 'if' as part of an identifier
+            var conditionalSplit = splitConditionalExpr(exprStr);
+            if (conditionalSplit) {
                 try {
-                    var valueStr = conditionalMatch[1].trim();
-                    var conditionStr = conditionalMatch[2].trim();
-                    var elseStr = conditionalMatch[3] ? conditionalMatch[3].trim() : null;
-
-                    var valueTokens = new Tokenizer().tokenize(valueStr);
+                    var valueTokens = new Tokenizer().tokenize(conditionalSplit.valueStr);
                     var valueParser = parser.createChildParser(valueTokens);
                     var valueNode = valueParser.requireElement("expression");
 
-                    var conditionTokens = new Tokenizer().tokenize(conditionStr);
+                    var conditionTokens = new Tokenizer().tokenize(conditionalSplit.conditionStr);
                     var conditionParser = parser.createChildParser(conditionTokens);
                     var conditionNode = conditionParser.requireElement("expression");
 
                     var elseNode = null;
-                    if (elseStr) {
-                        var elseTokens = new Tokenizer().tokenize(elseStr);
+                    if (conditionalSplit.elseStr) {
+                        var elseTokens = new Tokenizer().tokenize(conditionalSplit.elseStr);
                         var elseParser = parser.createChildParser(elseTokens);
                         elseNode = elseParser.requireElement("expression");
                     }
@@ -214,13 +263,9 @@ export class RenderCommand extends Command {
             return runtime.findNext(this, ctx);
         }
 
-        // Collect expression-level errors from template text commands
+        // Collect expression-level errors from template text commands (recursive)
         var errors = [];
-        var cmd = commandList;
-        while (cmd) {
-            if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
-            cmd = cmd.next;
-        }
+        collectTemplateErrors(commandList, errors);
         if (errors.length) {
             for (var err of errors) {
                 console.error("hyperscript template error (line " + err.line + "): " + err.message +
@@ -346,10 +391,9 @@ export class TemplateForLoopCommand extends Command {
 export class TemplateForCommand extends Command {
     static keyword = "for";
 
-    constructor(expression, identifier, slot, loopCommand) {
+    constructor(expression, slot, loopCommand) {
         super();
         this.expression = expression;
-        this.identifier = identifier;
         this.slot = slot;
         this.loopCommand = loopCommand;
     }
@@ -381,11 +425,11 @@ export class TemplateForCommand extends Command {
         var slot = "template_for_" + startToken.start;
 
         var loopCommand = new TemplateForLoopCommand(identifier, slot, loopBody, elseBranch);
-        var cmd = new TemplateForCommand(expression, identifier, slot, loopCommand);
+        var cmd = new TemplateForCommand(expression, slot, loopCommand);
 
         parser.setParent(loopBody, loopCommand);
         if (elseBranch) {
-            parser.setParent(elseBranch, loopCommand);
+            parser.setParent(elseBranch, cmd);
         }
         parser.setParent(loopCommand, cmd);
 
@@ -397,7 +441,7 @@ export class TemplateForCommand extends Command {
 
         // Initialize iterator info
         var iteratorInfo = {
-            identifier: this.identifier,
+            identifier: this.loopCommand.identifier,
             iterator: null,
             didIterate: false
         };

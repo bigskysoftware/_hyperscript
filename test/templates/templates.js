@@ -452,6 +452,48 @@ test.describe('Templating', () => {
         expect(res).toBe('1\n2\n')
     })
 
+    test('conditional with nested parens in value does not false-trigger on inner if', async ({html, evaluate}) => {
+        await html('<template>${fn(x) if condition}</template>')
+        await evaluate(() => {
+            window.testFn = (v) => 'called:' + v
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with fn: fn, x: x, condition: condition then put it into window.res", {
+                locals: { fn: window.testFn, x: 42, condition: true, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('called:42')
+    })
+
+    test('error inside for body is reported', async ({html, evaluate}) => {
+        await html('<template>#for x in items\n${!!!}\n#end\n</template>')
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [1, 2], tmpl }
+            })
+            console.error = origError
+        })
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThan(0)
+        expect(captured[0]).toContain('template error')
+    })
+
+    test('content after for...else still renders', async ({html, evaluate}) => {
+        await html('<template>#for item in items\n${item}\n#else\nnothing\n#end\nafter\n</template>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with items: items then put it into window.res", {
+                locals: { items: [], tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('nothing\nafter\n')
+    })
+
     test('break prevents else clause from executing', async ({html, evaluate}) => {
         await html('<template>#for item in items\n#if item === 2\n#break\n#end\n${item}\n#else\nNo items\n#end\n</template>')
         await evaluate(() => {
