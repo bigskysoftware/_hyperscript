@@ -28,11 +28,11 @@
       {
         "language": "hyperscript",
         "scopeName": "source.hyperscript",
-        "path": "./syntaxes/hyperscript.tmLanguage.json"
+        "path": "../common/hyperscript.tmLanguage.json"
       },
       {
         "scopeName": "inline.hyperscript",
-        "path": "./syntaxes/hyperscript-injection.tmLanguage.json",
+        "path": "../common/hyperscript-injection.tmLanguage.json",
         "injectTo": ["text.html.basic", "text.html.derivative"],
         "embeddedLanguages": {
           "source.hyperscript": "hyperscript"
