@@ -2098,14 +2098,12 @@
     #tokenizer;
     #globalScope;
     #reactivity;
-    #morphEngine;
     #scriptAttrs = null;
-    constructor(globalScope2, kernel2, tokenizer2, reactivity2, morphEngine2) {
+    constructor(globalScope2, kernel2, tokenizer2, reactivity2) {
       this.#globalScope = globalScope2;
       this.#kernel = kernel2;
       this.#tokenizer = tokenizer2;
       this.#reactivity = reactivity2;
-      this.#morphEngine = morphEngine2;
     }
     get globalScope() {
       return this.#globalScope;
@@ -2464,19 +2462,6 @@
      */
     notifyMutation(obj) {
       this.reactivity.notifyProperty(obj);
-    }
-    morph(elt, content) {
-      this.#morphEngine.morph(elt, content, {
-        beforeNodeRemoved: (node) => {
-          if (node.nodeType === 1) this.cleanup(node);
-        },
-        afterNodeAdded: (node) => {
-          if (node.nodeType === 1) this.processNode(node);
-        },
-        afterNodeMorphed: (node) => {
-          if (node.nodeType === 1) this.processNode(node);
-        }
-      });
     }
     replaceInDom(target, value) {
       this.implicitLoop(target, (elt) => {
@@ -3356,234 +3341,6 @@
       delete data.effects;
     }
   };
-
-  // src/core/runtime/morph.js
-  var Morph = class {
-    /**
-     * Morph oldNode to match content.
-     * @param {Element} oldNode - The existing DOM element to morph
-     * @param {string|Element|DocumentFragment} content - The new content
-     * @param {MorphCallbacks} [callbacks] - Optional lifecycle callbacks
-     */
-    morph(oldNode, content, callbacks = {}) {
-      var fragment;
-      if (typeof content === "string") {
-        var temp = document.createElement("template");
-        temp.innerHTML = content;
-        fragment = temp.content;
-      } else if (content instanceof DocumentFragment) {
-        fragment = content;
-      } else if (content instanceof Element) {
-        fragment = document.createDocumentFragment();
-        fragment.append(content.cloneNode(true));
-      } else {
-        throw new Error("morph requires an HTML string, element, or document fragment");
-      }
-      var newRoot = fragment.firstElementChild;
-      if (newRoot && !newRoot.nextElementSibling && newRoot.tagName === oldNode.tagName) {
-        _copyAttributes(oldNode, newRoot);
-        fragment = newRoot;
-      }
-      var { persistentIds, idMap } = _createIdMaps(oldNode, fragment);
-      var pantry = document.createElement("div");
-      pantry.hidden = true;
-      (document.body || oldNode.parentElement).after(pantry);
-      var ctx = { target: oldNode, idMap, persistentIds, pantry, futureMatches: /* @__PURE__ */ new WeakSet(), callbacks };
-      _morphChildren(ctx, oldNode, fragment);
-      callbacks.beforeNodeRemoved?.(pantry);
-      pantry.remove();
-    }
-  };
-  function _morphChildren(ctx, oldParent, newParent, insertionPoint = null, endPoint = null) {
-    if (oldParent instanceof HTMLTemplateElement && newParent instanceof HTMLTemplateElement) {
-      oldParent = oldParent.content;
-      newParent = newParent.content;
-    }
-    insertionPoint ||= oldParent.firstChild;
-    let newChild = newParent.firstChild;
-    while (newChild) {
-      let matchedNode;
-      if (insertionPoint && insertionPoint !== endPoint) {
-        matchedNode = _findBestMatch(ctx, newChild, insertionPoint, endPoint);
-        if (matchedNode && matchedNode !== insertionPoint) {
-          let cursor = insertionPoint;
-          while (cursor && cursor !== matchedNode) {
-            let tempNode = cursor;
-            cursor = cursor.nextSibling;
-            if (tempNode instanceof Element && (ctx.idMap.has(tempNode) || _matchesUpcomingSibling(ctx, tempNode, newChild))) {
-              _moveBefore(oldParent, tempNode, endPoint);
-            } else {
-              _removeNode(ctx, tempNode);
-            }
-          }
-        }
-      }
-      if (!matchedNode && newChild instanceof Element && ctx.persistentIds.has(newChild.id)) {
-        let escapedId = CSS.escape(newChild.id);
-        matchedNode = ctx.target.id === newChild.id && ctx.target || ctx.target.querySelector('[id="' + escapedId + '"]') || ctx.pantry.querySelector('[id="' + escapedId + '"]');
-        let element = matchedNode;
-        while (element = element.parentNode) {
-          let idSet = ctx.idMap.get(element);
-          if (idSet) {
-            idSet.delete(matchedNode.id);
-            if (!idSet.size) ctx.idMap.delete(element);
-          }
-        }
-        _moveBefore(oldParent, matchedNode, insertionPoint);
-      }
-      if (matchedNode) {
-        _morphNode(matchedNode, newChild, ctx);
-        insertionPoint = matchedNode.nextSibling;
-        newChild = newChild.nextSibling;
-        continue;
-      }
-      let nextNewChild = newChild.nextSibling;
-      if (ctx.idMap.has(newChild)) {
-        let placeholder = document.createElement(newChild.tagName);
-        oldParent.insertBefore(placeholder, insertionPoint);
-        _morphNode(placeholder, newChild, ctx);
-        insertionPoint = placeholder.nextSibling;
-      } else {
-        oldParent.insertBefore(newChild, insertionPoint);
-        ctx.callbacks.afterNodeAdded?.(newChild);
-        insertionPoint = newChild.nextSibling;
-      }
-      newChild = nextNewChild;
-    }
-    while (insertionPoint && insertionPoint !== endPoint) {
-      let tempNode = insertionPoint;
-      insertionPoint = insertionPoint.nextSibling;
-      _removeNode(ctx, tempNode);
-    }
-  }
-  function _morphNode(oldNode, newNode, ctx) {
-    if (!(oldNode instanceof Element)) return;
-    _copyAttributes(oldNode, newNode);
-    if (oldNode instanceof HTMLTextAreaElement && oldNode.defaultValue !== newNode.defaultValue) {
-      oldNode.value = newNode.value;
-    }
-    if (!oldNode.isEqualNode(newNode) || newNode.tagName === "TEMPLATE" || newNode.querySelector?.("template")) {
-      _morphChildren(ctx, oldNode, newNode);
-    }
-    ctx.callbacks.afterNodeMorphed?.(oldNode);
-  }
-  function _findBestMatch(ctx, node, startPoint, endPoint) {
-    if (!(node instanceof Element)) return null;
-    var softMatch = null, displaceMatchCount = 0, scanLimit = 10;
-    var newSet = ctx.idMap.get(node), nodeMatchCount = newSet?.size || 0;
-    if (node.id && !newSet) return null;
-    var cursor = startPoint;
-    while (cursor && cursor !== endPoint) {
-      var oldSet = ctx.idMap.get(cursor);
-      if (_isSoftMatch(cursor, node)) {
-        if (oldSet && newSet && [...oldSet].some((id) => newSet.has(id))) return cursor;
-        if (!oldSet) {
-          if (scanLimit > 0 && cursor.isEqualNode(node)) return cursor;
-          if (!softMatch) softMatch = cursor;
-        }
-      }
-      displaceMatchCount += oldSet?.size || 0;
-      if (displaceMatchCount > nodeMatchCount) break;
-      if (cursor.contains(document.activeElement)) break;
-      if (--scanLimit < 1 && nodeMatchCount === 0) break;
-      cursor = cursor.nextSibling;
-    }
-    if (softMatch && _matchesUpcomingSibling(ctx, softMatch, node)) return null;
-    return softMatch;
-  }
-  function _matchesUpcomingSibling(ctx, oldElt, startNode) {
-    if (ctx.futureMatches.has(oldElt)) return true;
-    for (var sibling = startNode.nextSibling, i = 0; sibling && i < 10; sibling = sibling.nextSibling, i++) {
-      if (sibling instanceof Element && oldElt.isEqualNode(sibling)) {
-        ctx.futureMatches.add(oldElt);
-        return true;
-      }
-    }
-    return false;
-  }
-  function _removeNode(ctx, node) {
-    if (ctx.idMap.has(node)) {
-      _moveBefore(ctx.pantry, node, null);
-    } else {
-      ctx.callbacks.beforeNodeRemoved?.(node);
-      node.remove();
-    }
-  }
-  function _moveBefore(parentNode, element, after) {
-    if (parentNode.moveBefore) {
-      try {
-        parentNode.moveBefore(element, after);
-        return;
-      } catch (e) {
-      }
-    }
-    parentNode.insertBefore(element, after);
-  }
-  function _copyAttributes(destination, source) {
-    for (var attr of source.attributes) {
-      if (destination.getAttribute(attr.name) !== attr.value) {
-        destination.setAttribute(attr.name, attr.value);
-        if (attr.name === "value" && destination instanceof HTMLInputElement && destination.type !== "file") {
-          destination.value = attr.value;
-        }
-      }
-    }
-    for (var i = destination.attributes.length - 1; i >= 0; i--) {
-      var attr = destination.attributes[i];
-      if (attr && !source.hasAttribute(attr.name)) {
-        destination.removeAttribute(attr.name);
-      }
-    }
-  }
-  function _isSoftMatch(oldNode, newNode) {
-    if (!(oldNode instanceof Element) || oldNode.tagName !== newNode.tagName) return false;
-    if (oldNode.tagName === "SCRIPT" && !oldNode.isEqualNode(newNode)) return false;
-    return !oldNode.id || oldNode.id === newNode.id;
-  }
-  function _createIdMaps(oldNode, newContent) {
-    var oldIdElements = _queryEltAndDescendants(oldNode, "[id]");
-    var newIdElements = newContent.querySelectorAll("[id]");
-    var persistentIds = _createPersistentIds(oldIdElements, newIdElements);
-    var idMap = /* @__PURE__ */ new Map();
-    _populateIdMapWithTree(idMap, persistentIds, oldNode.parentElement, oldIdElements);
-    _populateIdMapWithTree(idMap, persistentIds, newContent, newIdElements);
-    return { persistentIds, idMap };
-  }
-  function _createPersistentIds(oldIdElements, newIdElements) {
-    var duplicateIds = /* @__PURE__ */ new Set(), oldIdTagNameMap = /* @__PURE__ */ new Map();
-    for (var { id, tagName } of oldIdElements) {
-      if (oldIdTagNameMap.has(id)) duplicateIds.add(id);
-      else if (id) oldIdTagNameMap.set(id, tagName);
-    }
-    var persistentIds = /* @__PURE__ */ new Set();
-    for (var { id, tagName } of newIdElements) {
-      if (persistentIds.has(id)) duplicateIds.add(id);
-      else if (oldIdTagNameMap.get(id) === tagName) persistentIds.add(id);
-    }
-    for (var id of duplicateIds) persistentIds.delete(id);
-    return persistentIds;
-  }
-  function _populateIdMapWithTree(idMap, persistentIds, root, elements) {
-    for (var elt of elements) {
-      if (persistentIds.has(elt.id)) {
-        var current = elt;
-        while (current && current !== root) {
-          var idSet = idMap.get(current);
-          if (idSet == null) {
-            idSet = /* @__PURE__ */ new Set();
-            idMap.set(current, idSet);
-          }
-          idSet.add(elt.id);
-          current = current.parentElement;
-        }
-      }
-    }
-  }
-  function _queryEltAndDescendants(elt, selector) {
-    var results = [...elt.querySelectorAll?.(selector) ?? []];
-    if (elt.matches?.(selector)) results.unshift(elt);
-    return results;
-  }
 
   // src/parsetree/expressions/expressions.js
   var expressions_exports = {};
@@ -7026,7 +6783,6 @@
     FocusCommand: () => FocusCommand,
     HideCommand: () => HideCommand,
     MeasureCommand: () => MeasureCommand,
-    MorphCommand: () => MorphCommand,
     OpenCommand: () => OpenCommand,
     RemoveCommand: () => RemoveCommand,
     SelectCommand: () => SelectCommand,
@@ -8102,26 +7858,6 @@
       } else {
         alert(String(message));
       }
-      return this.findNext(ctx);
-    }
-  };
-  var MorphCommand = class _MorphCommand extends Command {
-    static keyword = "morph";
-    constructor(target, content) {
-      super();
-      this.args = { target, content };
-    }
-    static parse(parser) {
-      if (!parser.matchToken("morph")) return;
-      var target = parser.requireElement("expression");
-      parser.requireToken("to");
-      var content = parser.requireElement("expression");
-      return new _MorphCommand(target, content);
-    }
-    resolve(ctx, { target, content }) {
-      ctx.meta.runtime.implicitLoop(target, function(elt) {
-        ctx.meta.runtime.morph(elt, content);
-      });
       return this.findNext(ctx);
     }
   };
@@ -9404,8 +9140,6 @@
   __export(template_exports, {
     EscapeExpression: () => EscapeExpression,
     RenderCommand: () => RenderCommand,
-    TemplateForCommand: () => TemplateForCommand,
-    TemplateForLoopCommand: () => TemplateForLoopCommand,
     TemplateTextCommand: () => TemplateTextCommand
   });
   function escapeHTML(html) {
@@ -9452,57 +9186,21 @@
         var trimmed = exprStr.trimStart();
         if (trimmed.startsWith("unescaped ")) {
           escape = false;
-          exprStr = trimmed.slice("unescaped ".length).trim();
+          exprStr = trimmed.slice("unescaped ".length);
         }
-        var conditionalMatch = exprStr.match(/^(.+?)\s+if\s+(.+?)(?:\s+else\s+(.+))?$/);
-        if (conditionalMatch) {
-          try {
-            var valueStr = conditionalMatch[1].trim();
-            var conditionStr = conditionalMatch[2].trim();
-            var elseStr = conditionalMatch[3] ? conditionalMatch[3].trim() : null;
-            var valueTokens = new Tokenizer().tokenize(valueStr);
-            var valueParser = parser.createChildParser(valueTokens);
-            var valueNode = valueParser.requireElement("expression");
-            var conditionTokens = new Tokenizer().tokenize(conditionStr);
-            var conditionParser = parser.createChildParser(conditionTokens);
-            var conditionNode = conditionParser.requireElement("expression");
-            var elseNode = null;
-            if (elseStr) {
-              var elseTokens = new Tokenizer().tokenize(elseStr);
-              var elseParser = parser.createChildParser(elseTokens);
-              elseNode = elseParser.requireElement("expression");
-            }
-            parts.push({
-              type: "conditional",
-              valueNode,
-              conditionNode,
-              elseNode,
-              escape
-            });
-          } catch (e) {
-            errors.push({
-              line: tok.line,
-              column: tok.column + nextDollar,
-              message: e.message || String(e),
-              expr: exprStr
-            });
-            parts.push({ type: "literal", value: "" });
-          }
-        } else {
-          try {
-            var exprTokens = new Tokenizer().tokenize(exprStr);
-            var exprParser = parser.createChildParser(exprTokens);
-            var node = exprParser.requireElement("expression");
-            parts.push({ type: "expr", node, escape });
-          } catch (e) {
-            errors.push({
-              line: tok.line,
-              column: tok.column + nextDollar,
-              message: e.message || String(e),
-              expr: exprStr
-            });
-            parts.push({ type: "literal", value: "" });
-          }
+        try {
+          var exprTokens = new Tokenizer().tokenize(exprStr);
+          var exprParser = parser.createChildParser(exprTokens);
+          var node = exprParser.requireElement("expression");
+          parts.push({ type: "expr", node, escape });
+        } catch (e) {
+          errors.push({
+            line: tok.line,
+            column: tok.column + nextDollar,
+            message: e.message || String(e),
+            expr: exprStr
+          });
+          parts.push({ type: "literal", value: "" });
         }
         i = j;
       }
@@ -9511,16 +9209,6 @@
     resolve(ctx) {
       var vals = this.parts.map((part) => {
         if (part.type === "literal") return part.value;
-        if (part.type === "conditional") {
-          var condition = part.conditionNode.evaluate(ctx);
-          if (condition) {
-            return part.valueNode.evaluate(ctx);
-          } else if (part.elseNode) {
-            return part.elseNode.evaluate(ctx);
-          } else {
-            return void 0;
-          }
-        }
         return part.node.evaluate(ctx);
       });
       var stringify = (val, part) => {
@@ -9635,90 +9323,6 @@
       }
     }
   };
-  var TemplateForLoopCommand = class extends Command {
-    constructor(identifier, slot, loopBody, elseBranch) {
-      super();
-      this.identifier = identifier;
-      this.slot = slot;
-      this.loop = loopBody;
-      this.elseBranch = elseBranch;
-    }
-    resolveNext() {
-      return this;
-    }
-    resolve(context) {
-      var iterator = context.meta.iterators[this.slot];
-      if (!iterator) {
-        return context.meta.runtime.findNext(this.parent, context);
-      }
-      var nextVal = iterator.iterator.next();
-      if (!nextVal.done) {
-        iterator.didIterate = true;
-        context.locals[iterator.identifier] = nextVal.value;
-        context.result = nextVal.value;
-        return this.loop;
-      } else {
-        var didIterate = iterator.didIterate;
-        context.meta.iterators[this.slot] = null;
-        if (!didIterate && this.elseBranch) {
-          return this.elseBranch;
-        }
-        return context.meta.runtime.findNext(this.parent, context);
-      }
-    }
-  };
-  var TemplateForCommand = class _TemplateForCommand extends Command {
-    static keyword = "for";
-    constructor(expression, identifier, slot, loopCommand) {
-      super();
-      this.expression = expression;
-      this.identifier = identifier;
-      this.slot = slot;
-      this.loopCommand = loopCommand;
-    }
-    static parse(parser) {
-      var startToken = parser.currentToken();
-      if (!parser.matchToken("for")) return;
-      var identifierToken = parser.requireTokenType("IDENTIFIER");
-      var identifier = identifierToken.value;
-      parser.requireToken("in");
-      var expression = parser.requireElement("expression");
-      var loopBody = parser.parseElement("commandList");
-      var elseBranch = null;
-      if (parser.matchToken("else")) {
-        elseBranch = parser.parseElement("commandList");
-      }
-      if (parser.hasMore()) {
-        parser.requireToken("end");
-      }
-      var slot = "template_for_" + startToken.start;
-      var loopCommand = new TemplateForLoopCommand(identifier, slot, loopBody, elseBranch);
-      var cmd = new _TemplateForCommand(expression, identifier, slot, loopCommand);
-      parser.setParent(loopBody, loopCommand);
-      if (elseBranch) {
-        parser.setParent(elseBranch, loopCommand);
-      }
-      parser.setParent(loopCommand, cmd);
-      return cmd;
-    }
-    resolve(context) {
-      var collection = this.expression.evaluate(context);
-      var iteratorInfo = {
-        identifier: this.identifier,
-        iterator: null,
-        didIterate: false
-      };
-      if (collection && collection[Symbol.iterator]) {
-        iteratorInfo.iterator = collection[Symbol.iterator]();
-      } else if (collection && typeof collection === "object") {
-        iteratorInfo.iterator = Object.keys(collection)[Symbol.iterator]();
-      } else {
-        iteratorInfo.iterator = [][Symbol.iterator]();
-      }
-      context.meta.iterators[this.slot] = iteratorInfo;
-      return this.loopCommand;
-    }
-  };
 
   // src/_hyperscript.js
   var globalScope = typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : void 0;
@@ -9726,8 +9330,7 @@
   var kernel = new LanguageKernel();
   var tokenizer = new Tokenizer();
   var reactivity = new Reactivity();
-  var morphEngine = new Morph();
-  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity, morphEngine);
+  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
   kernel.registerModule(expressions_exports);
   kernel.registerModule(literals_exports);
   kernel.registerModule(webliterals_exports);
