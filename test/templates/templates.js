@@ -227,8 +227,4 @@ test.describe('Templating', () => {
         // Break was called, so loop did iterate, else should not run
         expect(res).toBe('1\n')
     })
-
-    // test ('all characters escape correctly', async ({html, evaluate}) => {
-    //     await html('<template></template>')
-    // })
 })
