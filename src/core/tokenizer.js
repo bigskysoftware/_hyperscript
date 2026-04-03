@@ -321,6 +321,10 @@ export class Tokenizer {
         return this.#template && this.#templateBraceCount === 0;
     }
 
+    #inCommandMode() {
+        return !this.#inTemplate() || this.#templateMode === "command";
+    }
+
     #possiblePrecedingSymbol() {
         return (
             this.#isAlpha(this.#lastToken) ||
@@ -710,13 +714,13 @@ export class Tokenizer {
                        this.#templateMode !== "command"
             ) {
                 this.#tokens.push(this.#consumeTemplateIdentifier());
-            } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+            } else if (this.#inCommandMode() && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
                 this.#tokens.push(this.#consumeIdentifier());
             } else if (this.#isNumeric(this.#currentChar())) {
                 this.#tokens.push(this.#consumeNumber());
-            } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+            } else if (this.#inCommandMode() && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
                 this.#tokens.push(this.#consumeString());
-            } else if ((!this.#inTemplate() || this.#templateMode === "command") && this.#currentChar() === "'") {
+            } else if (this.#inCommandMode() && this.#currentChar() === "'") {
                 if (this.#isValidSingleQuoteStringStart()) {
                     this.#tokens.push(this.#consumeString());
                 } else {

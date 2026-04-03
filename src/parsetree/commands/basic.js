@@ -785,8 +785,11 @@ export class ScrollCommand extends Command {
         if (this.byMode) {
             var el = target || document.documentElement;
             var dir = this.byMode.direction;
-            var top = (dir === "up" || dir === "down") ? (dir === "up" ? -offset : offset) : 0;
-            var left = (dir === "left" || dir === "right") ? (dir === "left" ? -offset : offset) : 0;
+            var top = 0, left = 0;
+            if (dir === "up") top = -offset;
+            else if (dir === "down") top = offset;
+            else if (dir === "left") left = -offset;
+            else if (dir === "right") left = offset;
             var opts = { top, left };
             if (this.scrollOptions.behavior) opts.behavior = this.scrollOptions.behavior;
             el.scrollBy(opts);

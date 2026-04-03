@@ -17,9 +17,8 @@ export class InitFeature extends Feature {
     }
 
     install(target, source, args, runtime) {
-        var feature = this;
-        var handler = function () {
-            feature.start && feature.start.execute(runtime.makeContext(target, feature, target, null));
+        var handler = () => {
+            this.start?.execute(runtime.makeContext(target, this, target, null));
         };
         if (this.immediately) {
             handler();

@@ -23,7 +23,7 @@ TODO: `${}` interpolation, `#for`, `#if`
 
 TODO: default slots, named slots
 
-### The `args` Proxy {#args}
+### The `attrs` Proxy {#attrs}
 
 TODO: attribute evaluation in parent scope, bidirectional binding
 
@@ -37,11 +37,127 @@ TODO: `dom-scope="isolated"`, `^var` scoping boundaries
 
 ### Examples {#component-examples}
 
-TODO
+#### Filterable List Component
+
+  ~~~ html
+  <template hyper-component="filter-list" _="set ^list to attrs.items">
+    <input type="text" placeholder="Search..."
+           _="on input
+                hide #no-match
+                show <li:not(#no-match)/> in closest <filter-list/>
+                  when its textContent contains my value
+                  ignoring case
+                show #no-match when the result is empty" />
+    <ul>
+    #for item in ^list
+      <li><a href="${item.url}">${item.name}</a></li>
+    #end
+      <li id="no-match" style="display:none; color:var(--text-muted)">No results</li>
+    </ul>
+  </template>
+  ~~~
+
+Usage:
+
+  ~~~ html
+  <filter-list items="[{name: 'Macintosh 128K', url: 'https://en.wikipedia.org/wiki/Macintosh_128K'},
+                        {name: 'Macintosh Plus', url: 'https://en.wikipedia.org/wiki/Macintosh_Plus'},
+                        ...]">
+  </filter-list>
+  ~~~
+
+Demo:
+
+<div>
+<template hyper-component="filter-list" _="set ^list to attrs.items">
+    <input type="text" placeholder="Search..."
+           _="on input
+                hide #no-match
+                show <li:not(#no-match)/> in closest <filter-list/>
+                  when its textContent contains my value
+                  ignoring case
+                show #no-match when the result is empty" />
+    <ul>
+    #for item in ^list
+      <li><a href="${unescaped item.url}">${item.name}</a></li>
+    #end
+      <li id="no-match" style="display:none; color:var(--text-muted)">No results</li>
+    </ul>
+</template>
+<filter-list items="[
+  {name: 'Macintosh 128K', url: 'https://en.wikipedia.org/wiki/Macintosh_128K'},
+  {name: 'Macintosh 512K', url: 'https://en.wikipedia.org/wiki/Macintosh_512K'},
+  {name: 'Macintosh Plus', url: 'https://en.wikipedia.org/wiki/Macintosh_Plus'},
+  {name: 'Macintosh SE', url: 'https://en.wikipedia.org/wiki/Macintosh_SE'},
+  {name: 'Macintosh SE/30', url: 'https://en.wikipedia.org/wiki/Macintosh_SE/30'},
+  {name: 'Macintosh II', url: 'https://en.wikipedia.org/wiki/Macintosh_II'},
+  {name: 'Macintosh Classic', url: 'https://en.wikipedia.org/wiki/Macintosh_Classic'},
+  {name: 'PowerBook 100', url: 'https://en.wikipedia.org/wiki/PowerBook_100'},
+  {name: 'PowerBook 170', url: 'https://en.wikipedia.org/wiki/PowerBook_170'},
+  {name: 'Quadra 700', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_700'},
+  {name: 'Quadra 950', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_950'}
+]">
+</filter-list>
+</div>
+
+#### Reactive Filterable List
+
+The same component using reactive rendering instead of show/hide. The `#if` inside `#for` filters
+at render time — when `^query` changes, the template re-renders and the result is morphed in.
+
+  ~~~ html
+  <template hyper-component="reactive-filter-list"
+            _="set ^list to attrs.items
+               set ^query to ''">
+    <input type="text" placeholder="Search..."
+           _="on input set ^query to my value" />
+    <ul>
+    #for item in ^list
+      #if ^query is '' or item.name contains ^query ignoring case
+        <li><a href="${item.url}">${item.name}</a></li>
+      #end
+    #end
+      #if ^query is not '' and ^list where (its name contains ^query ignoring case) is empty
+        <li style="color:var(--text-muted)">No results</li>
+      #end
+    </ul>
+  </template>
+  ~~~
+
+Demo:
+
+<div>
+<template hyper-component="reactive-filter-list"
+          _="set ^list to attrs.items
+             set ^query to ''">
+    <input type="text" placeholder="Search..."
+           _="bind me to ^query" />
+    <ul>
+    #for item in ^list
+      #if the item's name contains the ^query ignoring case
+        <li><a href="${unescaped item.url}">${item.name}</a></li>
+      #end
+    #end
+    </ul>
+</template>
+
+<reactive-filter-list items="[
+  {name: 'Macintosh 128K', url: 'https://en.wikipedia.org/wiki/Macintosh_128K'},
+  {name: 'Macintosh 512K', url: 'https://en.wikipedia.org/wiki/Macintosh_512K'},
+  {name: 'Macintosh Plus', url: 'https://en.wikipedia.org/wiki/Macintosh_Plus'},
+  {name: 'Macintosh SE', url: 'https://en.wikipedia.org/wiki/Macintosh_SE'},
+  {name: 'Macintosh SE/30', url: 'https://en.wikipedia.org/wiki/Macintosh_SE/30'},
+  {name: 'Macintosh II', url: 'https://en.wikipedia.org/wiki/Macintosh_II'},
+  {name: 'Macintosh Classic', url: 'https://en.wikipedia.org/wiki/Macintosh_Classic'},
+  {name: 'PowerBook 100', url: 'https://en.wikipedia.org/wiki/PowerBook_100'},
+  {name: 'PowerBook 170', url: 'https://en.wikipedia.org/wiki/PowerBook_170'},
+  {name: 'Quadra 700', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_700'},
+  {name: 'Quadra 950', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_950'}
+]">
+</reactive-filter-list>
+</div>
 
 <div class="docs-page-nav">
 <a href="/docs/advanced/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Advanced</strong></a>
 <a href="/docs/" class="next"><strong>Docs Home</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7l7 7 7-7"/></svg></a>
 </div>
-
-</div></div>

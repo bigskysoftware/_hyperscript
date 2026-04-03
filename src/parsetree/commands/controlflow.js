@@ -66,7 +66,7 @@ class RepeatLoopCommand extends Command {
             keepLooping = whileValue;
         } else if (times) {
             keepLooping = iteratorInfo.index < times;
-        } else {
+        } else if (iteratorInfo.iterator) {
             var nextValFromIterator = iteratorInfo.iterator.next();
             keepLooping = !nextValFromIterator.done;
             loopVal = nextValFromIterator.value;

@@ -7,69 +7,11 @@
   };
 
   // src/core/tokenizer.js
-  var ParseError = class {
-    constructor(message, token, source) {
-      this.message = message;
-      this.token = token;
-      this.source = source;
-      this.line = token?.line ?? null;
-      this.column = token?.column ?? null;
-    }
-  };
-  var ParseRecoverySentinel = class extends Error {
-    constructor(parseError) {
-      super(parseError.message);
-      this.parseError = parseError;
-    }
-  };
-  function formatErrors(errors) {
-    if (!errors.length) return "";
-    var source = errors[0].source;
-    var lines = source.split("\n");
-    var byLine = /* @__PURE__ */ new Map();
-    for (var e of errors) {
-      var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
-      if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
-      byLine.get(lineIdx).push(e);
-    }
-    var maxLine = Math.max(...byLine.keys()) + 1;
-    var gutter = String(maxLine).length;
-    var pad = " ".repeat(gutter + 5);
-    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
-    var prevLineIdx = -1;
-    var out = "";
-    for (var [lineIdx, lineErrors] of sortedLines) {
-      if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      } else if (prevLineIdx === -1 && lineIdx > 0) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      }
-      prevLineIdx = lineIdx;
-      var lineNum = String(lineIdx + 1).padStart(gutter);
-      var contextLine = lines[lineIdx] || "";
-      out += "  " + lineNum + " | " + contextLine + "\n";
-      lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
-      var underlineChars = Array(contextLine.length + 10).fill(" ");
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
-        var len = Math.max(1, e.token?.value?.length || 1);
-        for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
-      }
-      out += pad + underlineChars.join("").trimEnd() + "\n";
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : 0;
-        out += pad + " ".repeat(col) + e.message + "\n";
-      }
-    }
-    return out;
-  }
   var Tokens = class {
     #tokens;
     #consumed = [];
     #lastConsumed = null;
     #follows = [];
-    #errors = [];
-    #recoveryMode = false;
     source;
     constructor(tokens, source) {
       this.#tokens = tokens;
@@ -81,16 +23,6 @@
     }
     get consumed() {
       return this.#consumed;
-    }
-    // ----- Error recovery -----
-    enableRecovery() {
-      this.#recoveryMode = true;
-    }
-    get recoveryMode() {
-      return this.#recoveryMode;
-    }
-    get errors() {
-      return this.#errors;
     }
     // ----- Debug -----
     toString() {
@@ -165,22 +97,6 @@
         if (match) return match;
       }
     }
-    // ----- Token requiring -----
-    requireToken(value, type) {
-      var token = this.matchToken(value, type);
-      if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
-    }
-    requireOpToken(value) {
-      var token = this.matchOpToken(value);
-      if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
-    }
-    requireTokenType(...types) {
-      var token = this.matchTokenType(...types);
-      if (token) return token;
-      this.raiseError("Expected one of " + JSON.stringify(types));
-    }
     // ----- Token consuming -----
     consumeToken() {
       var match = this.#tokens.shift();
@@ -236,25 +152,6 @@
     }
     restoreFollows(f) {
       this.#follows = f;
-    }
-    // ----- Error handling -----
-    raiseError(message) {
-      message = message || "Unexpected Token : " + this.currentToken().value;
-      var currentToken = this.currentToken();
-      var parseError = new ParseError(message, currentToken, this.source);
-      if (this.#recoveryMode) {
-        this.#errors.push(parseError);
-        throw new ParseRecoverySentinel(parseError);
-      }
-      var lines = this.source.split("\n");
-      var lineIdx = currentToken?.line ? currentToken.line - 1 : lines.length - 1;
-      var contextLine = lines[lineIdx] || "";
-      var col = currentToken?.line ? currentToken.column : Math.max(0, contextLine.length - 1);
-      var tokenLen = Math.max(1, currentToken?.value?.length || 1);
-      var formatted = message + "\n\n" + contextLine + "\n" + " ".repeat(col) + "^".repeat(tokenLen) + "\n";
-      var error = new Error(formatted);
-      error["tokens"] = this;
-      throw error;
     }
   };
   var OP_TABLE = {
@@ -365,6 +262,9 @@
     // ----- Context checks -----
     #inTemplate() {
       return this.#template && this.#templateBraceCount === 0;
+    }
+    #inCommandMode() {
+      return !this.#inTemplate() || this.#templateMode === "command";
     }
     #possiblePrecedingSymbol() {
       return this.#isAlpha(this.#lastToken) || this.#isNumeric(this.#lastToken) || this.#lastToken === ")" || this.#lastToken === '"' || this.#lastToken === "'" || this.#lastToken === "`" || this.#lastToken === "}" || this.#lastToken === "]";
@@ -693,13 +593,13 @@
           this.#tokens.push(this.#consumeStyleReference());
         } else if (this.#inTemplate() && (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "\\") && this.#templateMode !== "command") {
           this.#tokens.push(this.#consumeTemplateIdentifier());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+        } else if (this.#inCommandMode() && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
           this.#tokens.push(this.#consumeIdentifier());
         } else if (this.#isNumeric(this.#currentChar())) {
           this.#tokens.push(this.#consumeNumber());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+        } else if (this.#inCommandMode() && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
           this.#tokens.push(this.#consumeString());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && this.#currentChar() === "'") {
+        } else if (this.#inCommandMode() && this.#currentChar() === "'") {
           if (this.#isValidSingleQuoteStringStart()) {
             this.#tokens.push(this.#consumeString());
           } else {
@@ -726,7 +626,22 @@
   };
 
   // src/parsetree/base.js
-  var ParseElement = class {
+  var ParseElement = class _ParseElement {
+    errors = [];
+    collectErrors(visited) {
+      if (!visited) visited = /* @__PURE__ */ new Set();
+      if (visited.has(this)) return [];
+      visited.add(this);
+      var all = [...this.errors];
+      for (var key of Object.keys(this)) {
+        for (var item of [this[key]].flat()) {
+          if (item instanceof _ParseElement) {
+            all.push(...item.collectErrors(visited));
+          }
+        }
+      }
+      return all;
+    }
     sourceFor() {
       return this.programSource.substring(this.startToken.start, this.endToken.end);
     }
@@ -828,11 +743,11 @@
       }
     }
   };
-  var HyperscriptProgram = class {
+  var HyperscriptProgram = class extends ParseElement {
     constructor(features) {
+      super();
       this.type = "hyperscript";
       this.features = features;
-      this.errors = [];
     }
     apply(target, source, args, runtime2) {
       for (const feature of this.features) {
@@ -841,19 +756,21 @@
     }
   };
   var FailedFeature = class extends Feature {
-    constructor(error) {
+    constructor(error, keyword) {
       super();
       this.type = "failedFeature";
-      this.error = error;
+      this.keyword = keyword;
+      this.errors.push(error);
     }
     install() {
     }
   };
   var FailedCommand = class extends Command {
-    constructor(error) {
+    constructor(error, keyword) {
       super();
       this.type = "failedCommand";
-      this.error = error;
+      this.keyword = keyword;
+      this.errors.push(error);
     }
     resolve() {
     }
@@ -1157,11 +1074,67 @@
   };
 
   // src/core/parser.js
+  var ParseError = class {
+    constructor(message, token, source) {
+      this.message = message;
+      this.token = token;
+      this.source = source;
+      this.line = token?.line ?? null;
+      this.column = token?.column ?? null;
+    }
+  };
+  var ParseRecoverySentinel = class extends Error {
+    constructor(parseError) {
+      super(parseError.message);
+      this.parseError = parseError;
+    }
+  };
   var Parser = class _Parser {
     #kernel;
     constructor(kernel2, tokens) {
       this.#kernel = kernel2;
       this.tokens = tokens;
+    }
+    static formatErrors(errors) {
+      if (!errors.length) return "";
+      var source = errors[0].source;
+      var lines = source.split("\n");
+      var byLine = /* @__PURE__ */ new Map();
+      for (var e of errors) {
+        var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+        if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+        byLine.get(lineIdx).push(e);
+      }
+      var maxLine = Math.max(...byLine.keys()) + 1;
+      var gutter = String(maxLine).length;
+      var pad = " ".repeat(gutter + 5);
+      var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+      var prevLineIdx = -1;
+      var out = "";
+      for (var [lineIdx, lineErrors] of sortedLines) {
+        if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+          out += " ".repeat(gutter + 1) + "...\n";
+        } else if (prevLineIdx === -1 && lineIdx > 0) {
+          out += " ".repeat(gutter + 1) + "...\n";
+        }
+        prevLineIdx = lineIdx;
+        var lineNum = String(lineIdx + 1).padStart(gutter);
+        var contextLine = lines[lineIdx] || "";
+        out += "  " + lineNum + " | " + contextLine + "\n";
+        lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+        var underlineChars = Array(contextLine.length + 10).fill(" ");
+        for (var e of lineErrors) {
+          var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+          var len = Math.max(1, e.token?.value?.length || 1);
+          for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+        }
+        out += pad + underlineChars.join("").trimEnd() + "\n";
+        for (var e of lineErrors) {
+          var col = e.token?.line ? e.token.column : 0;
+          out += pad + " ".repeat(col) + e.message + "\n";
+        }
+      }
+      return out;
     }
     // ===========================
     // Token delegation methods
@@ -1170,7 +1143,9 @@
       return this.tokens.consumeWhitespace();
     }
     requireOpToken(value) {
-      return this.tokens.requireOpToken(value);
+      var token = this.matchOpToken(value);
+      if (token) return token;
+      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
     matchAnyOpToken(...ops) {
       return this.tokens.matchAnyOpToken(...ops);
@@ -1182,13 +1157,17 @@
       return this.tokens.matchOpToken(value);
     }
     requireTokenType(...types) {
-      return this.tokens.requireTokenType(...types);
+      var token = this.matchTokenType(...types);
+      if (token) return token;
+      this.raiseError("Expected one of " + JSON.stringify(types));
     }
     matchTokenType(...types) {
       return this.tokens.matchTokenType(...types);
     }
     requireToken(value, type) {
-      return this.tokens.requireToken(value, type);
+      var token = this.matchToken(value, type);
+      if (token) return token;
+      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
     }
     peekToken(value, peek, type) {
       return this.tokens.peekToken(value, peek, type);
@@ -1256,8 +1235,10 @@
     parseAnyOf(types) {
       return this.#kernel.parseAnyOf(types, this);
     }
-    raiseParseError(message) {
-      return this.#kernel.raiseParseError(this.tokens, message);
+    raiseError(message) {
+      message = message || "Unexpected Token : " + this.currentToken().value;
+      var parseError = new ParseError(message, this.currentToken(), this.source);
+      throw new ParseRecoverySentinel(parseError);
     }
     // ===========================
     // Parser-owned methods
@@ -1332,7 +1313,7 @@
   };
 
   // src/core/kernel.js
-  var LanguageKernel = class _LanguageKernel {
+  var LanguageKernel = class {
     #grammar = {};
     #commands = {};
     #features = {};
@@ -1387,12 +1368,13 @@
     }
     parseCommandList(parser) {
       if (parser.hasMore()) {
+        var keyword = parser.currentToken().value;
         var cmd;
         try {
           cmd = parser.parseElement("command");
         } catch (e) {
           if (e instanceof ParseRecoverySentinel) {
-            cmd = new FailedCommand(e.parseError);
+            cmd = new FailedCommand(e.parseError, keyword);
             this.#syncToCommand(parser);
           } else {
             throw e;
@@ -1454,7 +1436,7 @@
       if (checkExpr && this.#assignableExpressions.includes(checkExpr.type)) {
         return expr;
       } else {
-        parser.raiseParseError(
+        parser.raiseError(
           "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
         );
       }
@@ -1474,12 +1456,13 @@
       if (leaf) {
         return this.parseElement("indirectExpression", parser, leaf);
       }
-      parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
+      parser.raiseError("Unexpected value: " + parser.currentToken().value);
     }
     parseHyperscriptProgram(parser) {
       var features = [];
       if (parser.hasMore()) {
         while (parser.currentToken().type !== "EOF") {
+          var keyword = parser.currentToken().value;
           if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
             try {
               var feature = parser.requireElement("feature");
@@ -1487,7 +1470,7 @@
               parser.matchToken("end");
             } catch (e) {
               if (e instanceof ParseRecoverySentinel) {
-                features.push(new FailedFeature(e.parseError));
+                features.push(new FailedFeature(e.parseError, keyword));
                 this.#syncToFeature(parser);
               } else {
                 throw e;
@@ -1495,19 +1478,17 @@
             }
           } else if (parser.currentToken().value === "end") {
             break;
-          } else if (parser.tokens.recoveryMode) {
+          } else {
             try {
-              parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+              parser.raiseError();
             } catch (e) {
               if (e instanceof ParseRecoverySentinel) {
-                features.push(new FailedFeature(e.parseError));
+                features.push(new FailedFeature(e.parseError, keyword));
                 this.#syncToFeature(parser);
               } else {
                 throw e;
               }
             }
-          } else {
-            break;
           }
         }
       }
@@ -1541,7 +1522,7 @@
     }
     requireElement(type, parser, message, root) {
       var result = this.parseElement(type, parser, root);
-      if (!result) _LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
+      if (!result) parser.raiseError(message || "Expected " + type);
       return result;
     }
     parseAnyOf(types, parser) {
@@ -1673,26 +1654,21 @@
     featureStart(token) {
       return this.#features[token.value || ""];
     }
-    static raiseParseError(tokens, message) {
-      tokens.raiseError(message);
-    }
-    raiseParseError(tokens, message) {
-      tokens.raiseError(message);
-    }
     parseHyperScript(tokens) {
-      tokens.enableRecovery();
       var parser = new Parser(this, tokens);
       var result;
+      var lastError = null;
       try {
         result = parser.parseElement("hyperscript");
-        if (tokens.hasMore()) this.raiseParseError(tokens);
+        if (tokens.hasMore()) parser.raiseError();
       } catch (e) {
         if (!(e instanceof ParseRecoverySentinel)) throw e;
+        lastError = e.parseError;
       }
-      if (result) {
-        result.errors = tokens.errors;
-        return result;
-      }
+      if (!result) result = new HyperscriptProgram([]);
+      result.errors = result.collectErrors();
+      if (lastError) result.errors.push(lastError);
+      return result;
     }
     #syncToFeature(parser) {
       parser.tokens.clearFollows();
@@ -1712,20 +1688,30 @@
     parse(tokenizer2, src) {
       var tokens = tokenizer2.tokenize(src);
       var parser = new Parser(this, tokens);
-      if (parser.commandStart(tokens.currentToken())) {
-        var commandList = this.requireElement("commandList", parser);
-        if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
-        parser.ensureTerminated(commandList);
-        return commandList;
-      } else if (parser.featureStart(tokens.currentToken())) {
-        var hyperscript = this.requireElement("hyperscript", parser);
-        if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
-        return hyperscript;
-      } else {
-        var expression = this.requireElement("expression", parser);
-        if (tokens.hasMore()) _LanguageKernel.raiseParseError(tokens);
-        return expression;
+      var result, lastError;
+      try {
+        if (parser.commandStart(tokens.currentToken())) {
+          result = this.requireElement("commandList", parser);
+          if (tokens.hasMore()) parser.raiseError();
+          parser.ensureTerminated(result);
+        } else if (parser.featureStart(tokens.currentToken())) {
+          result = this.requireElement("hyperscript", parser);
+          if (tokens.hasMore()) parser.raiseError();
+        } else {
+          result = this.requireElement("expression", parser);
+          if (tokens.hasMore()) parser.raiseError();
+        }
+      } catch (e) {
+        if (!(e instanceof ParseRecoverySentinel)) throw e;
+        lastError = e.parseError;
       }
+      if (!result && lastError) {
+        result = { type: "empty", errors: [lastError] };
+      } else if (result) {
+        result.errors = result.collectErrors();
+        if (lastError) result.errors.push(lastError);
+      }
+      return result;
     }
   };
 
@@ -1776,6 +1762,27 @@
       }
     }
   };
+  function _toHTML(value) {
+    if (value instanceof Array) {
+      return value.map((item) => _toHTML(item)).join("");
+    }
+    if (value instanceof HTMLElement) {
+      return value.outerHTML;
+    }
+    if (value instanceof NodeList) {
+      var result = "";
+      for (var i = 0; i < value.length; i++) {
+        if (value[i] instanceof HTMLElement) {
+          result += value[i].outerHTML;
+        }
+      }
+      return result;
+    }
+    if (value.toString) {
+      return value.toString();
+    }
+    return "";
+  }
   var conversions = {
     dynamicResolvers: [
       // Fixed-point number conversion
@@ -1839,31 +1846,7 @@
     FormEncoded: function(val) {
       return new URLSearchParams(val).toString();
     },
-    HTML: function(value) {
-      var toHTML = (value2) => {
-        if (value2 instanceof Array) {
-          return value2.map((item) => toHTML(item)).join("");
-        }
-        if (value2 instanceof HTMLElement) {
-          return value2.outerHTML;
-        }
-        if (value2 instanceof NodeList) {
-          var result = "";
-          for (var i = 0; i < value2.length; i++) {
-            var node = value2[i];
-            if (node instanceof HTMLElement) {
-              result += node.outerHTML;
-            }
-          }
-          return result;
-        }
-        if (value2.toString) {
-          return value2.toString();
-        }
-        return "";
-      };
-      return toHTML(value);
-    },
+    HTML: _toHTML,
     Fragment: function(val, runtime2) {
       var frag = document.createDocumentFragment();
       runtime2.implicitLoop(val, (val2) => {
@@ -2034,16 +2017,6 @@
 
   // src/core/runtime/runtime.js
   var cookies = new CookieJar().proxy();
-  function _applyWhenResults(elements, results, forwardFn, reverseFn) {
-    var matched = [];
-    for (var i = 0; i < elements.length; i++) {
-      if (results[i]) {
-        forwardFn(elements[i]);
-        matched.push(elements[i]);
-      } else reverseFn(elements[i]);
-    }
-    return matched;
-  }
   var Context = class {
     constructor(owner, feature, hyperscriptTarget, event, runtime2, globalScope2, kernel2, tokenizer2) {
       this.meta = {
@@ -2098,12 +2071,14 @@
     #tokenizer;
     #globalScope;
     #reactivity;
+    #morphEngine;
     #scriptAttrs = null;
-    constructor(globalScope2, kernel2, tokenizer2, reactivity2) {
+    constructor(globalScope2, kernel2, tokenizer2, reactivity2, morphEngine2) {
       this.#globalScope = globalScope2;
       this.#kernel = kernel2;
       this.#tokenizer = tokenizer2;
       this.#reactivity = reactivity2;
+      this.#morphEngine = morphEngine2;
     }
     get globalScope() {
       return this.#globalScope;
@@ -2463,6 +2438,19 @@
     notifyMutation(obj) {
       this.reactivity.notifyProperty(obj);
     }
+    morph(elt, content) {
+      this.#morphEngine.morph(elt, content, {
+        beforeNodeRemoved: (node) => {
+          if (node.nodeType === 1) this.cleanup(node);
+        },
+        afterNodeAdded: (node) => {
+          if (node.nodeType === 1) this.processNode(node);
+        },
+        afterNodeMorphed: (node) => {
+          if (node.nodeType === 1) this.processNode(node);
+        }
+      });
+    }
     replaceInDom(target, value) {
       this.implicitLoop(target, (elt) => {
         var parent = elt.parentElement;
@@ -2571,12 +2559,22 @@
         return c && typeof c.then === "function";
       });
       if (hasPromise) {
-        return Promise.all(conditions).then(function(results) {
-          context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+        return Promise.all(conditions).then((results) => {
+          context.result = this.#applyWhenResults(elements, results, forwardFn, reverseFn);
         });
       } else {
-        context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+        context.result = this.#applyWhenResults(elements, conditions, forwardFn, reverseFn);
       }
+    }
+    #applyWhenResults(elements, results, forwardFn, reverseFn) {
+      var matched = [];
+      for (var i = 0; i < elements.length; i++) {
+        if (results[i]) {
+          forwardFn(elements[i]);
+          matched.push(elements[i]);
+        } else reverseFn(elements[i]);
+      }
+      return matched;
     }
     // =================================================================
     // Type system
@@ -2774,7 +2772,7 @@
           console.error(
             "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
             elt,
-            "\n\n" + formatErrors(hyperScript.errors)
+            "\n\n" + Parser.formatErrors(hyperScript.errors)
           );
           return;
         }
@@ -3342,6 +3340,234 @@
     }
   };
 
+  // src/core/runtime/morph.js
+  var Morph = class {
+    /**
+     * Morph oldNode to match content.
+     * @param {Element} oldNode - The existing DOM element to morph
+     * @param {string|Element|DocumentFragment} content - The new content
+     * @param {MorphCallbacks} [callbacks] - Optional lifecycle callbacks
+     */
+    morph(oldNode, content, callbacks = {}) {
+      var fragment;
+      if (typeof content === "string") {
+        var temp = document.createElement("template");
+        temp.innerHTML = content;
+        fragment = temp.content;
+      } else if (content instanceof DocumentFragment) {
+        fragment = content;
+      } else if (content instanceof Element) {
+        fragment = document.createDocumentFragment();
+        fragment.append(content.cloneNode(true));
+      } else {
+        throw new Error("morph requires an HTML string, element, or document fragment");
+      }
+      var newRoot = fragment.firstElementChild;
+      if (newRoot && !newRoot.nextElementSibling && newRoot.tagName === oldNode.tagName) {
+        _copyAttributes(oldNode, newRoot);
+        fragment = newRoot;
+      }
+      var { persistentIds, idMap } = _createIdMaps(oldNode, fragment);
+      var pantry = document.createElement("div");
+      pantry.hidden = true;
+      (document.body || oldNode.parentElement).after(pantry);
+      var ctx = { target: oldNode, idMap, persistentIds, pantry, futureMatches: /* @__PURE__ */ new WeakSet(), callbacks };
+      _morphChildren(ctx, oldNode, fragment);
+      callbacks.beforeNodeRemoved?.(pantry);
+      pantry.remove();
+    }
+  };
+  function _morphChildren(ctx, oldParent, newParent, insertionPoint = null, endPoint = null) {
+    if (oldParent instanceof HTMLTemplateElement && newParent instanceof HTMLTemplateElement) {
+      oldParent = oldParent.content;
+      newParent = newParent.content;
+    }
+    insertionPoint ||= oldParent.firstChild;
+    let newChild = newParent.firstChild;
+    while (newChild) {
+      let matchedNode;
+      if (insertionPoint && insertionPoint !== endPoint) {
+        matchedNode = _findBestMatch(ctx, newChild, insertionPoint, endPoint);
+        if (matchedNode && matchedNode !== insertionPoint) {
+          let cursor = insertionPoint;
+          while (cursor && cursor !== matchedNode) {
+            let tempNode = cursor;
+            cursor = cursor.nextSibling;
+            if (tempNode instanceof Element && (ctx.idMap.has(tempNode) || _matchesUpcomingSibling(ctx, tempNode, newChild))) {
+              _moveBefore(oldParent, tempNode, endPoint);
+            } else {
+              _removeNode(ctx, tempNode);
+            }
+          }
+        }
+      }
+      if (!matchedNode && newChild instanceof Element && ctx.persistentIds.has(newChild.id)) {
+        let escapedId = CSS.escape(newChild.id);
+        matchedNode = ctx.target.id === newChild.id && ctx.target || ctx.target.querySelector('[id="' + escapedId + '"]') || ctx.pantry.querySelector('[id="' + escapedId + '"]');
+        let element = matchedNode;
+        while (element = element.parentNode) {
+          let idSet = ctx.idMap.get(element);
+          if (idSet) {
+            idSet.delete(matchedNode.id);
+            if (!idSet.size) ctx.idMap.delete(element);
+          }
+        }
+        _moveBefore(oldParent, matchedNode, insertionPoint);
+      }
+      if (matchedNode) {
+        _morphNode(matchedNode, newChild, ctx);
+        insertionPoint = matchedNode.nextSibling;
+        newChild = newChild.nextSibling;
+        continue;
+      }
+      let nextNewChild = newChild.nextSibling;
+      if (ctx.idMap.has(newChild)) {
+        let placeholder = document.createElement(newChild.tagName);
+        oldParent.insertBefore(placeholder, insertionPoint);
+        _morphNode(placeholder, newChild, ctx);
+        insertionPoint = placeholder.nextSibling;
+      } else {
+        oldParent.insertBefore(newChild, insertionPoint);
+        ctx.callbacks.afterNodeAdded?.(newChild);
+        insertionPoint = newChild.nextSibling;
+      }
+      newChild = nextNewChild;
+    }
+    while (insertionPoint && insertionPoint !== endPoint) {
+      let tempNode = insertionPoint;
+      insertionPoint = insertionPoint.nextSibling;
+      _removeNode(ctx, tempNode);
+    }
+  }
+  function _morphNode(oldNode, newNode, ctx) {
+    if (!(oldNode instanceof Element)) return;
+    _copyAttributes(oldNode, newNode);
+    if (oldNode instanceof HTMLTextAreaElement && oldNode.defaultValue !== newNode.defaultValue) {
+      oldNode.value = newNode.value;
+    }
+    if (!oldNode.isEqualNode(newNode) || newNode.tagName === "TEMPLATE" || newNode.querySelector?.("template")) {
+      _morphChildren(ctx, oldNode, newNode);
+    }
+    ctx.callbacks.afterNodeMorphed?.(oldNode);
+  }
+  function _findBestMatch(ctx, node, startPoint, endPoint) {
+    if (!(node instanceof Element)) return null;
+    var softMatch = null, displaceMatchCount = 0, scanLimit = 10;
+    var newSet = ctx.idMap.get(node), nodeMatchCount = newSet?.size || 0;
+    if (node.id && !newSet) return null;
+    var cursor = startPoint;
+    while (cursor && cursor !== endPoint) {
+      var oldSet = ctx.idMap.get(cursor);
+      if (_isSoftMatch(cursor, node)) {
+        if (oldSet && newSet && [...oldSet].some((id) => newSet.has(id))) return cursor;
+        if (!oldSet) {
+          if (scanLimit > 0 && cursor.isEqualNode(node)) return cursor;
+          if (!softMatch) softMatch = cursor;
+        }
+      }
+      displaceMatchCount += oldSet?.size || 0;
+      if (displaceMatchCount > nodeMatchCount) break;
+      if (cursor.contains(document.activeElement)) break;
+      if (--scanLimit < 1 && nodeMatchCount === 0) break;
+      cursor = cursor.nextSibling;
+    }
+    if (softMatch && _matchesUpcomingSibling(ctx, softMatch, node)) return null;
+    return softMatch;
+  }
+  function _matchesUpcomingSibling(ctx, oldElt, startNode) {
+    if (ctx.futureMatches.has(oldElt)) return true;
+    for (var sibling = startNode.nextSibling, i = 0; sibling && i < 10; sibling = sibling.nextSibling, i++) {
+      if (sibling instanceof Element && oldElt.isEqualNode(sibling)) {
+        ctx.futureMatches.add(oldElt);
+        return true;
+      }
+    }
+    return false;
+  }
+  function _removeNode(ctx, node) {
+    if (ctx.idMap.has(node)) {
+      _moveBefore(ctx.pantry, node, null);
+    } else {
+      ctx.callbacks.beforeNodeRemoved?.(node);
+      node.remove();
+    }
+  }
+  function _moveBefore(parentNode, element, after) {
+    if (parentNode.moveBefore) {
+      try {
+        parentNode.moveBefore(element, after);
+        return;
+      } catch (e) {
+      }
+    }
+    parentNode.insertBefore(element, after);
+  }
+  function _copyAttributes(destination, source) {
+    for (var attr of source.attributes) {
+      if (destination.getAttribute(attr.name) !== attr.value) {
+        destination.setAttribute(attr.name, attr.value);
+        if (attr.name === "value" && destination instanceof HTMLInputElement && destination.type !== "file") {
+          destination.value = attr.value;
+        }
+      }
+    }
+    for (var i = destination.attributes.length - 1; i >= 0; i--) {
+      var attr = destination.attributes[i];
+      if (attr && !source.hasAttribute(attr.name)) {
+        destination.removeAttribute(attr.name);
+      }
+    }
+  }
+  function _isSoftMatch(oldNode, newNode) {
+    if (!(oldNode instanceof Element) || oldNode.tagName !== newNode.tagName) return false;
+    if (oldNode.tagName === "SCRIPT" && !oldNode.isEqualNode(newNode)) return false;
+    return !oldNode.id || oldNode.id === newNode.id;
+  }
+  function _createIdMaps(oldNode, newContent) {
+    var oldIdElements = _queryEltAndDescendants(oldNode, "[id]");
+    var newIdElements = newContent.querySelectorAll("[id]");
+    var persistentIds = _createPersistentIds(oldIdElements, newIdElements);
+    var idMap = /* @__PURE__ */ new Map();
+    _populateIdMapWithTree(idMap, persistentIds, oldNode.parentElement, oldIdElements);
+    _populateIdMapWithTree(idMap, persistentIds, newContent, newIdElements);
+    return { persistentIds, idMap };
+  }
+  function _createPersistentIds(oldIdElements, newIdElements) {
+    var duplicateIds = /* @__PURE__ */ new Set(), oldIdTagNameMap = /* @__PURE__ */ new Map();
+    for (var { id, tagName } of oldIdElements) {
+      if (oldIdTagNameMap.has(id)) duplicateIds.add(id);
+      else if (id) oldIdTagNameMap.set(id, tagName);
+    }
+    var persistentIds = /* @__PURE__ */ new Set();
+    for (var { id, tagName } of newIdElements) {
+      if (persistentIds.has(id)) duplicateIds.add(id);
+      else if (oldIdTagNameMap.get(id) === tagName) persistentIds.add(id);
+    }
+    for (var id of duplicateIds) persistentIds.delete(id);
+    return persistentIds;
+  }
+  function _populateIdMapWithTree(idMap, persistentIds, root, elements) {
+    for (var elt of elements) {
+      if (persistentIds.has(elt.id)) {
+        var current = elt;
+        while (current && current !== root) {
+          var idSet = idMap.get(current);
+          if (idSet == null) {
+            idSet = /* @__PURE__ */ new Set();
+            idMap.set(current, idSet);
+          }
+          idSet.add(elt.id);
+          current = current.parentElement;
+        }
+      }
+    }
+  }
+  function _queryEltAndDescendants(elt, selector) {
+    var results = [...elt.querySelectorAll?.(selector) ?? []];
+    if (elt.matches?.(selector)) results.unshift(elt);
+    return results;
+  }
+
   // src/parsetree/expressions/expressions.js
   var expressions_exports = {};
   __export(expressions_exports, {
@@ -3620,8 +3846,9 @@
         childOfUrRoot = urRoot;
         urRoot = urRoot.root;
       }
-      if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-        parser.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+      var validOfRoots = ["symbol", "attributeRef", "styleRef", "computedStyleRef"];
+      if (!validOfRoots.includes(urRoot.type)) {
+        parser.raiseError("Cannot take a property of a non-symbol: " + urRoot.type);
       }
       var attribute = urRoot.type === "attributeRef";
       var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
@@ -3988,7 +4215,7 @@
         initialMathOp = initialMathOp || mathOp;
         var operator = mathOp.value;
         if (initialMathOp.value !== operator) {
-          parser.raiseParseError("You must parenthesize math operations with different operators");
+          parser.raiseError("You must parenthesize math operations with different operators");
         }
         var rhs = parser.parseElement("unaryExpression");
         expr = new _MathOperator(expr, operator, rhs);
@@ -4155,7 +4382,7 @@
           } else if (parser.matchToken("follow")) {
             operator = "not follow";
           } else {
-            parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
+            parser.raiseError("Expected matches, contains, starts with, ends with, precede, or follow");
           }
         }
       }
@@ -4245,7 +4472,7 @@
       while (logicalOp) {
         initialLogicalOp = initialLogicalOp || logicalOp;
         if (initialLogicalOp.value !== logicalOp.value) {
-          parser.raiseParseError("You must parenthesize logical operations with different operators");
+          parser.raiseError("You must parenthesize logical operations with different operators");
         }
         var rhs = parser.requireElement("comparisonOperator");
         const operator = logicalOp.value;
@@ -5013,7 +5240,7 @@
       if (css == null) {
         var expr = parser.requireElement("expression");
         if (expr.css == null) {
-          parser.raiseParseError("Expected a CSS expression");
+          parser.raiseError("Expected a CSS expression");
         } else {
           css = expr.css;
         }
@@ -5404,7 +5631,7 @@
     }
     static parseSource(parser) {
       if (!parser.matchAnyToken("of", "from")) {
-        parser.raiseParseError("Expected 'of' or 'from'");
+        parser.raiseError("Expected 'of' or 'from'");
       }
       return parser.requireElement("expression");
     }
@@ -5728,8 +5955,11 @@
       if (this.byMode) {
         var el = target || document.documentElement;
         var dir = this.byMode.direction;
-        var top = dir === "up" || dir === "down" ? dir === "up" ? -offset : offset : 0;
-        var left = dir === "left" || dir === "right" ? dir === "left" ? -offset : offset : 0;
+        var top = 0, left = 0;
+        if (dir === "up") top = -offset;
+        else if (dir === "down") top = offset;
+        else if (dir === "left") left = -offset;
+        else if (dir === "right") left = offset;
         var opts = { top, left };
         if (this.scrollOptions.behavior) opts.behavior = this.scrollOptions.behavior;
         el.scrollBy(opts);
@@ -6027,7 +6257,7 @@
         parser.requireToken("of");
       }
       if (operationToken == null) {
-        parser.raiseParseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+        parser.raiseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
       }
       var target = parser.requireElement("expression");
       while (target.type === "parenthesized") target = target.expr;
@@ -6314,7 +6544,7 @@
         keepLooping = whileValue;
       } else if (times) {
         keepLooping = iteratorInfo.index < times;
-      } else {
+      } else if (iteratorInfo.iterator) {
         var nextValFromIterator = iteratorInfo.iterator.next();
         keepLooping = !nextValFromIterator.done;
         loopVal = nextValFromIterator.value;
@@ -6694,7 +6924,7 @@
       if (!isCall && !parser.matchToken("get")) return;
       var expr = parser.requireElement("expression");
       if (isCall && expr && expr.type !== "functionCall") {
-        parser.raiseParseError("Must be a function invocation");
+        parser.raiseError("Must be a function invocation");
       }
       return new _GetCommand(expr);
     }
@@ -6738,7 +6968,7 @@
         rootRoot = rootRoot.root;
       }
       if (expr.type !== "functionCall") {
-        parser.raiseParseError("Pseudo-commands must be function calls");
+        parser.raiseError("Pseudo-commands must be function calls");
       }
       if (root.type === "functionCall" && root.root.root == null) {
         if (parser.matchAnyToken("the", "to", "on", "with", "into", "from", "at")) {
@@ -6783,6 +7013,7 @@
     FocusCommand: () => FocusCommand,
     HideCommand: () => HideCommand,
     MeasureCommand: () => MeasureCommand,
+    MorphCommand: () => MorphCommand,
     OpenCommand: () => OpenCommand,
     RemoveCommand: () => RemoveCommand,
     SelectCommand: () => SelectCommand,
@@ -6883,7 +7114,7 @@
       name = name || configDefault || "display";
       var value = strategies[name];
       if (value == null) {
-        parser.raiseParseError("Unknown show/hide strategy : " + name);
+        parser.raiseError("Unknown show/hide strategy : " + name);
       }
       return value;
     }
@@ -6917,7 +7148,7 @@
         if (attributeRef == null) {
           cssDeclaration = parser.parseElement("styleLiteral");
           if (cssDeclaration == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
         }
       } else {
@@ -7047,7 +7278,7 @@
           if (cssDeclaration == null) {
             elementExpr = parser.parseElement("expression");
             if (elementExpr == null) {
-              parser.raiseParseError(
+              parser.raiseError(
                 "Expected either a class reference, attribute expression or value expression"
               );
             }
@@ -7068,7 +7299,7 @@
       }
       if (parser.matchToken("when")) {
         if (elementExpr) {
-          parser.raiseParseError("'when' clause is not supported when removing elements");
+          parser.raiseError("'when' clause is not supported when removing elements");
         }
         var when = parser.requireElement("expression");
       }
@@ -7204,7 +7435,7 @@
           var betweenAttr = true;
           var attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
           parser.requireToken("and");
           var attributeRef2 = parser.requireElement("attributeRef");
@@ -7214,7 +7445,7 @@
         if (classRef == null) {
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
         } else {
           classRefs = [classRef];
@@ -7463,7 +7694,7 @@
         if (!weAreTakingClasses) {
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
-            parser.raiseParseError("Expected either a class reference or attribute expression");
+            parser.raiseError("Expected either a class reference or attribute expression");
           }
           if (parser.matchToken("with")) {
             replacementValue = parser.requireElement("expression");
@@ -7768,7 +7999,7 @@
         } else if (parser.matchToken("volume")) {
           volume = parser.requireElement("expression");
         } else {
-          parser.raiseParseError("Expected voice, rate, pitch, or volume");
+          parser.raiseError("Expected voice, rate, pitch, or volume");
         }
       }
       return new _SpeakCommand(text, voice, rate, pitch, volume);
@@ -7858,6 +8089,26 @@
       } else {
         alert(String(message));
       }
+      return this.findNext(ctx);
+    }
+  };
+  var MorphCommand = class _MorphCommand extends Command {
+    static keyword = "morph";
+    constructor(target, content) {
+      super();
+      this.args = { target, content };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("morph")) return;
+      var target = parser.requireElement("expression");
+      parser.requireToken("to");
+      var content = parser.requireElement("expression");
+      return new _MorphCommand(target, content);
+    }
+    resolve(ctx, { target, content }) {
+      ctx.meta.runtime.implicitLoop(target, function(elt) {
+        ctx.meta.runtime.morph(elt, content);
+      });
       return this.findNext(ctx);
     }
   };
@@ -7970,7 +8221,7 @@
           targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
           properties.push(new StyleRefValue(firstProp.name));
         } else {
-          parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+          parser.raiseError("Expected a style reference (e.g. *opacity) for transition");
         }
         if (parser.matchToken("from")) {
           from.push(parser.requireElement("expression"));
@@ -8388,7 +8639,7 @@
               } else if (parser.matchToken("threshold")) {
                 intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
               } else {
-                parser.raiseParseError("Unknown intersection config specification");
+                parser.raiseError("Unknown intersection config specification");
               }
             } while (parser.matchToken("and"));
           }
@@ -8417,12 +8668,12 @@
                 if (attribute.value.startsWith("@")) {
                   mutationSpec["attributeFilter"].push(attribute.value.substring(1));
                 } else {
-                  parser.raiseParseError(
+                  parser.raiseError(
                     "Only shorthand attribute references are allowed here"
                   );
                 }
               } else {
-                parser.raiseParseError("Unknown mutation config specification");
+                parser.raiseError("Unknown mutation config specification");
               }
             } while (parser.matchToken("or"));
             if (mutationSpec["attributes"] || mutationSpec["attributeFilter"]) {
@@ -8452,7 +8703,7 @@
               parser.popFollow();
             }
             if (!from) {
-              parser.raiseParseError('Expected either target value or "elsewhere".');
+              parser.raiseError('Expected either target value or "elsewhere".');
             }
           }
         }
@@ -8624,7 +8875,7 @@
       let setCmd = parser.parseElement("setCommand");
       if (setCmd) {
         if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
-          parser.raiseParseError("variables declared at the feature level must be element or DOM scoped.");
+          parser.raiseError("variables declared at the feature level must be element or DOM scoped.");
         }
         let setFeature = new _SetFeature(setCmd);
         parser.ensureTerminated(setCmd);
@@ -8646,9 +8897,8 @@
       this.immediately = immediately;
     }
     install(target, source, args, runtime2) {
-      var feature = this;
-      var handler = function() {
-        feature.start && feature.start.execute(runtime2.makeContext(target, feature, target, null));
+      var handler = () => {
+        this.start?.execute(runtime2.makeContext(target, this, target, null));
       };
       if (this.immediately) {
         handler();
@@ -8676,7 +8926,7 @@
     static keyword = "worker";
     static parse(parser) {
       if (parser.matchToken("worker")) {
-        parser.raiseParseError(
+        parser.raiseError(
           "In order to use the 'worker' feature, include the _hyperscript worker plugin. See https://hyperscript.org/features/worker/ for more info."
         );
         return void 0;
@@ -8829,7 +9079,7 @@
       for (var i = 0; i < exprs.length; i++) {
         var expr = exprs[i];
         if (expr.type === "symbol" && expr.scope === "default" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
-          parser.raiseParseError(
+          parser.raiseError(
             "Cannot watch local variable '" + expr.name + "'. Local variables are not reactive. Use '$" + expr.name + "' (global) or ':" + expr.name + "' (element-scoped) instead."
           );
         }
@@ -8903,7 +9153,7 @@
         parser.popFollow();
       }
       if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
-        parser.raiseParseError("bind requires a connector: 'and', 'with', or 'to'");
+        parser.raiseError("bind requires a connector: 'and', 'with', or 'to'");
       }
       var right = parser.requireElement("expression");
       return new _BindFeature(left, right);
@@ -9054,11 +9304,10 @@
     if (!source.element) return;
     var form = source.element.closest("form");
     if (!form) return;
-    var resetHandler = function() {
-      setTimeout(function() {
+    var resetHandler = () => {
+      setTimeout(() => {
         if (!target.isConnected) return;
-        var val = source.read();
-        dest.write(val);
+        dest.write(source.read());
       }, 0);
     };
     form.addEventListener("reset", resetHandler);
@@ -9142,6 +9391,12 @@
     RenderCommand: () => RenderCommand,
     TemplateTextCommand: () => TemplateTextCommand
   });
+  function _stringifyTemplatePart(val, part) {
+    if (part.type === "literal") return val;
+    if (val === void 0 || val === null) return "";
+    if (part.escape) return escapeHTML(String(val));
+    return String(val);
+  }
   function escapeHTML(html) {
     return String(html).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
@@ -9207,26 +9462,21 @@
       return new _TemplateTextCommand(parts, errors);
     }
     resolve(ctx) {
-      var vals = this.parts.map((part) => {
+      var parts = this.parts;
+      var vals = parts.map((part) => {
         if (part.type === "literal") return part.value;
         return part.node.evaluate(ctx);
       });
-      var stringify = (val, part) => {
-        if (part.type === "literal") return val;
-        if (val === void 0 || val === null) return "";
-        if (part.escape) return escapeHTML(String(val));
-        return String(val);
-      };
       if (vals.some((v) => v && v.then)) {
         return Promise.all(vals).then((resolved) => {
           ctx.meta.__ht_template_result.push(
-            resolved.map((val, i) => stringify(val, this.parts[i])).join("")
+            resolved.map((val, i) => _stringifyTemplatePart(val, parts[i])).join("")
           );
           return this.findNext(ctx);
         });
       }
       ctx.meta.__ht_template_result.push(
-        vals.map((val, i) => stringify(val, this.parts[i])).join("")
+        vals.map((val, i) => _stringifyTemplatePart(val, parts[i])).join("")
       );
       return this.findNext(ctx);
     }
@@ -9330,7 +9580,8 @@
   var kernel = new LanguageKernel();
   var tokenizer = new Tokenizer();
   var reactivity = new Reactivity();
-  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity);
+  var morphEngine = new Morph();
+  var runtime = new Runtime(globalScope, kernel, tokenizer, reactivity, morphEngine);
   kernel.registerModule(expressions_exports);
   kernel.registerModule(literals_exports);
   kernel.registerModule(webliterals_exports);
@@ -9368,6 +9619,9 @@
     }
     ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
     let element = kernel.parse(tokenizer, src);
+    if (element && element.errors && element.errors.length > 0) {
+      throw new Error(element.errors[0].message + "\n\n" + Parser.formatErrors(element.errors));
+    }
     if (element.execute) {
       element.execute(ctx);
       return ctx.meta.returnValue !== void 0 ? ctx.meta.returnValue : ctx.result;

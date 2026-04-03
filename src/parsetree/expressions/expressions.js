@@ -334,7 +334,8 @@ export class OfExpression extends Expression {
             childOfUrRoot = urRoot;
             urRoot = urRoot.root;
         }
-        if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
+        var validOfRoots = ["symbol", "attributeRef", "styleRef", "computedStyleRef"];
+        if (!validOfRoots.includes(urRoot.type)) {
             parser.raiseError("Cannot take a property of a non-symbol: " + urRoot.type);
         }
         var attribute = urRoot.type === "attributeRef";
