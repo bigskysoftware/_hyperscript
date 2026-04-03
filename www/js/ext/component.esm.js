@@ -652,14 +652,14 @@ function componentPlugin(_hyperscript) {
   }
   function parseArg(componentEl, prop) {
     if (typeof prop !== "string") return null;
-    var cache = componentEl._argsCache || (componentEl._argsCache = {});
+    var cache = componentEl._attrsCache || (componentEl._attrsCache = {});
     if (!cache[prop]) {
       var attrValue = componentEl.getAttribute(prop);
       if (attrValue == null) return null;
       try {
         cache[prop] = createParser(tokenizer.tokenize(attrValue)).requireElement("expression");
       } catch (e) {
-        console.error("hyper-component: failed to parse args." + prop + ":", e.message);
+        console.error("hyper-component: failed to parse attrs." + prop + ":", e.message);
         return null;
       }
     }
@@ -669,7 +669,7 @@ function componentPlugin(_hyperscript) {
     var parent = componentEl.parentElement;
     return parent ? runtime.makeContext(parent, null, parent, null) : null;
   }
-  function createArgs(componentEl) {
+  function createAttrs(componentEl) {
     return new Proxy({ _hsSkipTracking: true }, {
       get: function(_, prop) {
         if (prop === "_hsSkipTracking") return true;
@@ -712,7 +712,7 @@ function componentPlugin(_hyperscript) {
         this.innerHTML = "";
         var internalData = runtime.getInternalData(this);
         if (!internalData.elementScope) internalData.elementScope = {};
-        internalData.elementScope.args = createArgs(this);
+        internalData.elementScope.attrs = createAttrs(this);
         if (componentScript) {
           this.setAttribute("_", componentScript);
           _hyperscript.process(this);
