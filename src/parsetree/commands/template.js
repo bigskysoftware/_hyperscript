@@ -18,42 +18,6 @@ function escapeHTML(html) {
         .replaceAll("'", "&#039;");
 }
 
-/**
- * splitConditionalExpr - Find top-level 'if'/'else' keywords in an expression string
- *
- * Uses token-based scanning to correctly skip 'if'/'else' that appear inside
- * nested parens, brackets, or braces
- * Returns { valueStr, conditionStr, elseStr } or null if no top-level 'if' found.
- */
-function splitConditionalExpr(exprStr) {
-    var tokens = new Tokenizer().tokenize(exprStr);
-    var depth = 0;
-    var ifStart = -1, ifEnd = -1;
-    var elseStart = -1, elseEnd = -1;
-
-    while (tokens.hasMore()) {
-        var tok = tokens.consumeToken();
-        var v = tok.value;
-        if (v === '(' || v === '[' || v === '{') depth++;
-        else if (v === ')' || v === ']' || v === '}') depth--;
-        else if (depth === 0 && tok.type === 'IDENTIFIER') {
-            if (v === 'if' && ifStart === -1) { ifStart = tok.start; ifEnd = tok.end; }
-            else if (v === 'else' && ifStart !== -1) { elseStart = tok.start; elseEnd = tok.end; break; }
-        }
-    }
-
-    if (ifStart === -1) return null;
-
-    var valueStr = exprStr.slice(0, ifStart).trim();
-    var conditionStr = elseStart !== -1
-        ? exprStr.slice(ifEnd, elseStart).trim()
-        : exprStr.slice(ifEnd).trim();
-    var elseStr = elseStart !== -1 ? exprStr.slice(elseEnd).trim() : null;
-
-    if (!valueStr || !conditionStr) return null;
-
-    return { valueStr, conditionStr, elseStr };
-}
 
 
 /**
@@ -105,63 +69,26 @@ export class TemplateTextCommand extends Command {
             }
             var exprStr = raw.slice(nextDollar + 2, j - 1);
             var escape = true;
-            var trimmed = exprStr.trimStart();
-            if (trimmed.startsWith('unescaped ')) {
-                escape = false;
-                exprStr = trimmed.slice('unescaped '.length).trim();
-            }
-
-            // Parse conditional syntax: ${value if condition} or ${value if condition else elseValue}
-            // Use token-based splitting to correctly handle expressions containing 'if' as part of an identifier
-            var conditionalSplit = splitConditionalExpr(exprStr);
-            if (conditionalSplit) {
-                try {
-                    var valueTokens = new Tokenizer().tokenize(conditionalSplit.valueStr);
-                    var valueParser = parser.createChildParser(valueTokens);
-                    var valueNode = valueParser.requireElement("expression");
-
-                    var conditionTokens = new Tokenizer().tokenize(conditionalSplit.conditionStr);
-                    var conditionParser = parser.createChildParser(conditionTokens);
-                    var conditionNode = conditionParser.requireElement("expression");
-
-                    var elseNode = null;
-                    if (conditionalSplit.elseStr) {
-                        var elseTokens = new Tokenizer().tokenize(conditionalSplit.elseStr);
-                        var elseParser = parser.createChildParser(elseTokens);
-                        elseNode = elseParser.requireElement("expression");
-                    }
-
-                    parts.push({
-                        type: 'conditional',
-                        valueNode,
-                        conditionNode,
-                        elseNode,
-                        escape
-                    });
-                } catch (e) {
-                    errors.push({
-                        line: tok.line,
-                        column: tok.column + nextDollar,
-                        message: e.message || String(e),
-                        expr: exprStr
-                    });
-                    parts.push({ type: 'literal', value: '' });
+            try {
+                var exprTokens = new Tokenizer().tokenize(exprStr);
+                var exprParser = parser.createChildParser(exprTokens);
+                if (exprParser.matchToken("unescaped")) escape = false;
+                var valueNode = exprParser.requireElement("expression");
+                if (exprParser.matchToken("if")) {
+                    var conditionNode = exprParser.requireElement("expression");
+                    var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
+                    parts.push({ type: 'conditional', valueNode, conditionNode, elseNode, escape });
+                } else {
+                    parts.push({ type: 'expr', node: valueNode, escape });
                 }
-            } else {
-                try {
-                    var exprTokens = new Tokenizer().tokenize(exprStr);
-                    var exprParser = parser.createChildParser(exprTokens);
-                    var node = exprParser.requireElement("expression");
-                    parts.push({ type: 'expr', node, escape });
-                } catch (e) {
-                    errors.push({
-                        line: tok.line,
-                        column: tok.column + nextDollar,
-                        message: e.message || String(e),
-                        expr: exprStr
-                    });
-                    parts.push({ type: 'literal', value: '' });
-                }
+            } catch (e) {
+                errors.push({
+                    line: tok.line,
+                    column: tok.column + nextDollar,
+                    message: e.message || String(e),
+                    expr: exprStr
+                });
+                parts.push({ type: 'literal', value: '' });
             }
             i = j;
         }
