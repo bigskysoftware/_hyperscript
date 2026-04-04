@@ -6506,7 +6506,7 @@
     }
   };
   var RepeatLoopCommand = class extends Command {
-    constructor(config2, loop) {
+    constructor(config2, loop, elseBranch) {
       super();
       this.identifier = config2.identifier;
       this.indexIdentifier = config2.indexIdentifier;
@@ -6520,6 +6520,7 @@
       this.whileExpr = config2.whileExpr;
       this.bottomTested = config2.bottomTested;
       this.loop = loop;
+      this.elseBranch = elseBranch;
       this.args = { whileValue: config2.whileExpr, times: config2.times };
     }
     resolveNext() {
@@ -6557,10 +6558,15 @@
         if (this.indexIdentifier) {
           context.locals[this.indexIdentifier] = iteratorInfo.index;
         }
+        iteratorInfo.didIterate = true;
         iteratorInfo.index++;
         return this.loop;
       } else {
+        var didIterate = iteratorInfo.didIterate;
         context.meta.iterators[this.slot] = null;
+        if (!didIterate && this.elseBranch) {
+          return this.elseBranch;
+        }
         return context.meta.runtime.findNext(this.parent, context);
       }
     }
@@ -6681,6 +6687,10 @@
           whileExpr = parser.requireElement("expression");
         }
       }
+      var elseBranch = null;
+      if (parser.matchToken("else")) {
+        elseBranch = parser.parseElement("commandList");
+      }
       if (parser.hasMore()) {
         parser.requireToken("end");
       }
@@ -6703,9 +6713,12 @@
         whileExpr,
         bottomTested
       };
-      const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+      const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop, elseBranch);
       const repeatCommand = new _RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
       parser.setParent(loop, repeatLoopCommand);
+      if (elseBranch) {
+        parser.setParent(elseBranch, repeatCommand);
+      }
       parser.setParent(repeatLoopCommand, repeatCommand);
       return repeatCommand;
     }
@@ -6730,6 +6743,8 @@
         } else {
           iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
         }
+      } else if (this.repeatLoopCommand.elseBranch) {
+        iteratorInfo.iterator = [][Symbol.iterator]();
       }
       if (this.evt) {
         var target = on || context.me;
@@ -9437,16 +9452,18 @@
         }
         var exprStr = raw.slice(nextDollar + 2, j - 1);
         var escape = true;
-        var trimmed = exprStr.trimStart();
-        if (trimmed.startsWith("unescaped ")) {
-          escape = false;
-          exprStr = trimmed.slice("unescaped ".length);
-        }
         try {
           var exprTokens = new Tokenizer().tokenize(exprStr);
           var exprParser = parser.createChildParser(exprTokens);
-          var node = exprParser.requireElement("expression");
-          parts.push({ type: "expr", node, escape });
+          if (exprParser.matchToken("unescaped")) escape = false;
+          var valueNode = exprParser.requireElement("expression");
+          if (exprParser.matchToken("if")) {
+            var conditionNode = exprParser.requireElement("expression");
+            var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
+            parts.push({ type: "conditional", valueNode, conditionNode, elseNode, escape });
+          } else {
+            parts.push({ type: "expr", node: valueNode, escape });
+          }
         } catch (e) {
           errors.push({
             line: tok.line,
@@ -9464,6 +9481,16 @@
       var parts = this.parts;
       var vals = parts.map((part) => {
         if (part.type === "literal") return part.value;
+        if (part.type === "conditional") {
+          var condition = part.conditionNode.evaluate(ctx);
+          if (condition) {
+            return part.valueNode.evaluate(ctx);
+          } else if (part.elseNode) {
+            return part.elseNode.evaluate(ctx);
+          } else {
+            return void 0;
+          }
+        }
         return part.node.evaluate(ctx);
       });
       if (vals.some((v) => v && v.then)) {
@@ -9512,16 +9539,11 @@
         commandList = parser.parseElement("commandList");
         parser.ensureTerminated(commandList);
       } catch (e) {
-        console.error("hyperscript template parse error:", e.message || e);
+        console.error("hyperscript template parse error:", e.parseError?.message || e.message || e);
         ctx.result = "";
         return runtime2.findNext(this, ctx);
       }
-      var errors = [];
-      var cmd = commandList;
-      while (cmd) {
-        if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
-        cmd = cmd.next;
-      }
+      var errors = commandList.collectErrors();
       if (errors.length) {
         for (var err of errors) {
           console.error("hyperscript template error (line " + err.line + "): " + err.message + (err.expr ? " in ${" + err.expr + "}" : ""));
