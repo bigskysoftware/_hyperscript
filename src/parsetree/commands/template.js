@@ -1,6 +1,5 @@
 import { Command, Expression } from '../base.js';
 import { Tokenizer } from '../../core/tokenizer.js';
-import { ParseRecoverySentinel } from '../../core/parser.js';
 
 function _stringifyTemplatePart(val, part) {
     if (part.type === 'literal') return val;
@@ -17,7 +16,6 @@ function escapeHTML(html) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
-
 
 
 /**
@@ -173,11 +171,7 @@ export class RenderCommand extends Command {
             commandList = parser.parseElement("commandList");
             parser.ensureTerminated(commandList);
         } catch (e) {
-            if (e instanceof ParseRecoverySentinel) {
-                console.error("hyperscript template parse error:", e.parseError.message);
-            } else {
-                console.error("hyperscript template parse error:", e.message || e);
-            }
+            console.error("hyperscript template parse error:", e.parseError?.message || e.message || e);
             ctx.result = "";
             return runtime.findNext(this, ctx);
         }
