@@ -1,5 +1,6 @@
 import { Command, Expression } from '../base.js';
 import { Tokenizer } from '../../core/tokenizer.js';
+import { ParseRecoverySentinel } from '../../core/parser.js';
 
 function _stringifyTemplatePart(val, part) {
     if (part.type === 'literal') return val;
@@ -54,20 +55,6 @@ function splitConditionalExpr(exprStr) {
     return { valueStr, conditionStr, elseStr };
 }
 
-/**
- * collectTemplateErrors - Recursively walk a command list and gather parse errors
- */
-function collectTemplateErrors(cmd, errors) {
-    while (cmd) {
-        if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
-        if (cmd.trueBranch) collectTemplateErrors(cmd.trueBranch, errors);
-        if (cmd.falseBranch) collectTemplateErrors(cmd.falseBranch, errors);
-        if (cmd.loop) collectTemplateErrors(cmd.loop, errors);
-        if (cmd.repeatLoopCommand) collectTemplateErrors(cmd.repeatLoopCommand, errors);
-        if (cmd.elseBranch) collectTemplateErrors(cmd.elseBranch, errors);
-        cmd = cmd.next;
-    }
-}
 
 /**
  * TemplateTextCommand - Handles template text lines with ${} interpolation
@@ -259,14 +246,17 @@ export class RenderCommand extends Command {
             commandList = parser.parseElement("commandList");
             parser.ensureTerminated(commandList);
         } catch (e) {
-            console.error("hyperscript template parse error:", e.message || e);
+            if (e instanceof ParseRecoverySentinel) {
+                console.error("hyperscript template parse error:", e.parseError.message);
+            } else {
+                console.error("hyperscript template parse error:", e.message || e);
+            }
             ctx.result = "";
             return runtime.findNext(this, ctx);
         }
 
-        // Collect expression-level errors from template text commands (recursive)
-        var errors = [];
-        collectTemplateErrors(commandList, errors);
+        // Collect errors from the parsed template tree
+        var errors = commandList.collectErrors();
         if (errors.length) {
             for (var err of errors) {
                 console.error("hyperscript template error (line " + err.line + "): " + err.message +

@@ -505,4 +505,63 @@ test.describe('Templating', () => {
         const res = await evaluate(() => window.res)
         expect(res).toBe('1\n')
     })
+
+    test('error in top-level expression is reported', async ({html, evaluate}) => {
+        await html('<template>before ${!!!} after</template>')
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", { locals: { tmpl } })
+            console.error = origError
+        })
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThan(0)
+        expect(captured[0]).toContain('template error')
+    })
+
+    test('error in conditional expression is reported', async ({html, evaluate}) => {
+        await html('<template>${value if !!!}</template>')
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with value: 'hi' then put it into window.res", { locals: { tmpl } })
+            console.error = origError
+        })
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThan(0)
+        expect(captured[0]).toContain('template error')
+    })
+
+    test('multiple errors in one template are all reported', async ({html, evaluate}) => {
+        await html('<template>${!!!}\n${---}\n</template>')
+        await evaluate(() => {
+            var origError = console.error
+            window.__capturedErrors = []
+            console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl then put it into window.res", { locals: { tmpl } })
+            console.error = origError
+        })
+        const captured = await evaluate(() => window.__capturedErrors)
+        expect(captured.length).toBeGreaterThanOrEqual(2)
+    })
+
+    test('good expressions render despite errors in other expressions', async ({html, evaluate}) => {
+        await html('<template>good: ${value} bad: ${!!!}</template>')
+        await evaluate(() => {
+            var origError = console.error
+            console.error = function() {}
+            const tmpl = document.querySelector('#work-area template')
+            _hyperscript("render tmpl with value: value then put it into window.res", {
+                locals: { value: 'ok', tmpl }
+            })
+            console.error = origError
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toContain('good: ok')
+    })
 })
