@@ -25,7 +25,7 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.3")
+        intellijIdeaCommunity("2025.1.3")
     }
     implementation("org.graalvm.polyglot:polyglot:24.1.1")
     implementation("org.graalvm.polyglot:js:24.1.1")
@@ -38,7 +38,8 @@ intellijPlatform {
         name = "Hyperscript"
         version = project.version.toString()
         ideaVersion {
-            sinceBuild = "243"
+            sinceBuild = "233"
+            untilBuild = provider { null }
         }
     }
 }
