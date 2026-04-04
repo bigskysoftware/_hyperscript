@@ -4,74 +4,20 @@ title: comparison operator - ///_hyperscript
 
 ## The `comparison operator` Expression
 
-### Syntax
+Hyperscript provides a rich set of comparison operators, including the usual symbolic ones (`<`, `>`, `==`) along with English-language alternatives that make your scripts read more naturally.
 
-```ebnf
-<expr> < <expr>
-<expr> is less than <expr>
-<expr> <= <expr>
-<expr> is less than or equal to <expr>
-<expr> > <expr>
-<expr> is greater than <expr>
-<expr> >= <expr>
-<expr> is greater than or equal to <expr>
-<expr> == <expr>
-<expr> === <expr>
-<expr> is <expr>
-<expr> is equal to <expr>
-<expr> is really equal to <expr>
-<expr> is not <expr>
-<expr> is not equal to <expr>
-<expr> is not really equal to <expr>
-<expr> equals <expr>
-<expr> really equals <expr>
-<expr> is empty
-<expr> is not empty
-I match <expr>
-<expr> matches <expr>
-I do not match <expr>
-<expr> does not match <expr>
-I contain <expr>
-<expr> contains <expr>
-<expr> is in <expr>
-I do not contain <expr>
-<expr> does not contain <expr>
-<expr> includes <expr>
-I do not include <expr>
-<expr> does not include <expr>
-<expr> starts with <expr>
-<expr> does not start with <expr>
-<expr> ends with <expr>
-<expr> does not end with <expr>
-<expr> is between <expr> and <expr>
-<expr> is not between <expr> and <expr>
-<expr> precedes <expr>
-<expr> does not precede <expr>
-<expr> follows <expr>
-<expr> does not follow <expr>
-<expr> is empty
-<expr> is not empty
-<expr> is a <type name>
-<expr> is not a <type name>
-<expr> exists
-<expr> does not exist
-<comparison> ignoring case
-```
+In addition to the standard numeric and equality checks, hyperscript includes `match`, `contain`/`include`, `starts with`, `ends with`, `is between`, `precedes`/`follows`, and `exists`. Here's what each does:
 
-### Description
-
-Many comparison operators are similar to comparison operators in javascript. In addition to the usual comparison operators, hyperscript includes the english terms `is` and `is not` for `==` and `!=` respectively.
-
-The `really` modifier switches a comparison to use `===` or `!==`, depending on what it modifies.
-
-Hyperscript also includes additional operations: `match`, `contain`, `include`, `starts with`, `ends with`, and `exists`, with various syntaxes depending on what is being tested. `match` will test if the left hand side matches the CSS query or Regular Expression string.  `contains` will test if the left hand side contains OR includes the right hand side (invoking `contains()` or `includes()`).  `includes` is identical to `contains`.  `starts with` and `ends with` test string prefixes and suffixes respectively.  `is between X and Y` tests if a value falls within an inclusive range.  `precedes` and `follows` test DOM document order — whether one element appears before or after another in the document tree.  `exist` tests if the left hand side
-is not null and, if it is a collection of elements, it contains any elements.
-
-The `is in` test effectively flips the left hand side and right hand side of the `contains` comparison.
-
-You can also test if a value exists or not using the `is empty` and `is not empty` comparisons. Hyperscript considers "empty" values to be `undefined`, `null`, empty strings, and zero length arrays and objects. This works in the same way as the [`no` expression](/expressions/no).
-
-Finally, you can test if a value is of a given type with the `is a` form.
+- **`is` / `is not`** -- equivalent to `==` and `!=`. The `really` modifier switches to `===` / `!==`.
+- **`matches`** -- tests if the left side matches a CSS selector or regular expression.
+- **`contains`** / **`includes`** -- calls `.contains()` or `.includes()` on the left side. These are interchangeable.
+- **`is in`** -- flips the operands of `contains`, so `x is in y` means `y contains x`.
+- **`starts with`** / **`ends with`** -- tests string prefixes and suffixes.
+- **`is between X and Y`** -- tests if a value falls within an inclusive range.
+- **`precedes`** / **`follows`** -- tests DOM document order: whether one element appears before or after another in the document tree.
+- **`exists`** -- tests if the value is not null and, for collections, contains at least one element.
+- **`is empty`** / **`is not empty`** -- considers `undefined`, `null`, empty strings, and zero-length arrays/objects as "empty." Works the same way as the [`no` expression](/expressions/no).
+- **`is a`** -- tests if a value is of a given type.
 
 Any comparison can be made case-insensitive by appending `ignoring case`:
 
@@ -122,4 +68,28 @@ expression must be parenthesized to avoid ambiguity.
            log 'I am above the footer'">
   Check Position
 </div>
+```
+
+### Syntax
+
+```ebnf
+<expression> (< | <= | > | >= | == | ===) <expression>
+<expression> is [not] [really] [equal to] <expression>
+<expression> (equals | really equals) <expression>
+<expression> is [not] empty
+<expression> (matches | does not match) <expression>
+(I match | I do not match) <expression>
+<expression> (contains | does not contain) <expression>
+(I contain | I do not contain) <expression>
+<expression> (includes | does not include) <expression>
+(I include | I do not include) <expression>
+<expression> is [not] in <expression>
+<expression> (starts with | does not start with) <expression>
+<expression> (ends with | does not end with) <expression>
+<expression> is [not] between <expression> and <expression>
+<expression> (precedes | does not precede) <expression>
+<expression> (follows | does not follow) <expression>
+<expression> is [not] a <type-name>
+<expression> (exists | does not exist)
+<comparison> ignoring case
 ```

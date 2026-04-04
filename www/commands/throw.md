@@ -4,15 +4,7 @@ title: throw - ///_hyperscript
 
 ## The `throw` Command
 
-### Syntax
-
-```ebnf
-throw <expression>
-```
-
-### Description
-
-The `throw` command throws an exception.
+The `throw` command throws an exception, just like in JavaScript.
 
 ### Examples
 
@@ -22,4 +14,10 @@ The `throw` command throws an exception.
     if value throw "Yep!"
   end
 </script>
+```
+
+### Syntax
+
+```ebnf
+throw <expression>
 ```

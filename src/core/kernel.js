@@ -2,7 +2,7 @@
 import { Parser } from './parser.js';
 import { EmptyCommandListCommand, UnlessStatementModifier, HyperscriptProgram, FailedFeature, FailedCommand } from '../parsetree/internals.js';
 import { Command, Feature } from '../parsetree/base.js';
-import { ParseRecoverySentinel } from './tokenizer.js';
+import { ParseRecoverySentinel } from './parser.js';
 
 export class LanguageKernel {
 
@@ -70,12 +70,13 @@ export class LanguageKernel {
 
     parseCommandList(parser) {
         if (parser.hasMore()) {
+            var keyword = parser.currentToken().value;
             var cmd;
             try {
                 cmd = parser.parseElement("command");
             } catch (e) {
                 if (e instanceof ParseRecoverySentinel) {
-                    cmd = new FailedCommand(e.parseError);
+                    cmd = new FailedCommand(e.parseError, keyword);
                     this.#syncToCommand(parser);
                 } else {
                     throw e;
@@ -144,7 +145,7 @@ export class LanguageKernel {
         if (checkExpr && this.#assignableExpressions.includes(checkExpr.type)) {
             return expr;
         } else {
-            parser.raiseParseError(
+            parser.raiseError(
                 "A target expression must be writable.  The expression type '" + (checkExpr && checkExpr.type) + "' is not."
             );
         }
@@ -166,13 +167,14 @@ export class LanguageKernel {
         if (leaf) {
             return this.parseElement("indirectExpression", parser, leaf);
         }
-        parser.raiseParseError("Unexpected value: " + parser.currentToken().value);
+        parser.raiseError("Unexpected value: " + parser.currentToken().value);
     }
 
     parseHyperscriptProgram(parser) {
         var features = [];
         if (parser.hasMore()) {
             while (parser.currentToken().type !== "EOF") {
+                var keyword = parser.currentToken().value;
                 if (parser.featureStart(parser.currentToken()) || parser.currentToken().value === "(") {
                     try {
                         var feature = parser.requireElement("feature");
@@ -180,7 +182,7 @@ export class LanguageKernel {
                         parser.matchToken("end"); // optional end
                     } catch (e) {
                         if (e instanceof ParseRecoverySentinel) {
-                            features.push(new FailedFeature(e.parseError));
+                            features.push(new FailedFeature(e.parseError, keyword));
                             this.#syncToFeature(parser);
                         } else {
                             throw e;
@@ -188,20 +190,18 @@ export class LanguageKernel {
                     }
                 } else if (parser.currentToken().value === "end") {
                     break; // scope terminator (e.g. behavior body) — leave for outer parser
-                } else if (parser.tokens.recoveryMode) {
+                } else {
                     // Unconsumed token between features — report and sync
                     try {
-                        parser.raiseParseError("Unexpected token: " + parser.currentToken().value);
+                        parser.raiseError();
                     } catch (e) {
                         if (e instanceof ParseRecoverySentinel) {
-                            features.push(new FailedFeature(e.parseError));
+                            features.push(new FailedFeature(e.parseError, keyword));
                             this.#syncToFeature(parser);
                         } else {
                             throw e;
                         }
                     }
-                } else {
-                    break;
                 }
             }
         }
@@ -239,7 +239,7 @@ export class LanguageKernel {
 
     requireElement(type, parser, message, root) {
         var result = this.parseElement(type, parser, root);
-        if (!result) LanguageKernel.raiseParseError(parser.tokens, message || "Expected " + type);
+        if (!result) parser.raiseError(message || "Expected " + type);
         return result;
     }
 
@@ -384,28 +384,21 @@ export class LanguageKernel {
         return this.#features[token.value || ""];
     }
 
-    static raiseParseError(tokens, message) {
-        tokens.raiseError(message);
-    }
-
-    raiseParseError(tokens, message) {
-        tokens.raiseError(message);
-    }
-
     parseHyperScript(tokens) {
-        tokens.enableRecovery();
         var parser = new Parser(this, tokens);
         var result;
+        var lastError = null;
         try {
             result = parser.parseElement("hyperscript");
-            if (tokens.hasMore()) this.raiseParseError(tokens);
+            if (tokens.hasMore()) parser.raiseError();
         } catch (e) {
             if (!(e instanceof ParseRecoverySentinel)) throw e;
+            lastError = e.parseError;
         }
-        if (result) {
-            result.errors = tokens.errors;
-            return result;
-        }
+        if (!result) result = new HyperscriptProgram([]);
+        result.errors = result.collectErrors();
+        if (lastError) result.errors.push(lastError);
+        return result;
     }
 
     #syncToFeature(parser) {
@@ -433,20 +426,30 @@ export class LanguageKernel {
     parse(tokenizer, src) {
         var tokens = tokenizer.tokenize(src);
         var parser = new Parser(this, tokens);
-        if (parser.commandStart(tokens.currentToken())) {
-            var commandList = this.requireElement("commandList", parser);
-            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
-            parser.ensureTerminated(commandList);
-            return commandList;
-        } else if (parser.featureStart(tokens.currentToken())) {
-            var hyperscript = this.requireElement("hyperscript", parser);
-            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
-            return hyperscript;
-        } else {
-            var expression = this.requireElement("expression", parser);
-            if (tokens.hasMore()) LanguageKernel.raiseParseError(tokens);
-            return expression;
+        var result, lastError;
+        try {
+            if (parser.commandStart(tokens.currentToken())) {
+                result = this.requireElement("commandList", parser);
+                if (tokens.hasMore()) parser.raiseError();
+                parser.ensureTerminated(result);
+            } else if (parser.featureStart(tokens.currentToken())) {
+                result = this.requireElement("hyperscript", parser);
+                if (tokens.hasMore()) parser.raiseError();
+            } else {
+                result = this.requireElement("expression", parser);
+                if (tokens.hasMore()) parser.raiseError();
+            }
+        } catch (e) {
+            if (!(e instanceof ParseRecoverySentinel)) throw e;
+            lastError = e.parseError;
         }
+        if (!result && lastError) {
+            result = { type: "empty", errors: [lastError] };
+        } else if (result) {
+            result.errors = result.collectErrors();
+            if (lastError) result.errors.push(lastError);
+        }
+        return result;
     }
 
 }

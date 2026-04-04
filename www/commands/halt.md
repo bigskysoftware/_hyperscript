@@ -4,28 +4,16 @@ title: halt - ///_hyperscript
 
 ## The `halt` Command
 
-### Syntax
+The `halt` command prevents an event from bubbling and/or performing its default action. Depending on the form you use, it may also exit the current event handler.
 
-```ebnf
-halt [the event['s]] (bubbling|default)
-exit
-```
+Here are the different forms:
 
-### Description
-
-The `halt` command prevents an event from bubbling and/or from performing its default action.
-
-The form `halt the event` will halt both the bubbling and default for the event, but continue execution of the
-event handler
-
-The form `halt the event's (bubbling|default)` will halt either the bubbling or the default for the event, but continue
-execution of the event handler
-
-The form `halt` will halt both the bubbling and default for the event and exit the current event handler, acting the same
-as the [`exit`](/commands/return) command.
-
-The form `halt (bubbling|default)` will halt either the bubbling or the default for the event and exit the current event
-handler.
+- `halt` -- halts both bubbling and default, then exits the event handler (like [`exit`](/commands/return))
+- `halt the event` -- halts both bubbling and default, but continues execution of the handler
+- `halt the event's bubbling` -- halts only bubbling, continues execution
+- `halt the event's default` -- halts only the default action, continues execution
+- `halt bubbling` -- halts only bubbling, then exits the handler
+- `halt default` -- halts only the default action, then exits the handler
 
 ### Examples
 
@@ -36,4 +24,11 @@ handler.
     -- do other stuff...
   end
 </script>
+```
+
+### Syntax
+
+```ebnf
+halt [the event['s] (bubbling | default)]
+halt [(bubbling | default)]
 ```

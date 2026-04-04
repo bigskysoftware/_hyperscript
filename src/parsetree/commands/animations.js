@@ -145,7 +145,7 @@ export class TransitionCommand extends Command {
                 targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
                 properties.push(new StyleRefValue(firstProp.name));
             } else {
-                parser.raiseParseError("Expected a style reference (e.g. *opacity) for transition");
+                parser.raiseError("Expected a style reference (e.g. *opacity) for transition");
             }
 
             if (parser.matchToken("from")) {

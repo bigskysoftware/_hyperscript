@@ -2,35 +2,13 @@
 title: make - ///_hyperscript
 ---
 
-## The `make` command
+## The `make` Command
 
-### Syntax
+The `make` command creates new class instances or DOM elements. You can optionally name the result with `called`.
 
-```ebnf
-make (a|an) <expression> [from <arg-list>] [called <identifier>]
-make (a|an) <query-ref>                    [called <identifier>]
-```
+In the first form, you construct a class instance -- `make a URL from "/path/", "https://origin.example.com"` is equivalent to JavaScript's `new URL("/path/", "https://origin.example.com")`.
 
-### Description
-
-The `make` command can be used to create class instances or DOM elements.
-
-In the first form:
-
-```hyperscript
-make a URL from "/path/", "https://origin.example.com"
-```
-
-is equal to the JavaScript `new URL("/path/", "https://origin.example.com")`.
-
-In the second form:
-
-```hyperscript
-make an <a.navlink/>
-```
-
-will create an `<a>` element and add the class `"navlink"` to it. Currently, only
-classes and IDs are supported.
+In the second form, you create a DOM element -- `make an <a.navlink/>` creates an `<a>` element with the class `"navlink"`. Currently, only classes and IDs are supported in the query selector.
 
 ### Examples
 
@@ -56,3 +34,10 @@ and <span class="topping">Green Peppers</span>
 <style>
 .topping { font-weight: bold; color: #e10 }
 </style>
+
+### Syntax
+
+```ebnf
+make (a | an) <expression> [from <arg-list>] [called <identifier>]
+make (a | an) <query-ref> [called <identifier>]
+```

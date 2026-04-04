@@ -5,21 +5,17 @@ title: beep - ///_hyperscript
 
 ## The `beep!` Expression
 
-### Syntax
-
-```ebnf
-  beep! <unary expression>
-```
-
-### Description
-
-The `beep!` expression allows you to debug a partial expression value, logging its value to the console and otherwise
-acting like an identity function: it simply returns the inner value it logs.  This allows you to insert a `beep!`
-into an expression without disrupting its evaluation.
+The `beep!` expression is a debugging helper that logs a value to the console and then returns it unchanged. You can insert it into any expression without disrupting evaluation -- it acts as an identity function that happens to log.
 
 ### Examples
 
 ```hyperscript
 add .highlighted to the <p/> in beep! <div.highlight/> -- logs the result of <div.highlight/>
 add .highlighted to beep! the <p/> in <div.highlight/> -- logs the result of the <p/> in <div.highlight/>
+```
+
+### Syntax
+
+```ebnf
+beep! <expression>
 ```

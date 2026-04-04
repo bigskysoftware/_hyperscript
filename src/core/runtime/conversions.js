@@ -39,6 +39,28 @@ class HyperscriptFormData {
     }
 }
 
+function _toHTML(value) {
+    if (value instanceof Array) {
+        return value.map(item => _toHTML(item)).join("");
+    }
+    if (value instanceof HTMLElement) {
+        return value.outerHTML;
+    }
+    if (value instanceof NodeList) {
+        var result = "";
+        for (var i = 0; i < value.length; i++) {
+            if (value[i] instanceof HTMLElement) {
+                result += value[i].outerHTML;
+            }
+        }
+        return result;
+    }
+    if (value.toString) {
+        return value.toString();
+    }
+    return "";
+}
+
 export const conversions = {
     dynamicResolvers: [
         // Fixed-point number conversion
@@ -102,31 +124,7 @@ export const conversions = {
     FormEncoded: function (val) {
         return new URLSearchParams(val).toString();
     },
-    HTML: function (value) {
-        var toHTML = (value) => {
-            if (value instanceof Array) {
-                return value.map(item => toHTML(item)).join("");
-            }
-            if (value instanceof HTMLElement) {
-                return value.outerHTML;
-            }
-            if (value instanceof NodeList) {
-                var result = "";
-                for (var i = 0; i < value.length; i++) {
-                    var node = value[i];
-                    if (node instanceof HTMLElement) {
-                        result += node.outerHTML;
-                    }
-                }
-                return result;
-            }
-            if (value.toString) {
-                return value.toString();
-            }
-            return "";
-        };
-        return toHTML(value);
-    },
+    HTML: _toHTML,
     Fragment: function (val, runtime) {
         var frag = document.createDocumentFragment();
         runtime.implicitLoop(val, (val) => {

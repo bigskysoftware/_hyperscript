@@ -2,23 +2,9 @@
 title: behavior - ///_hyperscript
 ---
 
-## The `behavior` feature
+## The `behavior` Feature
 
-### Syntax
-
-```ebnf
-behavior <name>(<parameter list>)
-  {<hyperscript>}
-end
-```
-
-```ebnf
-install <name>(<named argument list>)
-```
-
-### Description
-
-Behaviors allow you to bundle together some hyperscript code (that would normally go in the \_ attribute of an element) so that it can be "installed" on any other.
+Behaviors let you bundle hyperscript code into a reusable unit that can be "installed" on any element. Think of them as mixins for DOM elements -- you define the behavior once, then install it wherever you need it.
 
 For instance, consider this disappearing div:
 
@@ -32,10 +18,10 @@ For instance, consider this disappearing div:
 </div>
 ```
 
-This revolutionary UI technology impresses the client, and they come to you with a list of other components that they would like to be Removable™. Do you copy this code to each of those elements? That would work, but is not ideal, since
+This revolutionary UI technology impresses the client, and they come to you with a list of other components that they would like to be Removable(tm). Do you copy this code to each of those elements? That would work, but is not ideal, since
 
 - This code is highly experimental, you'd like to be able to change it in just one place.
-- Your boss is considering licensing the Removable™ tech to other companies.
+- Your boss is considering licensing the Removable(tm) tech to other companies.
 
 To remedy this, you can define a _behavior_:
 
@@ -99,15 +85,27 @@ This works well, but now our original div is broken. We can use an [`init` block
 </script>
 ```
 
-Now our Removable™ innovation is reusable!
+Now our Removable(tm) innovation is reusable!
 
  For a more realistic example of a behavior, check out the Draggable behavior which creates a draggable window: [Draggable.\_hs](https://gist.github.com/dz4k/6505fb82ae7fdb0a03e6f3e360931aa9)
 
-##### Ordering
+#### Ordering
 
 Behaviors must be defined before they are "installed," if defined _locally_. If behaviors are loaded _remotely_ this has to be done before loading hyperscript.
 
 ```html
 <script type="text/hyperscript" src="/behaviors._hs"></script>
 <script src="https://unpkg.com/hyperscript.org"></script>
+```
+
+### Syntax
+
+```ebnf
+behavior <name>(<parameter-list>)
+  <feature>+
+end
+```
+
+```ebnf
+install <name>(<named-argument-list>)
 ```

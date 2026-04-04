@@ -4,18 +4,10 @@ title: take - ///_hyperscript
 
 ## The `take` Command
 
-### Syntax
+The `take` command removes a class or attribute from a set of elements and adds it to the targeted element -- perfect for "active tab" or "selected item" patterns.
 
-```ebnf
- take <class-ref+ or attribute-ref [with <expression>]> [from <expression>] [for <expression>]
-```
+When using `take` with attributes, elements matching the `from` expression have the attribute removed regardless of value. You can specify a replacement value with the `with` clause (in which case the attribute is added even if the element didn't have it originally).
 
-### Description
-
-The `take` command allows you to take a class or an attribute from a set of elements (or all elements) and add it to the current element (or the targeted element).
-
-When using `take` with attributes, elements matching `from` expression will have their attributes with the same name removed regardless of value.
-You can specify a new value to be assigned instead via `with` clause (in this case the attribute will be added even if the element didn't have it originally).
 ### Examples
 
 ```html
@@ -38,4 +30,10 @@ You can specify a new value to be assigned instead via `with` clause (in this ca
   <a class="item">Option 2</a>
   <a class="item">Option 3</a>
 </div>
+```
+
+### Syntax
+
+```ebnf
+take (<class-ref>+ | <attribute-ref> [with <expression>]) [from <expression>] [for <expression>]
 ```

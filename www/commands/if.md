@@ -4,19 +4,11 @@ title: if - ///_hyperscript
 
 ## The `if` Command
 
-### Syntax
-
-```ebnf
-  if <conditional> [then] <command-list> [(else | otherwise) <command-list>] end`
-```
-
-### Description
-
-The `if` command provides the standard if-statement control flow.
+The `if` command gives you standard conditional control flow. You can optionally include `else` (or `otherwise`) branches, and the whole block ends with `end`.
 
 Note that a leading `if` on a separate line from an `else` statement will be treated as a nested if within the else:
 
-```hyperscriptr
+```hyperscript
 ...
 else
   if false   -- does not bind to the else on the previous line as an "else if"
@@ -35,4 +27,10 @@ end
 >
   Click Me!
 </div>
+```
+
+### Syntax
+
+```ebnf
+if <conditional> [then] <command-list> [(else | otherwise) <command-list>] end
 ```

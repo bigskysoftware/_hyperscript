@@ -1,3 +1,7 @@
+---
+title: ///_hyperscript - Documentation
+permalink: /docs-old/
+---
 
 <style>
 :root {

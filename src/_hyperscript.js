@@ -100,6 +100,10 @@ function evaluate(src, ctx, args) {
     ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
     let element = kernel.parse(tokenizer, src);
 
+    if (element && element.errors && element.errors.length > 0) {
+        throw new Error(element.errors[0].message + "\n\n" + Parser.formatErrors(element.errors));
+    }
+
     if (element.execute) {
         element.execute(ctx);
         return ctx.meta.returnValue !== undefined ? ctx.meta.returnValue : ctx.result;

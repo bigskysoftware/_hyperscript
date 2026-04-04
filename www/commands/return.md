@@ -4,18 +4,7 @@ title: return - ///_hyperscript
 
 ## The `return` Command
 
-### Syntax
-
-```ebnf
-return <expression>
-exit
-```
-
-### Description
-
-The `return` command returns a value from a function in hyperscript or stops an event handler from continuing.
-
-You may use the `exit` form to return no value.
+The `return` command returns a value from a function or stops an event handler from continuing. You can use `exit` to return without a value.
 
 ### Examples
 
@@ -26,4 +15,11 @@ You may use the `exit` form to return no value.
     return 42
   end
 </script>
+```
+
+### Syntax
+
+```ebnf
+return <expression>
+exit
 ```

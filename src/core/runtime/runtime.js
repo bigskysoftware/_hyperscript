@@ -3,21 +3,10 @@ import { config } from '../config.js';
 import { conversions } from './conversions.js';
 import { CookieJar } from './cookies.js';
 import { ElementCollection, SHOULD_AUTO_ITERATE_SYM } from './collections.js';
-import { formatErrors } from '../tokenizer.js';
+import { Parser } from '../parser.js';
 
 // cookie jar proxy for runtime
 let cookies = new CookieJar().proxy();
-
-/** Apply forward/reverse functions based on when-clause results, return matched elements */
-function _applyWhenResults(elements, results, forwardFn, reverseFn) {
-    var matched = [];
-    for (var i = 0; i < elements.length; i++) {
-        if (results[i]) { forwardFn(elements[i]); matched.push(elements[i]); }
-        else reverseFn(elements[i]);
-    }
-    return matched;
-}
-
 
 export class Context {
     constructor(owner, feature, hyperscriptTarget, event, runtime, globalScope, kernel, tokenizer) {
@@ -571,8 +560,7 @@ export class Runtime {
         }
 
         shouldAutoIterate(value) {
-            return value != null && value[SHOULD_AUTO_ITERATE_SYM] ||
-                this.#isArrayLike(value);
+            return (value != null && value[SHOULD_AUTO_ITERATE_SYM]) || this.#isArrayLike(value);
         }
 
         forEach(value, func) {
@@ -615,12 +603,21 @@ export class Runtime {
 
             var hasPromise = conditions.some(function (c) { return c && typeof c.then === "function"; });
             if (hasPromise) {
-                return Promise.all(conditions).then(function (results) {
-                    context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+                return Promise.all(conditions).then((results) => {
+                    context.result = this.#applyWhenResults(elements, results, forwardFn, reverseFn);
                 });
             } else {
-                context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+                context.result = this.#applyWhenResults(elements, conditions, forwardFn, reverseFn);
             }
+        }
+
+        #applyWhenResults(elements, results, forwardFn, reverseFn) {
+            var matched = [];
+            for (var i = 0; i < elements.length; i++) {
+                if (results[i]) { forwardFn(elements[i]); matched.push(elements[i]); }
+                else reverseFn(elements[i]);
+            }
+            return matched;
         }
 
         // =================================================================
@@ -858,7 +855,7 @@ export class Runtime {
                     console.error(
                         "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
                         elt,
-                        "\n\n" + formatErrors(hyperScript.errors)
+                        "\n\n" + Parser.formatErrors(hyperScript.errors)
                     );
                     return;
                 }

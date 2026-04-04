@@ -4,22 +4,9 @@ title: def - ///_hyperscript
 
 ## The `def` Feature
 
-### Syntax
+The `def` feature lets you define reusable functions in hyperscript. Functions can be synchronous or asynchronous -- the hyperscript runtime handles the difference transparently when you call them from hyperscript code.
 
-```ebnf
-def <function name>(<parameter list>)
-  {<command>}
-[catch <identifier>
-  {<command>}]
-[finally
-  {<command>}]
-end
-```
-
-The `def` keyword allows you to define functions in hyperscript. It consists of a function name, a parameter list
-and a body with an optional `catch` and/or an optional `finally` block.
-
-The body of the function is a list of [commands](/docs#commands), optionally separated by the `then` keyword.
+A function consists of a name, a parameter list, and a body with an optional `catch` and/or `finally` block. The body is a list of [commands](/docs#commands), optionally separated by the `then` keyword.
 
 Functions are typically placed in script tags:
 
@@ -32,7 +19,7 @@ Functions are typically placed in script tags:
 </script>
 ```
 
-You may also namespace functions by giving them a dot separated namespace
+You may also namespace functions by giving them a dot-separated namespace:
 
 ```html
 <script type="text/hyperscript">
@@ -43,7 +30,7 @@ You may also namespace functions by giving them a dot separated namespace
 </script>
 ```
 
-Functions may be invoked from both hyperscript or javascript. However, in javascript, an asynchronous function will
+Functions may be invoked from both hyperscript or JavaScript. However, in JavaScript, an asynchronous function will
 return a promise that must be dealt with explicitly.
 
 ### Return
@@ -61,7 +48,7 @@ function is invoked within hyperscript.
 ### Exceptions
 
 Hyperscript functions support a single catch block that can be used to catch exceptions that are thrown synchronously
-or asynchronously
+or asynchronously:
 
 ```html
 <script type="text/hyperscript">
@@ -88,4 +75,34 @@ Both functions and event handlers also support a `finally` block to ensure that 
   end
 ```
 
-In this code we ensure that the `disabled` property is removed from the current element.
+In this code you ensure that the `disabled` property is removed from the current element.
+
+### Examples
+
+```html
+<script type="text/hyperscript">
+  def delayTheAnswer(i)
+    wait 2s
+    return i
+  end
+</script>
+
+<script type="text/hyperscript">
+  def utils.delayTheAnswer()
+    wait 2s
+    return 42
+  end
+</script>
+```
+
+### Syntax
+
+```ebnf
+def <function-name>(<parameter-list>)
+  <command>+
+[catch <identifier>
+  <command>+]
+[finally
+  <command>+]
+end
+```

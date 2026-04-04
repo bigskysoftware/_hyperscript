@@ -1,6 +1,13 @@
 import { Command, Expression } from '../base.js';
 import { Tokenizer } from '../../core/tokenizer.js';
 
+function _stringifyTemplatePart(val, part) {
+    if (part.type === 'literal') return val;
+    if (val === undefined || val === null) return '';
+    if (part.escape) return escapeHTML(String(val));
+    return String(val);
+}
+
 function escapeHTML(html) {
     return String(html)
         .replaceAll("&", "&amp;")
@@ -176,7 +183,8 @@ export class TemplateTextCommand extends Command {
     }
 
     resolve(ctx) {
-        var vals = this.parts.map(part => {
+        var parts = this.parts;
+        var vals = parts.map(part => {
             if (part.type === 'literal') return part.value;
             if (part.type === 'conditional') {
                 var condition = part.conditionNode.evaluate(ctx);
@@ -191,24 +199,17 @@ export class TemplateTextCommand extends Command {
             return part.node.evaluate(ctx);
         });
 
-        var stringify = (val, part) => {
-            if (part.type === 'literal') return val;
-            if (val === undefined || val === null) return '';
-            if (part.escape) return escapeHTML(String(val));
-            return String(val);
-        };
-
         if (vals.some(v => v && v.then)) {
             return Promise.all(vals).then(resolved => {
                 ctx.meta.__ht_template_result.push(
-                    resolved.map((val, i) => stringify(val, this.parts[i])).join('')
+                    resolved.map((val, i) => _stringifyTemplatePart(val, parts[i])).join('')
                 );
                 return this.findNext(ctx);
             });
         }
 
         ctx.meta.__ht_template_result.push(
-            vals.map((val, i) => stringify(val, this.parts[i])).join('')
+            vals.map((val, i) => _stringifyTemplatePart(val, parts[i])).join('')
         );
         return this.findNext(ctx);
     }

@@ -4,25 +4,16 @@ title: go - ///_hyperscript
 
 ## The `go` Command
 
-### Syntax
-
-```ebnf
- go [to] <url-or-expression> [in new window]
- go back
-```
-
-### Description
-
-The `go` command navigates to a URL or scrolls to an element.
+The `go` command navigates to a URL or goes back in browser history.
 
 `go to` accepts a URL (string, template literal, or naked URL starting with `/` or `http`/`https`) and navigates to it.
-If the value starts with `#`, it sets `window.location.hash`. If it resolves to an Element, it scrolls to it (for backwards compatibility - prefer [`scroll to`](/commands/scroll) for scrolling).
+If the value starts with `#`, it sets `window.location.hash`. If it resolves to an Element, it scrolls to it (for backwards compatibility — prefer [`scroll to`](/commands/scroll) for scrolling).
 
 `go to ... in new window` opens the URL in a new window/tab.
 
 `go back` navigates back in the browser history.
 
-Naked URLs are detected automatically - no `url` keyword is needed:
+Naked URLs are detected automatically — no `url` keyword is needed:
 
 ```hyperscript
 go to /about
@@ -52,4 +43,11 @@ Use naked URLs or string expressions for navigation, and the [`scroll`](/command
 <button _="on click go back">
   Back
 </button>
+```
+
+### Syntax
+
+```ebnf
+go [to] <expression> [in new window]
+go back
 ```

@@ -4,19 +4,9 @@ title: tell - ///_hyperscript
 
 ## The `tell` Command
 
-### Syntax
+The `tell` command temporarily changes the default target for commands like `add`, `remove`, and `toggle` within its block. It's useful when you want to run several commands against the same target.
 
-```ebnf
-tell <expression>
-  <statements>
-end
-```
-
-### Description
-
-The `tell` command can be used to temporarily change the default target for commands like `add`.
-
-Within `tell` blocks, keywords `you`, `your`, and `yourself` can be used to identify the individual element being referenced.
+Within a `tell` block, you can use `you`, `your`, and `yourself` to refer to the individual element being acted on.
 
 ### Examples
 
@@ -31,4 +21,12 @@ Within `tell` blocks, keywords `you`, `your`, and `yourself` can be used to iden
   <p>Hyperscript is cool!</p>
   <p>Sure is!</p>
 </div>
+```
+
+### Syntax
+
+```ebnf
+tell <expression>
+  <commands>
+end
 ```

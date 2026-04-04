@@ -4,17 +4,7 @@ title: no - ///_hyperscript
 
 ## The `no` Expression
 
-### Syntax
-
-```ebnf
-  no <expr>
-```
-
-### Description
-
-The `no` operator returns true if the value of the expression is `null`, `undefined` or
-an object of length 0 (an empty string or array). You can also accomplish this
-same task using the [`is empty` and `is not empty` comparisons operators](/expressions/comparison-operator).
+The `no` operator returns true if a value is `null`, `undefined`, or an object of length 0 (an empty string or array). You can also accomplish the same thing using the [`is empty` and `is not empty` comparison operators](/expressions/comparison-operator).
 
 ### Examples
 
@@ -25,4 +15,10 @@ same task using the [`is empty` and `is not empty` comparisons operators](/expre
 >
   Check for Tabs
 </div>
+```
+
+### Syntax
+
+```ebnf
+no <expression>
 ```

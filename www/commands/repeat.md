@@ -4,29 +4,11 @@ title: repeat - ///_hyperscript
 
 ## The `repeat` Command
 
-### Syntax
+The `repeat` command provides iteration in hyperscript. It supports many forms: collection loops, conditional loops, counted loops, infinite loops, event-driven loops, and bottom-tested loops.
 
-```ebnf
-repeat for <identifier> in <expression> [index <identifier>] { <command> } end
-repeat in <expression> [index <identifier>] { <command> } end
-repeat while <expression> [index <identifier>] { <command> } end
-repeat until <expression> [index <identifier>] { <command> } end
-repeat until event <expression> [from <expression>] [index <identifier>] { <command> } end
-repeat <number> times [index <identifier>] { <command> } end
-repeat forever <expression> [index <identifier>] { <command> } end
-repeat { <command> } until <expression> end
-repeat { <command> } while <expression> end
-for <identifier> in <expression> [index <identifier>]
-```
+In every form you can track the current iteration index by appending `index <identifier>` to the loop specification.
 
-### Description
-
-The `repeat` command provides iteration in the hyperscript language. It is very flexible and supports many forms.
-
-In every form you may assign a named value to the current iteration index by appending a `index i` to the
-loop specification.
-
-Here are examples of all the above forms:
+### Examples
 
 ```hyperscript
   -- the basic for loop
@@ -100,4 +82,19 @@ Here are examples of all the above forms:
     increment x
   while x < 10 end
 
+```
+
+### Syntax
+
+```ebnf
+repeat for <identifier> in <expression> [index <identifier>] <command>* end
+repeat in <expression> [index <identifier>] <command>* end
+repeat while <expression> [index <identifier>] <command>* end
+repeat until <expression> [index <identifier>] <command>* end
+repeat until event <expression> [from <expression>] [index <identifier>] <command>* end
+repeat <number> times [index <identifier>] <command>* end
+repeat forever [index <identifier>] <command>* end
+repeat <command>* until <expression> end
+repeat <command>* while <expression> end
+for <identifier> in <expression> [index <identifier>]
 ```

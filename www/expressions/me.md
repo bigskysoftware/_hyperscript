@@ -4,20 +4,9 @@ title: me/my/I - ///_hyperscript
 
 ## The `me/my/I` Reference
 
-### Syntax
+`me` refers to the HTML element that owns the current script. Most hyperscript runs in the context of an element -- for example, `<div _="on click ...">` is an [event handler](/features/on) on that `<div>`. Inside that script, `me` is a reference back to the `<div>`.
 
-```ebnf
-  me
-  I
-```
-
-### Description
-
-Most hyperscript features run within the context of an HTML element.  For example, `<div _="on click ...">` is an [event handler](/features/on) that runs in the context of the `<div>` that contains it.  Within these scripts, you can use the `me` expression as a link back to their associated HTML element.
-
-`I` is an alias for `me`, useful for more natural English phrasing: `if I match .active`.
-
-For [possessive expressions](/expressions/possessive), `my` will also work, as in `my property` instead of `me.property`.
+`I` is an alias for `me`, useful for more natural English phrasing: `if I match .active`. For [possessive expressions](/expressions/possessive), `my` works too -- `my property` instead of `me.property`.
 
 ### Examples
 
@@ -43,4 +32,10 @@ This demonstrates the [possessive expression](/expressions/possessive) along wit
 
 ```html
 <div data-script="on click increment my innerHTML">1</div>
+```
+
+### Syntax
+
+```ebnf
+me | I
 ```

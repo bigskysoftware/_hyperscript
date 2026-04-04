@@ -9,6 +9,23 @@
  * expressions, commands, and features.
  */
 export class ParseElement {
+    errors = [];
+
+    collectErrors(visited) {
+        if (!visited) visited = new Set();
+        if (visited.has(this)) return [];
+        visited.add(this);
+        var all = [...this.errors];
+        for (var key of Object.keys(this)) {
+            for (var item of [this[key]].flat()) {
+                if (item instanceof ParseElement) {
+                    all.push(...item.collectErrors(visited));
+                }
+            }
+        }
+        return all;
+    }
+
     sourceFor() {
         return this.programSource.substring(this.startToken.start, this.endToken.end);
     }

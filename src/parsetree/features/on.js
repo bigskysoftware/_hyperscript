@@ -330,7 +330,7 @@ export class OnFeature extends Feature {
                         } else if (parser.matchToken("threshold")) {
                             intersectionSpec["threshold"] = parser.requireElement("expression").evalStatically();
                         } else {
-                            parser.raiseParseError("Unknown intersection config specification");
+                            parser.raiseError("Unknown intersection config specification");
                         }
                     } while (parser.matchToken("and"));
                 }
@@ -359,12 +359,12 @@ export class OnFeature extends Feature {
                             if (attribute.value.startsWith("@")) {
                                 mutationSpec["attributeFilter"].push(attribute.value.substring(1));
                             } else {
-                                parser.raiseParseError(
+                                parser.raiseError(
                                     "Only shorthand attribute references are allowed here"
                                 );
                             }
                         } else {
-                            parser.raiseParseError("Unknown mutation config specification");
+                            parser.raiseError("Unknown mutation config specification");
                         }
                     } while (parser.matchToken("or"));
                     // Enable oldValue recording for requested types
@@ -396,7 +396,7 @@ export class OnFeature extends Feature {
                         parser.popFollow();
                     }
                     if (!from) {
-                        parser.raiseParseError('Expected either target value or "elsewhere".');
+                        parser.raiseError('Expected either target value or "elsewhere".');
                     }
                 }
             }

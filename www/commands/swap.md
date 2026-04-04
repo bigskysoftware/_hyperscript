@@ -4,14 +4,6 @@ title: swap - ///_hyperscript
 
 ## The `swap` Command
 
-### Syntax
-
-```ebnf
-  swap <assignable expression> with <assignable expression>
-```
-
-### Description
-
 The `swap` command exchanges the values of two assignable expressions. It works with any writable target: local variables, properties, array elements, or any combination of these.
 
 Both values are read before either is written, so the swap is safe even when the two expressions share state.
@@ -44,4 +36,10 @@ Both values are read before either is written, so the swap is safe even when the
                  then put x into me">
   Click Me!
 </div>
+```
+
+### Syntax
+
+```ebnf
+swap <assignable-expression> with <assignable-expression>
 ```

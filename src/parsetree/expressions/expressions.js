@@ -334,8 +334,9 @@ export class OfExpression extends Expression {
             childOfUrRoot = urRoot;
             urRoot = urRoot.root;
         }
-        if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
-            parser.raiseParseError("Cannot take a property of a non-symbol: " + urRoot.type);
+        var validOfRoots = ["symbol", "attributeRef", "styleRef", "computedStyleRef"];
+        if (!validOfRoots.includes(urRoot.type)) {
+            parser.raiseError("Cannot take a property of a non-symbol: " + urRoot.type);
         }
         var attribute = urRoot.type === "attributeRef";
         var style = urRoot.type === "styleRef" || urRoot.type === "computedStyleRef";
@@ -780,7 +781,7 @@ export class MathOperator extends Expression {
             initialMathOp = initialMathOp || mathOp;
             var operator = mathOp.value;
             if (initialMathOp.value !== operator) {
-                parser.raiseParseError("You must parenthesize math operations with different operators");
+                parser.raiseError("You must parenthesize math operations with different operators");
             }
             var rhs = parser.parseElement("unaryExpression");
             expr = new MathOperator(expr, operator, rhs);
@@ -961,7 +962,7 @@ export class ComparisonOperator extends Expression {
                 } else if (parser.matchToken("follow")) {
                     operator = "not follow";
                 } else {
-                    parser.raiseParseError("Expected matches, contains, starts with, ends with, precede, or follow");
+                    parser.raiseError("Expected matches, contains, starts with, ends with, precede, or follow");
                 }
             }
         }
@@ -1065,7 +1066,7 @@ export class LogicalOperator extends Expression {
         while (logicalOp) {
             initialLogicalOp = initialLogicalOp || logicalOp;
             if (initialLogicalOp.value !== logicalOp.value) {
-                parser.raiseParseError("You must parenthesize logical operations with different operators");
+                parser.raiseError("You must parenthesize logical operations with different operators");
             }
             var rhs = parser.requireElement("comparisonOperator");
             const operator = logicalOp.value;

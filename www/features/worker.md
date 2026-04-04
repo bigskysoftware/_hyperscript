@@ -2,23 +2,15 @@
 title: worker - ///_hyperscript
 ---
 
-## The `worker` feature
+## The `worker` Feature
+
+The `worker` feature lets you create Web Workers whose functions are transparently exposed to the main thread. You define functions inside the worker, and call them from hyperscript or JavaScript as if they were local -- the runtime handles the async communication for you.
 
 ### Installing
 
 Note: if you want the worker feature, you must either use the "Whole 9 Yards" release of hyperscript, or include the `/dist/workers.js` file.
 
-### Syntax
-
-`worker <worker-name>[(<external-scripts>)] <worker-body> end`
-
-- `worker-name` is a name for the worker. This is variable to which this worker will be assigned.
-- `external-scripts` can be a comma-separated list of string literals, which contain URLs for any extra JavaScript this worker depends on. These URLs will be imported in the worker using [`importScripts`][import].
-- `worker-body` is a sequence of [function declarations][functions] and [JavaScript blocks][js-blocks].
-
-### Description
-
-\_hyperscript allows you to create Web Workers whose functions are exposed to the main thread.
+Here's a simple example:
 
 ```hyperscript
 worker Incrementer
@@ -29,7 +21,7 @@ worker Incrementer
 end
 ```
 
-Any function declarations (declared with `def`) will be exposed on the main thread, so the above worker can be invoked as `Incrementer.increment(4)` in either \_hyperscript or JavaScript. The body of the function will then run in the worker and the result returned asynchronously to the main thread. As a result, the `worker` feature can be used to perform calculations in a non-blocking way, and although these worker functions return promises, \_hyperscript's [async-transparent] nature means we can call it as if it were synchronous. In summary:
+Any function declarations (declared with `def`) will be exposed on the main thread, so the above worker can be invoked as `Incrementer.increment(4)` in either \_hyperscript or JavaScript. The body of the function will then run in the worker and the result returned asynchronously to the main thread. As a result, the `worker` feature can be used to perform calculations in a non-blocking way, and although these worker functions return promises, \_hyperscript's [async-transparent] nature means you can call them as if they were synchronous. In summary:
 
 - Functions are declared in workers
 - They can be called from the main thread just like normal functions
@@ -64,6 +56,14 @@ Because it runs in a Web Worker, the code inside a `worker` body cannot access t
   />
   Disable ads <small>and enable cryptocurrency mining</small>
 </label>
+```
+
+### Syntax
+
+```ebnf
+worker <worker-name>[(<external-script-url>*)]
+  (<function-declaration> | <js-block>)+
+end
 ```
 
 [import]: https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts

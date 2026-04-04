@@ -4,19 +4,9 @@ title: settle - ///_hyperscript
 
 ## The `settle` Command
 
-### Syntax
+The `settle` command pauses execution until a CSS transition completes on an element. If no element is specified, it settles on `me`.
 
-```ebnf
-  settle [<expression>]
-```
-
-### Description
-
-The `settle` command allows you to synchronize on the CSS transition of an element. It will listen for the
-`transitionend` even on the given element (or `me` if no element is given).
-
-If a `transitionstart` event is not received within 500ms, the command will continue assuming that no
-transition will occur.
+If no `transitionstart` event is received within 500ms, the command continues, assuming no transition will occur.
 
 ### Examples
 
@@ -36,4 +26,10 @@ transition will occur.
 >
   You thought the blink tag was dead?
 </div>
+```
+
+### Syntax
+
+```ebnf
+settle [<expression>]
 ```
