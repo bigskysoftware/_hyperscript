@@ -1,0 +1,22 @@
+{
+  "name": "tree-sitter-hyperscript",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for _hyperscript",
+  "main": "bindings/node",
+  "keywords": ["tree-sitter", "hyperscript"],
+  "tree-sitter": [
+    {
+      "scope": "source.hyperscript",
+      "injection-regex": "hyperscript",
+      "file-types": ["hs"],
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    }
+  ],
+  "dependencies": {
+    "nan": "^2.18.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.22.0"
+  }
+}

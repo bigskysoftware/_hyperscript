@@ -1,0 +1,116 @@
+{
+  "scopeName": "source.hyperscript",
+  "name": "Hyperscript",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#template-string" },
+    { "include": "#number" },
+    { "include": "#css-selector" },
+    { "include": "#attribute-ref" },
+    { "include": "#class-ref" },
+    { "include": "#id-ref" },
+    { "include": "#boolean" },
+    { "include": "#keyword" },
+    { "include": "#modifier" },
+    { "include": "#builtin" },
+    { "include": "#operator" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-dash.hyperscript",
+          "match": "--.*$"
+        },
+        {
+          "name": "comment.block.hyperscript",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.hyperscript",
+          "begin": "'",
+          "end": "'",
+          "patterns": [{ "name": "constant.character.escape.hyperscript", "match": "\\\\." }]
+        },
+        {
+          "name": "string.quoted.double.hyperscript",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [{ "name": "constant.character.escape.hyperscript", "match": "\\\\." }]
+        }
+      ]
+    },
+    "template-string": {
+      "name": "string.template.hyperscript",
+      "begin": "`",
+      "end": "`",
+      "patterns": [
+        {
+          "name": "meta.template.expression.hyperscript",
+          "begin": "\\$\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.hyperscript" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.hyperscript" } },
+          "patterns": [{ "include": "source.hyperscript" }]
+        },
+        {
+          "name": "meta.template.expression.hyperscript",
+          "match": "\\$([a-zA-Z_$][a-zA-Z0-9_$]*)",
+          "captures": { "0": { "name": "variable.other.hyperscript" } }
+        },
+        { "name": "constant.character.escape.hyperscript", "match": "\\\\." }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.hyperscript",
+      "match": "\\b(\\d+\\.?\\d*|\\d*\\.\\d+)(ms|s|milliseconds|seconds)?\\b"
+    },
+    "css-selector": {
+      "name": "entity.name.tag.css.hyperscript",
+      "match": "<[a-zA-Z][^>]*/>"
+    },
+    "attribute-ref": {
+      "name": "entity.other.attribute-name.hyperscript",
+      "match": "@[a-zA-Z][a-zA-Z0-9\\-_]*"
+    },
+    "class-ref": {
+      "name": "entity.other.attribute-name.class.hyperscript",
+      "match": "(?<=\\s|^)\\.[a-zA-Z][a-zA-Z0-9\\-_$]*"
+    },
+    "id-ref": {
+      "name": "entity.other.attribute-name.id.hyperscript",
+      "match": "#[a-zA-Z][a-zA-Z0-9\\-_$]*"
+    },
+    "boolean": {
+      "name": "constant.language.hyperscript",
+      "match": "\\b(true|false|null)\\b"
+    },
+    "keyword": {
+      "name": "keyword.control.hyperscript",
+      "match": "\\b(on|def|js|worker|eventsource|socket|init|behavior|install|catch|add|async|call|get|hide|measure|if|else|log|put|remove|repeat|return|send|settle|set|show|take|throw|toggle|transition|trigger|wait|fetch|tell|go|make|then|end|while|until|for|break|continue|exit|halt|default|increment|decrement|append|focus|blur|swap|morph|open|close|render|pick|empty|answer|ask|speak|select|scroll|beep)\\b"
+    },
+    "modifier": {
+      "name": "keyword.other.hyperscript",
+      "match": "\\b(from|in|to|with|over|into|before|after|at|is|am|as|and|or|not|no|of|the|closest|first|last|next|previous|random|when|where|unless|between|forever|every|queue|debounced|throttled|elsewhere|called|its|my|me|it|I|result|you|your|yourself)\\b"
+    },
+    "builtin": {
+      "name": "support.type.hyperscript",
+      "match": "\\b(String|Number|Int|Float|Date|Array|HTML|Fragment|JSON|Object|Values|Boolean|Fixed)\\b"
+    },
+    "operator": {
+      "name": "keyword.operator.hyperscript",
+      "match": "\\+|(?<=\\s)-(?=\\s)|/|\\*|->|<=|>=|===|==|!==|!=|=|\\.\\.|%|\\||!"
+    },
+    "punctuation": {
+      "name": "punctuation.hyperscript",
+      "match": "[(){}\\[\\],:;?&]"
+    }
+  }
+}

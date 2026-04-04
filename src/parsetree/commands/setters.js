@@ -309,7 +309,7 @@ export class PutCommand extends Command {
         }
 
         if (operationToken == null) {
-            parser.raiseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+            parser.raiseExpected('into', 'before', 'at start of', 'at end of', 'after');
         }
         var target = parser.requireElement("expression");
         // Unwrap parenthesized expressions

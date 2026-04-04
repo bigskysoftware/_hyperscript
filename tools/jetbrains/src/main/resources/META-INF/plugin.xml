@@ -1,0 +1,69 @@
+<idea-plugin>
+    <id>org.hyperscript.jetbrains</id>
+    <name>Hyperscript</name>
+    <version>0.1.0</version>
+    <vendor>hyperscript.org</vendor>
+    <description>Syntax highlighting and parse-error diagnostics for _hyperscript in HTML files.</description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.xml</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Parser -->
+        <lang.parserDefinition
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.parser.HyperscriptParserDefinition"/>
+
+        <!-- Language -->
+        <fileType
+            name="Hyperscript"
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.HyperscriptFileType"
+            fieldName="INSTANCE"
+            extensions="hs"/>
+
+        <!-- Syntax highlighting -->
+        <lang.syntaxHighlighterFactory
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.highlighting.HyperscriptSyntaxHighlighterFactory"/>
+
+        <!-- Language injection into HTML attributes and script tags -->
+        <multiHostInjector
+            implementation="org.hyperscript.plugin.injection.HyperscriptLanguageInjector"/>
+
+        <!-- Register _, hs, data-hs as valid HTML attributes -->
+        <xml.attributeDescriptorsProvider
+            implementation="org.hyperscript.plugin.html.HyperscriptHtmlAttributeDescriptorProvider"/>
+
+        <!-- Keyword completions -->
+        <completion.contributor
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.completion.HyperscriptCompletionContributor"/>
+
+        <!-- Cmd-B / Cmd-click navigation for #id references -->
+        <gotoDeclarationHandler
+            implementation="org.hyperscript.plugin.references.HyperscriptIdGotoHandler"/>
+
+        <!-- Auto-popup completions after # -->
+        <typedHandler
+            implementation="org.hyperscript.plugin.completion.HyperscriptAutoPopupHandler"/>
+
+        <!-- Parse-error diagnostics via GraalVM -->
+        <annotator
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.annotator.HyperscriptAnnotator"/>
+
+        <!-- Hover documentation -->
+        <lang.documentationProvider
+            language="Hyperscript"
+            implementationClass="org.hyperscript.plugin.documentation.HyperscriptDocumentationProvider"/>
+
+        <!-- Also register at platform level for injected fragments -->
+        <documentationProvider
+            implementation="org.hyperscript.plugin.documentation.HyperscriptDocumentationProvider"/>
+
+        <!-- GraalVM parser service -->
+        <projectService
+            serviceImplementation="org.hyperscript.plugin.graalvm.GraalParserService"/>
+    </extensions>
+</idea-plugin>

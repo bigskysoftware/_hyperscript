@@ -9,3 +9,8 @@ tmp/
 test/.bundle/
 test-results/
 www/_site/
+tools/jetbrains/.gradle/
+tools/jetbrains/.intellijPlatform/
+tools/jetbrains/build/
+tools/common/tree-sitter-hyperscript/src/
+tools/common/tree-sitter-hyperscript/build/

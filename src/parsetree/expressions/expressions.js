@@ -962,7 +962,7 @@ export class ComparisonOperator extends Expression {
                 } else if (parser.matchToken("follow")) {
                     operator = "not follow";
                 } else {
-                    parser.raiseError("Expected matches, contains, starts with, ends with, precede, or follow");
+                    parser.raiseExpected('matches', 'contains', 'starts with', 'ends with', 'precede', 'follow');
                 }
             }
         }

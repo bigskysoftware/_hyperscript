@@ -9,10 +9,11 @@ import { NakedString } from '../parsetree/expressions/literals.js';
 // ============================================================
 
 export class ParseError {
-    constructor(message, token, source) {
+    constructor(message, token, source, expected) {
         this.message = message;
         this.token = token;
         this.source = source;
+        this.expected = expected || null;
         this.line = token?.line ?? null;
         this.column = token?.column ?? null;
     }
@@ -93,7 +94,7 @@ export class Parser {
     requireOpToken(value) {
         var token = this.matchOpToken(value);
         if (token) return token;
-        this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
+        this.raiseExpected(value);
     }
 
     matchAnyOpToken(...ops) {
@@ -111,7 +112,7 @@ export class Parser {
     requireTokenType(...types) {
         var token = this.matchTokenType(...types);
         if (token) return token;
-        this.raiseError("Expected one of " + JSON.stringify(types));
+        this.raiseExpected(...types);
     }
 
     matchTokenType(...types) {
@@ -121,7 +122,7 @@ export class Parser {
     requireToken(value, type) {
         var token = this.matchToken(value, type);
         if (token) return token;
-        this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
+        this.raiseExpected(value);
     }
 
     peekToken(value, peek, type) {
@@ -212,10 +213,17 @@ export class Parser {
         return this.#kernel.parseAnyOf(types, this);
     }
 
-    raiseError(message) {
+    raiseError(message, expected) {
         message = message || "Unexpected Token : " + this.currentToken().value;
-        var parseError = new ParseError(message, this.currentToken(), this.source);
+        var parseError = new ParseError(message, this.currentToken(), this.source, expected);
         throw new ParseRecoverySentinel(parseError);
+    }
+
+    raiseExpected(...expected) {
+        var msg = expected.length === 1
+            ? "Expected '" + expected[0] + "' but found '" + this.currentToken().value + "'"
+            : "Expected one of: " + expected.map(e => "'" + e + "'").join(", ");
+        this.raiseError(msg, expected);
     }
 
     // ===========================
