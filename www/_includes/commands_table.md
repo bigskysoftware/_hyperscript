@@ -40,6 +40,7 @@
 | [throw](/commands/throw)           | Throws an exception                                                           | `throw "Bad Value"`                                                                     |
 | [toggle](/commands/toggle)         | Toggles content on a target                                                   | `toggle .clicked on me`                                                                 |
 | [transition](/commands/transition) | Transitions properties on an element                                          | `transition my *opacity to 0`                                                           |
+| [start a view transition](/commands/view-transition) | Wraps DOM mutations in a View Transition for animated state changes | `start a view transition using "fade" ... end`                                                       |
 | [wait](/commands/wait)             | Waits for an event or a given amount of time before resuming the command list | `wait 2s then remove me`                                                                |
 | [open](/commands/open)              | Opens dialogs, details, popovers, or enters fullscreen                        | `open #my-dialog`, `open fullscreen`                                                    |
 | [close](/commands/close)            | Closes dialogs, details, popovers, or exits fullscreen                        | `close #my-dialog`, `close fullscreen`                                                  |

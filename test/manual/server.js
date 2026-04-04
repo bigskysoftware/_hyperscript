@@ -1,10 +1,10 @@
 /**
- * Manual test server for socket and eventsource features.
+ * Manual test server for hyperscript features that need a live server.
  *
  * Usage:
- *   node test/manual/server.js
+ *   npm run test:manual
  *
- * Then open http://localhost:3000/test/manual/connections.html
+ * Then open http://localhost:3000
  */
 
 import http from 'node:http';
@@ -14,7 +14,7 @@ var WebSocketServer;
 try {
 	({ WebSocketServer } = await import('ws'));
 } catch {
-	console.error('The "ws" package is required: npm install --no-save ws');
+	console.error('The "ws" package is required: cd test/manual && npm install');
 	process.exit(1);
 }
 
@@ -78,6 +78,11 @@ const server = http.createServer((req, res) => {
 		}, 1000);
 
 		return;
+	}
+
+	// Root → index.html
+	if (req.url === '/') {
+		req.url = '/test/manual/index.html';
 	}
 
 	// Static file serving
@@ -153,10 +158,4 @@ wss.on('connection', (ws) => {
 
 server.listen(PORT, () => {
 	console.log('Manual test server running at http://localhost:' + PORT);
-	console.log('Open http://localhost:' + PORT + '/test/manual/connections.html');
-	console.log();
-	console.log('Endpoints:');
-	console.log('  GET  /sse        — SSE stream (5 tick events + done)');
-	console.log('  GET  /sse-named  — SSE stream (greeting + farewell)');
-	console.log('  WS   /ws         — WebSocket echo + RPC (add, greet, failPlease)');
 });

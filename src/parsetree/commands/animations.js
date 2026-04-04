@@ -3,7 +3,7 @@
  * Commands for CSS transitions and animations (transition, settle)
  */
 
-import { Command, Expression } from '../base.js';
+import { ParseElement, Command, Expression } from '../base.js';
 import { config } from '../../core/config.js';
 
 /**
@@ -287,5 +287,184 @@ export class TransitionCommand extends Command {
         return Promise.all(promises).then(() => {
             return this.findNext(context);
         });
+    }
+}
+
+/**
+ * AbortViewTransition - Inserted before return/halt/exit/break/continue that would
+ * escape the view transition body. Resolves the update promise so the transition
+ * doesn't hang, then skips the animation.
+ */
+class AbortViewTransition extends Command {
+    constructor() {
+        super();
+        this.type = "abortViewTransition";
+    }
+
+    resolve(context) {
+        var vt = context.meta.viewTransition;
+        if (vt) {
+            console.warn("hyperscript: view transition skipped due to early exit (return, halt, or break)");
+            context.meta.viewTransition = null;
+            vt.finished.catch(function () {}); // suppress expected AbortError
+            vt.transition.skipTransition();
+            vt.bodyDone();
+        }
+        return context.meta.runtime.findNext(this);
+    }
+}
+
+var ESCAPE_TYPES = new Set(["returnCommand", "exitCommand", "haltCommand", "breakCommand", "continueCommand"]);
+var LOOP_TYPES = new Set(["breakCommand", "continueCommand"]);
+
+/**
+ * Walk the body of a view transition and insert AbortViewTransition before any
+ * command that would escape the transition body without reaching ViewTransitionEnd.
+ * Walks all ParseElement properties to find nested commands (if branches, tell bodies, etc).
+ * Sets inLoop=true when entering loop bodies so break/continue are left alone.
+ */
+function insertAborts(cmd, inLoop, visited) {
+    if (!visited) visited = new Set();
+    if (!cmd || visited.has(cmd)) return;
+    visited.add(cmd);
+
+    var childInLoop = inLoop || cmd.loop !== undefined;
+
+    for (var key of Object.keys(cmd)) {
+        if (key === 'parent') continue;
+        var val = cmd[key];
+        // splice an abort before any escape command
+        if (val instanceof ParseElement && ESCAPE_TYPES.has(val.type)) {
+            if (!LOOP_TYPES.has(val.type) || !inLoop) {
+                var abort = new AbortViewTransition();
+                abort.next = val;
+                cmd[key] = abort;
+                visited.add(abort);
+            }
+        }
+        // recurse into children
+        for (var item of [val].flat()) {
+            if (item instanceof ParseElement) {
+                insertAborts(item, childInLoop, visited);
+            }
+        }
+    }
+}
+
+/**
+ * ViewTransitionTick - Synthetic command prepended to the body of a view transition.
+ * Yields to the browser so the before-snapshot can be captured before mutations begin.
+ */
+class ViewTransitionTick extends Command {
+    constructor() {
+        super();
+        this.type = "viewTransitionTick";
+    }
+
+    resolve(context) {
+        return new Promise(resolve => {
+            setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
+        });
+    }
+}
+
+/**
+ * ViewTransitionEnd - Synthetic command appended to the body of a view transition.
+ * Signals that DOM mutations are complete (triggering the after-snapshot),
+ * then waits for the transition animation to finish before continuing.
+ */
+class ViewTransitionEnd extends Command {
+    constructor() {
+        super();
+        this.type = "viewTransitionEnd";
+    }
+
+    resolve(context) {
+        var vt = context.meta.viewTransition;
+        if (!vt) return context.meta.runtime.findNext(this.parent, context);
+        vt.bodyDone();
+        return vt.finished.then(() => {
+            context.meta.viewTransition = null;
+            return context.meta.runtime.findNext(this.parent, context);
+        });
+    }
+}
+
+/**
+ * ViewTransitionCommand - Wrap DOM mutations in a View Transition
+ *
+ * Parses: start view transition [<string>] <commands> end
+ * Executes: Captures before-snapshot via startViewTransition(), runs body commands
+ * to mutate the DOM, then ViewTransitionEnd signals completion and waits for
+ * the transition animation to finish.
+ * Falls back to running body directly if View Transitions API is not supported.
+ */
+export class ViewTransitionCommand extends Command {
+    static keyword = "start";
+
+    constructor(body, transitionType) {
+        super();
+        this.body = body;
+        this.transitionType = transitionType;
+        this.args = { type: transitionType };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("start")) return;
+        parser.matchToken("a"); // optional "a"
+        parser.requireToken("view");
+        parser.requireToken("transition");
+        parser.matchToken("using"); // optional "using"
+        var typeToken = parser.matchTokenType("STRING");
+        var transitionType = typeToken ? typeToken.value : null;
+        var body = parser.requireElement("commandList");
+
+        // prepend a tick so the browser can capture the before-snapshot
+        var tick = new ViewTransitionTick();
+        tick.next = body;
+
+        // append ViewTransitionEnd at the end of the body chain
+        var endCmd = new ViewTransitionEnd();
+        var last = body;
+        while (last.next) last = last.next;
+        last.next = endCmd;
+
+        if (parser.hasMore()) {
+            parser.requireToken("end");
+        }
+
+        // insert AbortViewTransition before any return/halt/exit/break/continue
+        // that would escape the body without reaching ViewTransitionEnd
+        insertAborts(body, false);
+
+        var cmd = new ViewTransitionCommand(tick, transitionType);
+        parser.setParent(tick, cmd);
+        parser.setParent(body, cmd);
+        endCmd.parent = cmd;
+        return cmd;
+    }
+
+    resolve(context, { type }) {
+        if (!document.startViewTransition) {
+            return this.body;
+        }
+
+        if (context.meta.viewTransition) {
+            throw new Error("A view transition is already in progress");
+        }
+
+        var bodyDone;
+        var bodyPromise = new Promise(function (r) { bodyDone = r; });
+
+        var options = function () { return bodyPromise; };
+        if (type) {
+            options = { update: function () { return bodyPromise; }, types: [type] };
+        }
+        var transition = document.startViewTransition(options);
+
+        context.meta.viewTransition = { bodyDone: bodyDone, finished: transition.finished, transition: transition };
+
+        // tick → body → ViewTransitionEnd, all through normal control flow
+        return this.body;
     }
 }

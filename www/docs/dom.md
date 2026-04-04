@@ -423,6 +423,33 @@ added and then removed immediately
 
 This would not allow the 800ms transition to `.red` to complete.
 
+#### View Transitions {#view-transitions}
+
+The [`start a view transition`](/commands/view-transition) command wraps DOM mutations in a
+[View Transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API),
+animating between before and after snapshots of the DOM:
+
+```hyperscript
+start a view transition
+    put newContent into #container
+end
+```
+
+You can specify a transition type for CSS targeting:
+
+```hyperscript
+start a view transition using "slide-left"
+    remove .active from .tab
+    add .active to me
+    put content into #panel
+end
+```
+
+All animation timing and style is controlled via CSS (e.g. `::view-transition-old`, `::view-transition-new`).
+If the browser does not support view transitions, the body runs normally with no animation.
+
+See the [`start a view transition` command](/commands/view-transition) for full details.
+
 ### Measuring Things {#measuring}
 
 Sometimes you want to know the dimensions of an element in the DOM in order to perform some sort of translation or

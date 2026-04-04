@@ -40,6 +40,7 @@
     "test:workers": "npx serve . -l 3000 -s & echo 'Open http://localhost:3000/test/manual/workers.html'",
     "scratch": "node test/global-setup.js && open test/scratch.html",
     "scratch:build": "node test/global-setup.js",
+    "test:manual": "node test/manual/server.js",
     "test:connections": "node test/manual/server.js",
     "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js"
   },

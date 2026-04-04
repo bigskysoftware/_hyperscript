@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>View Transitions - Manual Test</title>
+    <script type="module" src="/src/_hyperscript.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { margin-bottom: 10px; }
+        h2 { margin-top: 30px; margin-bottom: 10px; color: #555; font-size: 18px; }
+        p.desc { color: #777; margin-bottom: 15px; font-size: 14px; }
+        code { background: #f0f0f0; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+        button { padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 14px; }
+        button:hover { background: #f5f5f5; }
+        .demo { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #fafafa; }
+
+        /* --- Demo 1: Content swap --- */
+        #swap-container { padding: 20px; border-radius: 6px; background: #fff; border: 1px solid #ddd; min-height: 60px; margin-top: 12px; }
+
+        /* --- Demo 3: Tabs --- */
+        .tabs { display: flex; gap: 4px; }
+        .tab { padding: 8px 16px; border: 1px solid #ddd; border-bottom: none; border-radius: 6px 6px 0 0;
+               background: #eee; cursor: pointer; font-size: 14px; }
+        .tab.active { background: #fff; font-weight: bold; }
+        .tab-panel { padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 0 6px 6px 6px; min-height: 100px; }
+
+        /* --- Demo 4: List --- */
+        #hero-list { list-style: none; margin-top: 10px; }
+        #hero-list li { padding: 12px; margin-bottom: 8px; background: #fff; border: 1px solid #ddd;
+                        border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .remove-btn { color: red; cursor: pointer; border: none; background: none; font-size: 16px; }
+
+        /* --- Demo 5: Image gallery --- */
+        #gallery-img { width: 300px; height: 200px; object-fit: cover; border-radius: 8px;
+                       view-transition-name: gallery-hero; }
+        .thumb-row { display: flex; gap: 8px; margin-top: 10px; }
+        .thumb-row img { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;
+                         border: 2px solid transparent; }
+        .thumb-row img.active { border-color: #333; }
+
+        /* --- View transition animations --- */
+        ::view-transition-old(root), ::view-transition-new(root) {
+            animation-duration: 0.6s;
+        }
+
+        html:active-view-transition-type(slide-left) {
+            &::view-transition-old(root) {
+                animation: slide-out-left 0.6s ease-in;
+            }
+            &::view-transition-new(root) {
+                animation: slide-in-right 0.6s ease-out;
+            }
+        }
+
+        html:active-view-transition-type(fade) {
+            &::view-transition-old(root) {
+                animation: fade-out 0.6s ease;
+            }
+            &::view-transition-new(root) {
+                animation: fade-in 0.6s ease;
+            }
+        }
+
+        ::view-transition-old(gallery-hero), ::view-transition-new(gallery-hero) {
+            animation-duration: 0.6s;
+        }
+
+        @keyframes slide-out-left { to { transform: translateX(-100%); opacity: 0; } }
+        @keyframes slide-in-right { from { transform: translateX(100%); opacity: 0; } }
+        @keyframes fade-out { to { opacity: 0; } }
+        @keyframes fade-in { from { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<h1>View Transitions</h1>
+<p class="desc">Manual tests for <code>start view transition ... end</code>. Requires Chrome 111+.</p>
+
+<!-- ============================================ -->
+<h2>1. Basic content swap (default crossfade)</h2>
+<div class="demo">
+    <button _="on click
+        start view transition
+            if #swap-container.innerHTML contains 'Hello'
+                put '<h3>Goodbye!</h3><p>Content was swapped with a view transition.</p>' into #swap-container
+            else
+                put '<h3>Hello!</h3><p>Click the button to swap this content.</p>' into #swap-container
+            end
+        end">
+        Swap Content
+    </button>
+    <div id="swap-container">
+        <h3>Hello!</h3>
+        <p>Click the button to swap this content.</p>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<h2>2. Typed transition (slide-left)</h2>
+<div class="demo">
+    <button _="on click
+        start view transition 'slide-left'
+            set count to #counter's innerHTML as Int
+            increment count
+            put count into #counter
+        end">
+        Increment
+    </button>
+    <span id="counter" style="font-size: 48px; display: inline-block; margin-left: 20px;">0</span>
+</div>
+
+<!-- ============================================ -->
+<h2>3. Tab switching (fade)</h2>
+<div class="demo">
+    <div class="tabs">
+        <div class="tab active" _="on click
+            start view transition 'fade'
+                remove .active from .tab
+                add .active to me
+                put 'This is the <strong>Home</strong> tab. Welcome!' into #tab-content
+            end">Home</div>
+        <div class="tab" _="on click
+            start view transition 'fade'
+                remove .active from .tab
+                add .active to me
+                put 'This is the <strong>Profile</strong> tab. Edit your settings.' into #tab-content
+            end">Profile</div>
+        <div class="tab" _="on click
+            start view transition 'fade'
+                remove .active from .tab
+                add .active to me
+                put 'This is the <strong>Settings</strong> tab. Configure everything.' into #tab-content
+            end">Settings</div>
+    </div>
+    <div class="tab-panel" id="tab-content">
+        This is the <strong>Home</strong> tab. Welcome!
+    </div>
+</div>
+
+<!-- ============================================ -->
+<h2>4. List add/remove</h2>
+<div class="demo">
+    <button _="on click
+        start view transition
+            make a <li/>
+            set count to #hero-list's children's length
+            put '<span>Item ' + (count + 1) + '</span><button class=remove-btn>&#10005;</button>' into it
+            put it at end of #hero-list
+        end">
+        Add Item
+    </button>
+    <ul id="hero-list" _="on click from .remove-btn
+        start view transition
+            remove closest <li/> to target
+        end">
+        <li><span>Item 1</span><button class="remove-btn">&#10005;</button></li>
+        <li><span>Item 2</span><button class="remove-btn">&#10005;</button></li>
+        <li><span>Item 3</span><button class="remove-btn">&#10005;</button></li>
+    </ul>
+</div>
+
+<!-- ============================================ -->
+<h2>5. Image gallery (named transition)</h2>
+<p class="desc">Uses <code>view-transition-name: gallery-hero</code> for matched-element crossfade.</p>
+<div class="demo">
+    <img id="gallery-img" src="https://picsum.photos/id/10/300/200">
+    <div class="thumb-row" _="on click from <img/>
+        start view transition
+            set #gallery-img's @src to target's @src
+            remove .active from <img/> in me
+            add .active to target
+        end">
+        <img src="https://picsum.photos/id/10/300/200" class="active">
+        <img src="https://picsum.photos/id/20/300/200">
+        <img src="https://picsum.photos/id/30/300/200">
+        <img src="https://picsum.photos/id/40/300/200">
+    </div>
+</div>
+
+<!-- ============================================ -->
+<h2>6. Async body (wait inside transition)</h2>
+<p class="desc">Transition waits for async commands to complete before snapshotting.</p>
+<div class="demo">
+    <button _="on click
+        start view transition
+            put '<p>Step 1: Loading...</p>' into #async-demo
+            wait 500ms
+            put '<p>Step 2: Processing...</p>' into #async-demo
+            wait 500ms
+            put '<p>Step 3: Done!</p>' into #async-demo
+        end
+        put ' (transition complete)' at end of #async-demo">
+        Run Async
+    </button>
+    <div id="async-demo" style="margin-top: 12px; min-height: 40px;">
+        <p>Click to start an async transition.</p>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<h2>7. Early return (abort transition)</h2>
+<p class="desc">Return inside the body aborts the transition cleanly. Check console for "[view-transition] aborting" message.</p>
+<div class="demo">
+    <div _="on click from .abort-btn
+        start view transition
+            put 'should not transition' into #abort-demo
+            if true
+                return
+            end
+            put 'unreachable' into #abort-demo
+        end
+        put ' (after transition)' at end of #abort-demo">
+        <button class="abort-btn">Return Early</button>
+    </div>
+    <div id="abort-demo" style="margin-top: 12px;">Waiting...</div>
+</div>
+
+</body>
+</html>
