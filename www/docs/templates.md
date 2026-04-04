@@ -30,6 +30,20 @@ and control flow:
 Template lines are output as-is. `${expr}` interpolates hyperscript expressions with HTML escaping by default
 (use `${unescaped expr}` for raw output). Lines starting with `#` are control flow: `#for`, `#if`, `#else`, `#end`.
 
+`#for` loops support an `#else` clause that renders when the collection is empty or null:
+
+  ~~~ html
+  <template id="user-list">
+  <ul>
+  #for user in users
+    <li>${user.name}</li>
+  #else
+    <li>No users found</li>
+  #end
+  </ul>
+  </template>
+  ~~~
+
 Named arguments passed via `with` become local variables in the template. See the
 [`render` command](/commands/render) for full details.
 

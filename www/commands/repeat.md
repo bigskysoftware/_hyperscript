@@ -71,6 +71,13 @@ In every form you can track the current iteration index by appending `index <ide
     wait 1s
   end
 
+  -- else clause runs when the collection is empty or null
+  for item in items
+    log item
+  else
+    log "no items"
+  end
+
   -- bottom-tested loop: body runs at least once
   repeat
     get the next <li/> from me
@@ -87,7 +94,7 @@ In every form you can track the current iteration index by appending `index <ide
 ### Syntax
 
 ```ebnf
-repeat for <identifier> in <expression> [index <identifier>] <command>* end
+repeat for <identifier> in <expression> [index <identifier>] <command>* [else <command>*] end
 repeat in <expression> [index <identifier>] <command>* end
 repeat while <expression> [index <identifier>] <command>* end
 repeat until <expression> [index <identifier>] <command>* end
