@@ -103,22 +103,19 @@ Demo:
 #### Reactive Filterable List
 
 The same component using reactive rendering instead of show/hide. The `#if` inside `#for` filters
-at render time — when `^query` changes, the template re-renders and the result is morphed in.
+at render time: when `^query` changes, the template re-renders and the result is morphed in.  If no
+matches are found it will show a "No Results" item.
 
   ~~~ html
   <template hyper-component="reactive-filter-list"
-            _="set ^list to attrs.items
-               set ^query to ''">
-    <input type="text" placeholder="Search..."
-           _="on input set ^query to my value" />
+          _="set ^list to attrs.items
+             set ^query to ''">
+    <input type="text" placeholder="Search..." _="bind me to ^query" />
     <ul>
-    #for item in ^list
-      #if ^query is '' or item.name contains ^query ignoring case
-        <li><a href="${item.url}">${item.name}</a></li>
-      #end
-    #end
-      #if ^query is not '' and ^list where (its name contains ^query ignoring case) is empty
-        <li style="color:var(--text-muted)">No results</li>
+      #for item in ^list where its name contains the ^query ignoring case
+        <li><a href="${unescaped item.url}">${item.name}</a></li>
+      #else
+        <li>No Results</li>
       #end
     </ul>
   </template>
@@ -127,19 +124,18 @@ at render time — when `^query` changes, the template re-renders and the result
 Demo:
 
 <div>
-<template hyper-component="reactive-filter-list"
+  <template hyper-component="reactive-filter-list"
           _="set ^list to attrs.items
              set ^query to ''">
-    <input type="text" placeholder="Search..."
-           _="bind me to ^query" />
+    <input type="text" placeholder="Search..." _="bind me to ^query" />
     <ul>
-    #for item in ^list
-      #if the item's name contains the ^query ignoring case
+      #for item in ^list where its name contains the ^query ignoring case
         <li><a href="${unescaped item.url}">${item.name}</a></li>
+      #else
+        <li>No Results</li>
       #end
-    #end
     </ul>
-</template>
+  </template>
 
 <reactive-filter-list items="[
   {name: 'Macintosh 128K', url: 'https://en.wikipedia.org/wiki/Macintosh_128K'},
@@ -153,8 +149,8 @@ Demo:
   {name: 'PowerBook 170', url: 'https://en.wikipedia.org/wiki/PowerBook_170'},
   {name: 'Quadra 700', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_700'},
   {name: 'Quadra 950', url: 'https://en.wikipedia.org/wiki/Macintosh_Quadra_950'}
-]">
-</reactive-filter-list>
+]"></reactive-filter-list>
+
 </div>
 
 <div class="docs-page-nav">
