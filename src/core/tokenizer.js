@@ -379,14 +379,6 @@ export class Tokenizer {
         this.#consumeChar();
     }
 
-    #consumeMultilineComment() {
-        while (this.#currentChar() && !(this.#currentChar() === '*' && this.#nextChar() === '/')) {
-            this.#consumeChar();
-        }
-        this.#consumeChar();
-        this.#consumeChar();
-    }
-
     #consumeWhitespace() {
         var ws = this.#makeToken("WHITESPACE");
         var value = "";
@@ -670,17 +662,10 @@ export class Tokenizer {
             || (c === "/" && n === "/" && (this.#isWhitespace(n2) || n2 === "" || n2 === "/"));
     }
 
-    #isBlockComment() {
-        var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
-        return c === "/" && n === "*" && (this.#isWhitespace(n2) || n2 === "" || n2 === "*");
-    }
-
     #tokenize() {
         while (this.#position < this.#source.length) {
             if (this.#isLineComment()) {
                 this.#consumeComment();
-            } else if (this.#isBlockComment()) {
-                this.#consumeMultilineComment();
             } else if (this.#isWhitespace(this.#currentChar())) {
                 this.#tokens.push(this.#consumeWhitespace());
             } else if (

@@ -96,14 +96,9 @@ test.describe("the _hyperscript tokenizer", () => {
 				t.tokenize("///asdf").list.length,
 				t.tokenize("asdf//").list.length,
 				t.tokenize("asdf\n//").list.length,
-				t.tokenize("/**/asdf").list.length,
-				t.tokenize("/* asdf */").list.length,
-				t.tokenize("/**asdf**/").list.length,
-				t.tokenize("/*\nasdf\n*/").list.length,
-				t.tokenize("asdf/*\n*/").list.length,
 			];
 		});
-		expect(results).toEqual([0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 0, 0, 1]);
+		expect(results).toEqual([0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2]);
 	});
 
 	test("handles class identifiers properly", async ({evaluate}) => {

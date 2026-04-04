@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Intercept - Manual Test</title>
+    <script type="module" src="/src/_hyperscript.js"></script>
+    <script type="module" src="/src/ext/intercept.js"></script>
+    <style>
+        body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { margin-bottom: 10px; }
+        h2 { margin-top: 30px; color: #555; font-size: 18px; }
+        p.desc { color: #777; margin-bottom: 15px; font-size: 14px; }
+        code { background: #f0f0f0; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        button { padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 14px; }
+        button:hover { background: #f5f5f5; }
+        .demo { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #fafafa; }
+        output { display: block; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px; min-height: 40px; }
+        .status { padding: 8px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 15px; }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.warn { background: #fff3cd; color: #856404; }
+        .status.err { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<script type="text/hyperscript">
+    intercept /
+        precache /, /test/manual/offline.html as "hs-intercept-v1"
+        on /api/* use network-first
+        on *.css, *.js use cache-first
+        on /offline-target use network-only
+        offline fallback /test/manual/offline.html
+    end
+</script>
+
+<h1>Intercept Feature</h1>
+<p class="desc">
+    This page registers a service worker that caches requests according to the rules below.
+    Open DevTools → Application → Service Workers to see it active.
+</p>
+
+<pre>intercept /
+    precache /, /test/manual/offline.html as "hs-intercept-v1"
+    on /api/* use network-first
+    on *.css, *.js use cache-first
+    on /offline-target use network-only
+    offline fallback /test/manual/offline.html
+end</pre>
+
+<div id="sw-status" class="status warn">Checking service worker status...</div>
+
+<!-- ============================================ -->
+<h2>1. API request (network-first)</h2>
+<p class="desc">Fetches <code>/api/hello</code>. Each request returns a fresh timestamp from the server.
+Network-first means: try network, fall back to cache. Turn off your network in DevTools and click again —
+you should get the previous cached response.</p>
+<div class="demo">
+    <button _="on click
+        fetch /api/hello as json
+        put `time: ${it.time}, random: ${it.random}` into next <output/>">
+        Fetch /api/hello
+    </button>
+    <output>Not fetched yet</output>
+</div>
+
+<!-- ============================================ -->
+<h2>2. Cache-first asset</h2>
+<p class="desc">Fetches <code>/test/manual/intercept-asset.css</code> (any .css file). Cache-first means:
+try cache, fall back to network. First request hits network, subsequent requests are served from cache
+(instantly, no network in DevTools).</p>
+<div class="demo">
+    <button _="on click
+        fetch /test/manual/intercept.html
+        put `fetched ${it.length} chars` into next <output/>">
+        Fetch intercept.html (cache-first)
+    </button>
+    <output>Not fetched yet</output>
+</div>
+
+<!-- ============================================ -->
+<h2>3. Unmatched request (no interception)</h2>
+<p class="desc">Fetches a URL that doesn't match any <code>on</code> rule. Passes through to network normally.</p>
+<div class="demo">
+    <button _="on click
+        fetch /test/manual/index.html
+        put `fetched ${it.length} chars (no SW intercept)` into next <output/>">
+        Fetch index.html (unmatched)
+    </button>
+    <output>Not fetched yet</output>
+</div>
+
+<!-- ============================================ -->
+<h2>4. Offline fallback</h2>
+<p class="desc">
+    Turn on "Offline" mode in DevTools Network tab, then click the button below.
+    The request goes to an unmatched path that doesn't exist in cache — the service worker
+    falls back to <code>/test/manual/offline.html</code> instead of failing.
+</p>
+<div class="demo">
+    <button _="on click
+        fetch /offline-target
+        put `fetched ${it.length} chars from offline fallback` into next <output/>">
+        Fetch while offline
+    </button>
+    <output>Not fetched yet</output>
+    <p class="desc" style="margin-top: 15px;">
+        Or open <a href="/offline-target" target="_blank">/offline-target</a> in a new tab while offline
+        — you'll see the offline page.
+    </p>
+</div>
+
+<!-- ============================================ -->
+<h2>5. Unregister service worker</h2>
+<p class="desc">For cleanup/testing. Click to unregister the service worker and clear all caches.</p>
+<div class="demo">
+    <button _="on click
+        call navigator.serviceWorker.getRegistrations()
+        for reg in it
+            call reg.unregister()
+        end
+        call caches.keys()
+        for name in it
+            call caches.delete(name)
+        end
+        put 'Unregistered and caches cleared' into next <output/>">
+        Unregister & Clear Caches
+    </button>
+    <output>Not clicked</output>
+</div>
+
+<script>
+    // Check service worker status
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+            var status = document.getElementById('sw-status');
+            status.className = 'status ok';
+            status.textContent = 'Service worker active. Scope: ' + reg.scope;
+        }).catch(err => {
+            var status = document.getElementById('sw-status');
+            status.className = 'status err';
+            status.textContent = 'Service worker failed: ' + err.message;
+        });
+    } else {
+        var status = document.getElementById('sw-status');
+        status.className = 'status err';
+        status.textContent = 'Service workers not supported in this browser';
+    }
+</script>
+
+</body>
+</html>

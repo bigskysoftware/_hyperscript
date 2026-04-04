@@ -5,6 +5,7 @@
 
 import { RegExpIterable } from '../../core/runtime/collections.js';
 import { Command, Expression } from '../base.js';
+import { config } from '../../core/config.js';
 
 /**
  * ImplicitResultSymbol - Represents the implicit "result" symbol
@@ -541,13 +542,14 @@ export class PickCommand extends Command {
 export class FetchCommand extends Command {
     static keyword = "fetch";
 
-    constructor(url, argExprs, conversionType, conversion) {
+    constructor(url, argExprs, conversionType, conversion, dontThrow) {
         super();
         this.url = url;
         this.argExpressions = argExprs;
         this.args = { url, options: argExprs };
         this.conversionType = conversionType;
         this.conversion = conversion;
+        this.dontThrow = dontThrow;
     }
 
     static parseConversionInfo(parser) {
@@ -586,10 +588,27 @@ export class FetchCommand extends Command {
             conversionInfo = FetchCommand.parseConversionInfo(parser);
         }
 
+        var dontThrow = false;
+        if (parser.matchToken("do")) {
+            parser.requireToken("not");
+            parser.requireToken("throw");
+            dontThrow = true;
+        } else if (parser.currentToken().value === "don" &&
+                   parser.token(1).value === "'" &&
+                   parser.token(2).value === "t" &&
+                   parser.token(1).start === parser.currentToken().end &&
+                   parser.token(2).start === parser.token(1).end) {
+            parser.consumeToken(); // don
+            parser.consumeToken(); // '
+            parser.consumeToken(); // t
+            parser.requireToken("throw");
+            dontThrow = true;
+        }
+
         var type = conversionInfo ? conversionInfo.type : "text";
         var conversion = conversionInfo ? conversionInfo.conversion : null;
 
-        return new FetchCommand(url, argExprs, type, conversion);
+        return new FetchCommand(url, argExprs, type, conversion, dontThrow);
     }
 
     resolve(context, { url, options }) {
@@ -614,11 +633,26 @@ export class FetchCommand extends Command {
             return this.findNext(context);
         };
 
+        var checkThrow = !this.dontThrow && this.conversionType !== "response";
+
         return fetch(url, detail)
             .then((resp) => {
                 var resultDetails = {response: resp};
                 context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
                 resp = resultDetails.response;
+
+                if (checkThrow) {
+                    var statusStr = String(resp.status);
+                    var patterns = config.fetchThrowsOn || [];
+                    for (var i = 0; i < patterns.length; i++) {
+                        if (patterns[i].test(statusStr)) {
+                            var err = new Error("fetch failed: " + resp.status + " " + resp.statusText + " (" + url + ")");
+                            err.response = resp;
+                            err.status = resp.status;
+                            throw err;
+                        }
+                    }
+                }
 
                 if (this.conversionType === "response") return complete(resp);
                 if (this.conversionType === "json") return resp.json().then(complete);

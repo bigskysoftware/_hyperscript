@@ -75,6 +75,35 @@ You can send messages to the socket too:
 
 Like EventSource, this is a separate extension that ships with hyperscript.
 
+### Intercepting Requests {#intercept}
+
+The [Intercept extension](/features/intercept) lets you declare caching strategies for your app
+without writing service worker boilerplate. Under the hood it registers a service worker that
+handles caching, offline support, and request interception according to your rules:
+
+  ~~~ html
+  <script type="text/hyperscript">
+    intercept /
+      precache /, /style.css, /app.js as "v1"
+      on /api/* use network-first
+      on *.css, *.js use cache-first
+      on * use stale-while-revalidate
+      offline fallback /offline.html
+    end
+  </script>
+  ~~~
+
+The `intercept` scope controls which URLs the service worker handles (`intercept /` covers
+the whole site). Each `on <pattern> use <strategy>` rule matches request paths against a glob
+pattern and applies a caching strategy:
+
+- **cache-first** — try cache, fall back to network (good for static assets)
+- **network-first** — try network, fall back to cache (good for APIs and HTML pages)
+- **stale-while-revalidate** — serve from cache, update in the background
+- **cache-only** / **network-only** — self-explanatory
+
+Only GET requests are cached. This is a separate extension that ships with hyperscript.
+
 <div class="docs-page-nav">
 <a href="/docs/getting-around/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Getting Around</strong></a>
 <a href="/docs/advanced/" class="next"><strong>Advanced</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>

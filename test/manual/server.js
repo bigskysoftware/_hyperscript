@@ -85,6 +85,16 @@ const server = http.createServer((req, res) => {
 		req.url = '/test/manual/index.html';
 	}
 
+	// Test API endpoint for intercept tests
+	if (req.url.startsWith('/api/')) {
+		res.writeHead(200, {
+			'Content-Type': 'application/json',
+			'Access-Control-Allow-Origin': '*',
+		});
+		res.end(JSON.stringify({ path: req.url, time: Date.now(), random: Math.random() }));
+		return;
+	}
+
 	// Static file serving
 	var filePath = path.join(ROOT, req.url);
 	if (!filePath.startsWith(ROOT)) {
@@ -100,7 +110,12 @@ const server = http.createServer((req, res) => {
 			return;
 		}
 		var ext = path.extname(filePath);
-		res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+		var headers = { 'Content-Type': MIME[ext] || 'application/octet-stream' };
+		// Allow service worker to claim wider scope
+		if (req.url.endsWith('/intercept-sw.js')) {
+			headers['Service-Worker-Allowed'] = '/';
+		}
+		res.writeHead(200, headers);
 		res.end(data);
 	});
 });

@@ -14,6 +14,52 @@ By default the response is processed as text, but you can change this with the `
 
 The URL can be a naked URL or a string literal.
 
+### Error Handling
+
+By default, `fetch` throws on non-2xx responses (404, 500, etc.), so you can
+handle errors with a `catch` block:
+
+```hyperscript
+fetch /api/users as json
+catch e
+    log "fetch failed:", e
+end
+```
+
+The thrown error includes `response` and `status` properties.
+
+To pass through non-2xx responses without throwing, use `do not throw` (or `don't throw`):
+
+```hyperscript
+fetch /api/users as json do not throw
+fetch /api/users as json don't throw
+-- it contains whatever the server sent, even on 404/500
+```
+
+`fetch X as response` never throws — you get the raw Response and handle it yourself:
+
+```hyperscript
+fetch /api/users as response
+if it.ok
+    set data to it's json
+end
+```
+
+To customize which status codes throw, set `_hyperscript.config.fetchThrowsOn` to
+an array of regex patterns tested against the stringified status code. The default
+is `[/4.*/, /5.*/]` (all 4xx and 5xx). Set it to `[]` to disable throwing entirely.
+
+```js
+// throw on 5xx only
+_hyperscript.config.fetchThrowsOn = [/5.*/];
+
+// throw on specific codes
+_hyperscript.config.fetchThrowsOn = [/404/, /500/];
+
+// never throw
+_hyperscript.config.fetchThrowsOn = [];
+```
+
 ### Timeouts & Cancelling
 
 You can add a timeout to a request using the `with` form:
@@ -108,5 +154,5 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
 ### Syntax
 
 ```ebnf
-fetch <string-like> [as [a | an] (json | html | response | text | <conversion>)] [<object-literal> | with <named-args>]
+fetch <string-like> [as [a | an] (json | html | response | text | <conversion>)] [<object-literal> | with <named-args>] [(do not | don't) throw]
 ```

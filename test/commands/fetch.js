@@ -169,4 +169,40 @@ test.describe("the fetch command", () => {
 		await expect(find('div')).toHaveText("yay");
 	});
 
+	test("throws on non-2xx response by default", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 404, body: 'not found' });
+		});
+		await html("<div _='on click fetch /test catch e put \"caught\" into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("caught");
+	});
+
+	test("do not throw passes through 404 response", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 404, body: 'the body' });
+		});
+		await html("<div _='on click fetch /test do not throw then put it into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("the body");
+	});
+
+	test("don't throw passes through 404 response", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 404, body: 'the body' });
+		});
+		await html('<div _="on click fetch /test don\'t throw then put it into me"></div>');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("the body");
+	});
+
+	test("as response does not throw on 404", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 404, body: 'not found' });
+		});
+		await html("<div _='on click fetch /test as response then put it.status into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("404");
+	});
+
 });

@@ -4,6 +4,7 @@ export const config = {
     attributes: "_, script, data-script",
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
+    fetchThrowsOn: [/4.*/, /5.*/],
     hideShowStrategies: {},
     logAll: false,
     mutatingMethods: {

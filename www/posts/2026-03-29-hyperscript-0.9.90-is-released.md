@@ -482,6 +482,35 @@ to JavaScript.
 **Upgrade Step:** If you use ES module imports, switch to `dist/_hyperscript.esm.js`.
 
 </div>
+
+#### 12. Multi-line `/* */` comments removed
+
+JavaScript-style `/* ... */` block comments are no longer supported. Use `--` or `//`
+line comments instead (both were already supported). This change enables patterns
+like `/api/*` to work correctly in expressions and route patterns.
+
+<div class="upgrade-step">
+
+**Upgrade Step:** Replace any `/* ... */` comments with `--` or `//` line comments.
+
+</div>
+
+#### 13. `fetch` throws on non-2xx responses
+
+The `fetch` command now throws on 4xx/5xx responses by default, matching the
+behavior of most modern HTTP libraries. This surfaces errors that previously
+passed through silently.
+
+<div class="upgrade-step">
+
+**Upgrade Step:** If you were relying on 404/500 responses passing through, either:
+
+- Add `do not throw` to the fetch command: `fetch /api as json do not throw`
+- Use `as response` to get the raw Response: `fetch /api as response`
+- Wrap in a `catch` block to handle errors
+- Set `_hyperscript.config.fetchThrowsOn = []` to restore old behavior globally
+
+</div>
 </div>
 
 ### Upgrade Music

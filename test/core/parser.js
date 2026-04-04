@@ -72,27 +72,6 @@ test.describe("the _hyperscript parser", () => {
 		await expect(find('div')).toHaveText("clicked");
 	});
 
-	test("can have alternate multiline comments in scripts", async ({html, evaluate}) => {
-		await html(
-			"<script type='text/hyperscript'>" +
-				"/* this is a comment\n" +
-				"this is still a comment */\n" +
-				"def foo() /* this is another comment */\n" +
-				'  return "foo"\n' +
-				"end /* end with a multiline comment \n */" +
-				"</script>"
-		);
-		expect(await evaluate(() => foo())).toBe("foo");
-	});
-
-	test("can have multiline comments in attributes", async ({html, find}) => {
-		await html(
-			"<div _='on click put \"clicked\" into my.innerHTML /* put some content\n into the div... */'></div>"
-		);
-		await find('div').dispatchEvent('click');
-		await expect(find('div')).toHaveText("clicked");
-	});
-
 	test("can support parenthesized commands and features", async ({html, find}) => {
 		await html(
 			"<div _='(on click (log me) (trigger foo))" +
@@ -152,20 +131,6 @@ test.describe("the _hyperscript parser", () => {
 		var msg = await error("add - to");
 		expect(msg).toMatch(/^Expected either a class reference or attribute expression/);
 	});
-
-	test("error positions are correct after multiline comments", async ({evaluate}) => {
-		// Error on line 3 should show line 3's source, not line 1's
-		var result = await evaluate(() => {
-			try {
-				_hyperscript("/* comment\nline2 */\nadd - to");
-				return "no-error";
-			} catch (e) {
-				return e.message;
-			}
-		});
-		// The error context should show "add - to" (line 3), not "/* comment" (line 1)
-		expect(result).toContain("add - to");
-	})
 
 	test("parse error at EOF on trailing newline does not crash", async ({evaluate}) => {
 		// source ending with \n means last line is empty; EOF token has no .line

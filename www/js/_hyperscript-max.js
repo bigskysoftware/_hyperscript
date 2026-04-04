@@ -8131,7 +8131,8 @@
   var animations_exports = {};
   __export(animations_exports, {
     SettleCommand: () => SettleCommand,
-    TransitionCommand: () => TransitionCommand
+    TransitionCommand: () => TransitionCommand,
+    ViewTransitionCommand: () => ViewTransitionCommand
   });
   function _extractStyleProp(expr) {
     if (expr.type === "styleRef") {
@@ -8356,6 +8357,132 @@
       return Promise.all(promises).then(() => {
         return this.findNext(context);
       });
+    }
+  };
+  var AbortViewTransition = class extends Command {
+    constructor() {
+      super();
+      this.type = "abortViewTransition";
+    }
+    resolve(context) {
+      var vt = context.meta.viewTransition;
+      if (vt) {
+        console.warn("hyperscript: view transition skipped due to early exit (return, halt, or break)");
+        context.meta.viewTransition = null;
+        vt.finished.catch(function() {
+        });
+        vt.transition.skipTransition();
+        vt.bodyDone();
+      }
+      return context.meta.runtime.findNext(this);
+    }
+  };
+  var ESCAPE_TYPES = /* @__PURE__ */ new Set(["returnCommand", "exitCommand", "haltCommand", "breakCommand", "continueCommand"]);
+  var LOOP_TYPES = /* @__PURE__ */ new Set(["breakCommand", "continueCommand"]);
+  function insertAborts(cmd, inLoop, visited) {
+    if (!visited) visited = /* @__PURE__ */ new Set();
+    if (!cmd || visited.has(cmd)) return;
+    visited.add(cmd);
+    var childInLoop = inLoop || cmd.loop !== void 0;
+    for (var key of Object.keys(cmd)) {
+      if (key === "parent") continue;
+      var val = cmd[key];
+      if (val instanceof ParseElement && ESCAPE_TYPES.has(val.type)) {
+        if (!LOOP_TYPES.has(val.type) || !inLoop) {
+          var abort = new AbortViewTransition();
+          abort.next = val;
+          cmd[key] = abort;
+          visited.add(abort);
+        }
+      }
+      for (var item of [val].flat()) {
+        if (item instanceof ParseElement) {
+          insertAborts(item, childInLoop, visited);
+        }
+      }
+    }
+  }
+  var ViewTransitionTick = class extends Command {
+    constructor() {
+      super();
+      this.type = "viewTransitionTick";
+    }
+    resolve(context) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
+      });
+    }
+  };
+  var ViewTransitionEnd = class extends Command {
+    constructor() {
+      super();
+      this.type = "viewTransitionEnd";
+    }
+    resolve(context) {
+      var vt = context.meta.viewTransition;
+      if (!vt) return context.meta.runtime.findNext(this.parent, context);
+      vt.bodyDone();
+      return vt.finished.then(() => {
+        context.meta.viewTransition = null;
+        return context.meta.runtime.findNext(this.parent, context);
+      });
+    }
+  };
+  var ViewTransitionCommand = class _ViewTransitionCommand extends Command {
+    static keyword = "start";
+    constructor(body, transitionType) {
+      super();
+      this.body = body;
+      this.transitionType = transitionType;
+      this.args = { type: transitionType };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("start")) return;
+      parser.matchToken("a");
+      parser.requireToken("view");
+      parser.requireToken("transition");
+      parser.matchToken("using");
+      var typeToken = parser.matchTokenType("STRING");
+      var transitionType = typeToken ? typeToken.value : null;
+      var body = parser.requireElement("commandList");
+      var tick = new ViewTransitionTick();
+      tick.next = body;
+      var endCmd = new ViewTransitionEnd();
+      var last = body;
+      while (last.next) last = last.next;
+      last.next = endCmd;
+      if (parser.hasMore()) {
+        parser.requireToken("end");
+      }
+      insertAborts(body, false);
+      var cmd = new _ViewTransitionCommand(tick, transitionType);
+      parser.setParent(tick, cmd);
+      parser.setParent(body, cmd);
+      endCmd.parent = cmd;
+      return cmd;
+    }
+    resolve(context, { type }) {
+      if (!document.startViewTransition) {
+        return this.body;
+      }
+      if (context.meta.viewTransition) {
+        throw new Error("A view transition is already in progress");
+      }
+      var bodyDone;
+      var bodyPromise = new Promise(function(r) {
+        bodyDone = r;
+      });
+      var options = function() {
+        return bodyPromise;
+      };
+      if (type) {
+        options = { update: function() {
+          return bodyPromise;
+        }, types: [type] };
+      }
+      var transition = document.startViewTransition(options);
+      context.meta.viewTransition = { bodyDone, finished: transition.finished, transition };
+      return this.body;
     }
   };
 
