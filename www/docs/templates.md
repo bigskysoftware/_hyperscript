@@ -53,7 +53,7 @@ TODO: `morph` command, DOM preservation, integration with templates and reactivi
 
 <div class="docs-page-nav">
 <a href="/docs/dom/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Working With The DOM</strong></a>
-<a href="/docs/network/" class="next"><strong>Network & Async</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/async/" class="next"><strong>Async Transparency</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>

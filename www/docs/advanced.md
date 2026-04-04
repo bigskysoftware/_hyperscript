@@ -326,6 +326,70 @@ This will prevent hyperscript from executing within that area in the DOM:
 This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/)
 while still providing additional safety if your HTML-escaping discipline fails.
 
+## Using JavaScript {#js-migration}
+
+Hyperscript is directly integrated with JavaScript, providing ways to use them side by side and migrate with ease.
+
+### Shared Comment Syntax {#js-comments}
+
+`//` and `/* ... */` comments are supported, and ideal for migrating lines of code from JavaScript to Hyperscript "in-place". The multi-line comment may be used to "block out" code and write documentation comments.
+
+### Calling JavaScript {#js-call}
+
+Any JavaScript function may be called directly from Hyperscript. See: [calling functions](/docs/language/#calling-functions).
+
+  ~~~ html
+  <button _="on click call alert('Hello from JavaScript!')">
+    Click me.
+  </button>
+  ~~~
+
+### Inline JavaScript {#js-inline}
+
+Inline JavaScript may be defined using the [`js` keyword](/features/js).
+
+  ~~~ html
+  <div _="init js alert('Hello from JavaScript!') end"></div>
+  ~~~
+
+Return values are supported.
+
+  ~~~ html
+  <button _="on click js return 'Success!' end then put it into my.innerHTML">
+   Click me.
+  </button>
+  ~~~
+
+Parameters are supported.
+
+  ~~~ html
+  <button _="on click set foo to 1 js(foo) alert('Adding 1 to foo: '+(foo+1)) end">
+   Click me.
+  </button>
+  ~~~
+
+JavaScript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
+
+You may use inline JavaScript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
+
+This feature is useful in [workers](#workers), when you want to pass JavaScript across to the worker's
+implementation:
+
+  ~~~ html
+  <script type="text/hyperscript">
+    worker CoinMiner
+      js
+        function mineNext() {
+          // a JavaScript implementation...
+        }
+      end
+      def nextCoin()
+        return mineNext()
+      end
+    end
+  </script>
+  ~~~
+
 ## Language History {#history}
 
 The initial motivation for hyperscript came when I ported [intercooler.js](https://intercoolerjs.org) to
@@ -347,7 +411,7 @@ event oriented and made DOM scripting efficient and fun.  I had programmed in [H
 And here we are.  I hope you find the language useful, or, at least, funny.  :)
 
 <div class="docs-page-nav">
-<a href="/docs/network/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Network & Async</strong></a>
+<a href="/docs/networking/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Networking</strong></a>
 <a href="/docs/components/" class="next"><strong>Components</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 

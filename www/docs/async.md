@@ -5,96 +5,10 @@ title: ///_hyperscript
 
 {% include "docs-layout-start.md" %}
 
-## Remote Content {#remote-content}
-
-Hyperscript is primarily designed for front end scripting, local things like toggling a class on a div and so on,
-and is designed to pair well with [htmx](https://htmx.org), which uses a hypermedia approach for interacting with
-servers.
-
-Broadly, we recommend that approach: you stay firmly within the original REST-ful model of the web, keeping things
-simple and consistent, and you can use hyperscript for small bits of front end functionality.  htmx and hyperscript
-integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additional
-work on your part.
-
-### Fetch {#fetch}
-
-However, there are times when calling out to a remote server is useful from a scripting context, and hyperscript
-supports the [`fetch` command](/commands/fetch) for doing so:
-
-{% example "Issue a Fetch Request" %}
-<button _="on click fetch /clickedMessage then
-                    put the result into the next <output/>">
-  Fetch It
-</button>
-<output>--</output>
-{% endexample %}
-
-The fetch command uses the [fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and allows you
-configure the fetch as you want, including passing along headers, a body, and so forth.
-
-Additionally, you may notice that the `fetch` command, in contrast with the `fetch()` function, does not require
-that you deal with a Promise.   Instead, the hyperscript runtime deals with the promise for you: you can simply
-use the `result` of the fetch as if the fetch command was blocking.
-
-This is thanks to the [async transparency](#async) of hyperscript, discussed below.
-
-### Going Places {#go}
-
-While using ajax is exciting, sometimes you simply wish to navigate the browser to a new location.  To support this
-hyperscript has a [`go` command](/commands/go) that allows you to navigate locally or to new URLs, depending on how it
-is used:
-
-You can also use it to navigate to another web page entirely:
-
-{% example "Going Elsewhere" %}
-<button _="on click go to https://htmx.org">
-              Go Check Out htmx
-</button>
-{% endexample %}
-
-### Scrolling {#scrolling}
-
-The [`scroll`](/commands/scroll) command scrolls an element into view:
-
-  ~~~ hyperscript
-  scroll to #target
-  scroll to the top of #target smoothly
-  scroll to the bottom of me instantly
-  ~~~
-
-You can specify vertical alignment (`top`, `middle`, `bottom`) and horizontal alignment (`left`, `center`, `right`),
-as well as an offset:
-
-  ~~~ hyperscript
-  scroll to the top of #target +50px smoothly
-  ~~~
-
-Use `in` to scroll within a specific container without affecting outer scroll:
-
-  ~~~ hyperscript
-  scroll to #item in #sidebar smoothly
-  ~~~
-
-The `scroll by` form scrolls by a relative amount.  The direction defaults to `down` if omitted:
-
-  ~~~ hyperscript
-  scroll down by 200px
-  scroll #panel left by 100px smoothly
-  ~~~
-
-{% example "Scrolling Around" %}
-<button _="on click
-              scroll to the top of the body smoothly
-              wait 2s
-              scroll to the bottom of me smoothly">
-              Take A Trip
-</button>
-{% endexample %}
-
 ## Async Transparency {#async}
 
 One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,
-for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](#fetch)
+for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](/docs/network/#fetch)
 section, for example, we did not need to use a `.then()` callback or an `await` keyword, as you would need to
 in JavaScript: we simply fetched the data and then inserted it into the DOM.
 
@@ -248,73 +162,9 @@ So, if you wanted to invoke a method that returns a promise, say `returnsAPromis
 Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
 from `returnsAPromise()` has not yet resolved.
 
-## Using JavaScript {#js-migration}
-
-Hyperscript is directly integrated with JavaScript, providing ways to use them side by side and migrate with ease.
-
-### Shared Comment Syntax {#js-comments}
-
-`//` and `/* ... */` comments are supported, and ideal for migrating lines of code from JavaScript to Hyperscript "in-place". The multi-line comment may be used to "block out" code and write documentation comments.
-
-### Calling JavaScript {#js-call}
-
-Any JavaScript function may be called directly from Hyperscript. See: [calling functions](/docs/language/#calling-functions).
-
-  ~~~ html
-  <button _="on click call alert('Hello from JavaScript!')">
-    Click me.
-  </button>
-  ~~~
-
-### Inline JavaScript {#js-inline}
-
-Inline JavaScript may be defined using the [`js` keyword](/features/js).
-
-  ~~~ html
-  <div _="init js alert('Hello from JavaScript!') end"></div>
-  ~~~
-
-Return values are supported.
-
-  ~~~ html
-  <button _="on click js return 'Success!' end then put it into my.innerHTML">
-   Click me.
-  </button>
-  ~~~
-
-Parameters are supported.
-
-  ~~~ html
-  <button _="on click set foo to 1 js(foo) alert('Adding 1 to foo: '+(foo+1)) end">
-   Click me.
-  </button>
-  ~~~
-
-JavaScript at the top-level may be defined using the same [`js` command](/commands/js), exposing it to the global scope.
-
-You may use inline JavaScript for performance reasons, since the Hyperscript runtime is more focused on flexibility, rather than performance.
-
-This feature is useful in [workers](/docs/advanced/#workers), when you want to pass JavaScript across to the worker's
-implementation:
-
-  ~~~ html
-  <script type="text/hyperscript">
-    worker CoinMiner
-      js
-        function mineNext() {
-          // a JavaScript implementation...
-        }
-      end
-      def nextCoin()
-        return mineNext()
-      end
-    end
-  </script>
-  ~~~
-
 <div class="docs-page-nav">
 <a href="/docs/templates/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Templates & Morphing</strong></a>
-<a href="/docs/advanced/" class="next"><strong>Advanced</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/getting-around/" class="next"><strong>Getting Around</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>
