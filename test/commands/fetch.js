@@ -205,4 +205,17 @@ test.describe("the fetch command", () => {
 		await expect(find('div')).toHaveText("404");
 	});
 
+	test("Response can be converted to JSON via as JSON", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ name: "Joe" })
+			});
+		});
+		await html("<div _=\"on click fetch /test as Response then put (it as JSON).name into me\"></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("Joe");
+	});
+
 });

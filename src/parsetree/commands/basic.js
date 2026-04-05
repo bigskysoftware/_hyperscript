@@ -558,11 +558,11 @@ export class FetchCommand extends Command {
         parser.matchToken("a") || parser.matchToken("an");
         if (parser.matchToken("json") || parser.matchToken("JSON") || parser.matchToken("Object")) {
             type = "json";
-        } else if (parser.matchToken("response")) {
+        } else if (parser.matchToken("response") || parser.matchToken("Response")) {
             type = "response";
         } else if (parser.matchToken("html") || parser.matchToken("HTML")) {
             type = "html";
-        } else if (parser.matchToken("text") || parser.matchToken("String")) {
+        } else if (parser.matchToken("text") || parser.matchToken("Text") || parser.matchToken("String")) {
             // default
         } else {
             conversion = parser.requireElement("dotOrColonPath").evalStatically();

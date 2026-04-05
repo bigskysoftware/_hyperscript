@@ -106,6 +106,7 @@ export const conversions = {
         return Array.from(val);
     },
     JSON: function (val) {
+        if (typeof Response !== "undefined" && val instanceof Response) return val.json();
         return JSON.parse(val);
     },
     JSONString: function (val) {
