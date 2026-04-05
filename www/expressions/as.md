@@ -85,3 +85,8 @@ This conversion could now be used like so:
 ```ebnf
 <expression> as [a | an] <conversion> [| <conversion>]*
 ```
+
+### See Also
+
+The [`fetch`](/commands/fetch) command supports two additional forms, `as Text` and `as Response`,
+which are parsed directly by `fetch` rather than going through the conversion system.
