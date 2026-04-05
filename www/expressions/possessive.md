@@ -17,7 +17,7 @@ The possessive expression gives you a more natural way to access properties than
   data-demo="Here is some data..."
 >
 </div>
-<button _"on click put #foo's @data-demo into me">
+<button _="on click put #foo's @data-demo into me">
   Replace Me w/ Foo's Attribute Data
 </button>
 ```
@@ -25,6 +25,6 @@ The possessive expression gives you a more natural way to access properties than
 ### Syntax
 
 ```ebnf
-(my | its | <expression>'s) <property>
-(my | its | <expression>'s) attribute <string-like>
+(my | its | your | <expression>'s) <property>
+(my | its | your | <expression>'s) @<attribute-name>
 ```
