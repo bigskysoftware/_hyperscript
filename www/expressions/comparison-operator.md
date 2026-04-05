@@ -30,6 +30,8 @@ Any comparison can be made case-insensitive by appending `ignoring case`:
 Note that all comparison operators have the same precedence, but if multiple distinct operators are used the
 expression must be parenthesized to avoid ambiguity.
 
+Because [`I`](/expressions/me) is an alias for `me`, comparisons like `I match .active` or `I contain #child` work naturally as regular comparisons with `I` on the left side.
+
 ### Examples
 
 ```html
@@ -85,11 +87,8 @@ expression must be parenthesized to avoid ambiguity.
 <expression> (equals | really equals) <expression>
 <expression> is [not] empty
 <expression> (matches | does not match) <expression>
-(I match | I do not match) <expression>
 <expression> (contains | does not contain) <expression>
-(I contain | I do not contain) <expression>
 <expression> (includes | does not include) <expression>
-(I include | I do not include) <expression>
 <expression> is [not] in <expression>
 <expression> (starts with | does not start with) <expression>
 <expression> (ends with | does not end with) <expression>

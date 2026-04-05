@@ -10,6 +10,13 @@ When used as a top-level feature, only element and DOM-scoped variables are supp
 
 See the [`set` command](/commands/set) for more information.
 
+### Example
+
+```html
+<div _="set :count to 0
+        on click increment :count then put :count into me">0</div>
+```
+
 ### Syntax
 
 ```ebnf

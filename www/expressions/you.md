@@ -36,3 +36,5 @@ tell <.counter/>
 ```ebnf
 (you | yourself)
 ```
+
+`your` is not a standalone expression; it is a possessive root (see [possessive expressions](/expressions/possessive)).

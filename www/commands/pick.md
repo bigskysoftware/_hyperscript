@@ -72,7 +72,19 @@ You can use the keywords `start` or `end` for <var>start</var> and
   --      it = [12, 13, 14, 15]
   ~~~
 
-Note: `at`, `from`, and `..` are accepted as deprecated aliases for range syntax.
+#### Deprecated Aliases
+
+The following aliases are still accepted but no longer preferred:
+
+```ebnf
+pick items [at | from] <start> [(to | ..) <end>] [inclusive|exclusive] (of | from) <array>
+```
+
+- `at` or `from` may precede the starting index
+- `..` may be used in place of `to`
+- `from` may be used in place of `of` for the source collection
+
+These forms also work for `pick characters`, `pick match`, and `pick matches`.
 
 ### Pick Characters {#pick-characters}
 
