@@ -1084,8 +1084,27 @@ export class LogicalOperator extends Expression {
         }
     }
 
+    // override to handle promise-compatible and/or short-circuiting
     evaluate(context) {
-        return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
+        var self = this;
+        var shortCircuitValue = this.operator === "or"; // `or` short-circuits on truthy, `and` on falsy
+        var lhsVal = this.lhs.evaluate(context);
+
+        var continueWith = function (resolvedLhs) {
+            if (!!resolvedLhs === shortCircuitValue) {
+                return resolvedLhs;
+            }
+            var rhsVal = self.rhs.evaluate(context);
+            if (rhsVal && rhsVal.then) {
+                return rhsVal.then(r => self.resolve(context, { lhs: resolvedLhs, rhs: r }));
+            }
+            return self.resolve(context, { lhs: resolvedLhs, rhs: rhsVal });
+        };
+
+        if (lhsVal && lhsVal.then) {
+            return lhsVal.then(continueWith);
+        }
+        return continueWith(lhsVal);
     }
 }
 

@@ -142,7 +142,7 @@ export class Runtime {
             }
         }
 
-        unifiedEval(parseElement, ctx, shortCircuitOnValue) {
+        unifiedEval(parseElement, ctx) {
             var async = false;
             var evaluatedArgs = {};
 
@@ -173,15 +173,6 @@ export class Runtime {
                             async = true;
                         }
                         evaluatedArgs[name] = value;
-                        if (value) {
-                            if (shortCircuitOnValue === true) {
-                                break;
-                            }
-                        } else {
-                            if (shortCircuitOnValue === false) {
-                                break;
-                            }
-                        }
                     } else {
                         evaluatedArgs[name] = argument;
                     }

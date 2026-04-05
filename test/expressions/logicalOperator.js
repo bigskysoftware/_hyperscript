@@ -54,4 +54,40 @@ test.describe("the logicalOperator expression", () => {
 		expect(result.func1Called).toBe(true)
 		expect(result.func2Called).toBe(false)
 	})
+
+	test("and short-circuits when lhs promise resolves to false", async ({evaluate}) => {
+		const result = await evaluate(async () => {
+			let rhsCalled = false
+			const returnsFalse = () => Promise.resolve(false)
+			const rhs = () => { rhsCalled = true; return true }
+			const r = await _hyperscript("returnsFalse() and rhs()", {locals: {returnsFalse, rhs}})
+			return { result: r, rhsCalled }
+		})
+		expect(result.result).toBe(false)
+		expect(result.rhsCalled).toBe(false)
+	})
+
+	test("or short-circuits when lhs promise resolves to true", async ({evaluate}) => {
+		const result = await evaluate(async () => {
+			let rhsCalled = false
+			const returnsTrue = () => Promise.resolve(true)
+			const rhs = () => { rhsCalled = true; return false }
+			const r = await _hyperscript("returnsTrue() or rhs()", {locals: {returnsTrue, rhs}})
+			return { result: r, rhsCalled }
+		})
+		expect(result.result).toBe(true)
+		expect(result.rhsCalled).toBe(false)
+	})
+
+	test("or evaluates rhs when lhs promise resolves to false", async ({evaluate}) => {
+		const result = await evaluate(async () => {
+			let rhsCalled = false
+			const returnsFalse = () => Promise.resolve(false)
+			const rhs = () => { rhsCalled = true; return "fallback" }
+			const r = await _hyperscript("returnsFalse() or rhs()", {locals: {returnsFalse, rhs}})
+			return { result: r, rhsCalled }
+		})
+		expect(result.result).toBe("fallback")
+		expect(result.rhsCalled).toBe(true)
+	})
 })
