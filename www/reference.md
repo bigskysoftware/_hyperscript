@@ -20,11 +20,13 @@ Features are top-level constructs that define the behavior of an element. Every 
 
 These features are available via extension scripts:
 
-| name                                  | description                                                           | example                         |
-|---------------------------------------|-----------------------------------------------------------------------|---------------------------------|
-| [eventsource](/features/eventsource) | Subscribe to Server Sent Events (SSE)                                 |                                           |
-| [socket](/features/socket)            | Create a Web Socket                                                   |                                           |
-| [worker](/features/worker)            | Create a Web Worker for asynchronous work                             |                                           |
+| name                                   | description                                                          | example                              |
+|----------------------------------------|----------------------------------------------------------------------|--------------------------------------|
+| [components](/features/components)     | Hyper-components: reusable custom elements with reactive templates   | `<template hyper-component="my-card">` |
+| [eventsource](/features/eventsource)   | Subscribe to Server Sent Events (SSE)                                |                                      |
+| [intercept](/features/intercept)       | Service-worker DSL for caching, offline fallback, and request routing | `intercept precache /, /styles.css` |
+| [socket](/features/socket)             | Create a Web Socket                                                  |                                      |
+| [worker](/features/worker)             | Create a Web Worker for asynchronous work                            |                                      |
 
 ## Commands {.allcaps}
 
@@ -74,6 +76,7 @@ See [expressions](/expressions) for an overview.
 | some operator                                                        | Existence check (inverse of `no`)                  | `some <.results/>`                     |
 | [as expression](/expressions/as)                                     | Converts an expression to a new type               | `"10" as Int`                          |
 | pipe operator                                                        | Chain conversions left to right                    | `x as Values \| JSONString`            |
+| type assertion                                                       | Postfix type check that throws on mismatch (`!` for non-null) | `x:String` `x:Int!`             |
 | in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
 | starts with / ends with                                              | String prefix/suffix check                         | `url starts with "https"`              |
 | is between                                                           | Inclusive range check                              | `x is between 1 and 10`               |

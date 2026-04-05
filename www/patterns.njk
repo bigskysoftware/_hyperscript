@@ -112,20 +112,6 @@ title: Patterns - ///_hyperscript
     display: none;
 }
 
-/* OS9 window toggle box */
-.pattern-card-toggle {
-    display: inline-block;
-    width: 11px;
-    height: 11px;
-    border: 1.5px solid #666;
-    background: white;
-    flex-shrink: 0;
-}
-
-.pattern-card[open] .pattern-card-toggle {
-    background: #bbb;
-}
-
 .pattern-card:not([open]) .pattern-card-header {
     border-bottom: none;
 }
@@ -210,7 +196,6 @@ title: Patterns - ///_hyperscript
 {% for pattern in collections.patterns %}
 <details class="pattern-card" id="{{ pattern.fileSlug }}" data-tags="{{ pattern.data.tags | join(',') }}" data-difficulty="{{ pattern.data.difficulty }}" open>
     <summary class="pattern-card-header">
-        <span class="pattern-card-toggle"></span>
         <span class="pattern-card-title">{{ pattern.data.title }}</span>
         {% if pattern.data.tags %}<span class="pattern-tags">{% for tag in pattern.data.tags %}<span class="pattern-tag">{{ tag }}</span>{% endfor %}</span>{% endif %}
         {% if pattern.data.difficulty == "beginner" %}<span class="difficulty-badge difficulty-beginner">beginner</span>
