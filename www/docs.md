@@ -302,8 +302,6 @@ Comments in hyperscript start with the `--` characters and a whitespace characte
   log "Yep, that was a comment"
   ~~~
 
-To ease migrations to hyperscript, `//` and `/* ... */` comments are supported.
-
 ### Separators
 
 Multiple commands may be optionally separated with a `then`, which acts like a semi-colon in JavaScript:
