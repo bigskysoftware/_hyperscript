@@ -16,12 +16,20 @@ The [`go` command](/commands/go) navigates the browser to a new location:
 
 {% example "Going Elsewhere" %}
 <button _="on click go to https://htmx.org">
-              Go Check Out htmx
+  Go Check Out htmx
 </button>
 {% endexample %}
 
-You can also navigate within the page using URL fragments, go back and forward in history, or
-navigate to a URL stored in a variable.
+You can also navigate within the page using URL fragments, go back in history, or
+navigate to a URL stored in a variable:
+
+  ~~~ hyperscript
+  go to #section-2              -- jump to an anchor on the page
+  go back                       -- browser back
+  set $url to "/dashboard"
+  go to $url                    -- navigate to a URL from a variable
+  go to "/help" in new window   -- open in a new window
+  ~~~
 
 ### Scrolling {#scrolling}
 
@@ -33,8 +41,8 @@ The [`scroll`](/commands/scroll) command scrolls an element into view:
   scroll to the bottom of me instantly
   ~~~
 
-You can specify vertical alignment (`top`, `middle`, `bottom`) and horizontal alignment (`left`, `center`, `right`),
-as well as an offset:
+You can specify which vertical edge to scroll to (`top`, `middle`, `bottom`) and which
+horizontal edge (`left`, `center`, `right`), as well as an offset:
 
   ~~~ hyperscript
   scroll to the top of #target +50px smoothly
@@ -55,10 +63,10 @@ The `scroll by` form scrolls by a relative amount.  The direction defaults to `d
 
 {% example "Scrolling Around" %}
 <button _="on click
-              scroll to the top of the body smoothly
-              wait 2s
-              scroll to the bottom of me smoothly">
-              Take A Trip
+             scroll to the top of the body smoothly
+             wait 2s
+             scroll to the bottom of the body smoothly">
+  Take A Trip
 </button>
 {% endexample %}
 
