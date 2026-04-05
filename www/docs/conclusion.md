@@ -155,15 +155,23 @@ drastically as traditional print debugging would require.
 
 You can also use `beep!` [as a command](/commands/beep) to assist in your debugging.
 
-### HDB - The Hyperscript Debugger
+### Breakpoints & HDB
 
-An even more sophisticated debugging technique is to use [hdb](/hdb), the Hyperscript Debugger, which allows you to
-debug by inserting `breakpoint` commands in your hyperscript.
+The [`breakpoint`](/commands/breakpoint) command is built into core and triggers the browser's
+JavaScript debugger wherever you place it:
 
-**Note: The hyperscript debugger is in alpha and, like the rest of the language, is undergoing active development**
+  ~~~ hyperscript
+  on click
+    set x to 10
+    breakpoint
+    put x into me
+  ~~~
 
-To use it you need to include the `dist/ext/hdb.js` file. You can then add `breakpoint` commands in your hyperscript
-to trigger the debugger.
+For a richer in-browser debugger UI with step-over, variable inspection, and expression evaluation,
+load the [hdb](/hdb) extension (`/ext/hdb.js`). It replaces the built-in `breakpoint` with the
+full debugger.
+
+**Note: hdb is in alpha and, like the rest of the language, is undergoing active development**
 
 {% example "Debugging" %}
 <button _="
