@@ -303,13 +303,6 @@
       }
       this.#consumeChar();
     }
-    #consumeMultilineComment() {
-      while (this.#currentChar() && !(this.#currentChar() === "*" && this.#nextChar() === "/")) {
-        this.#consumeChar();
-      }
-      this.#consumeChar();
-      this.#consumeChar();
-    }
     #consumeWhitespace() {
       var ws = this.#makeToken("WHITESPACE");
       var value = "";
@@ -560,16 +553,10 @@
       var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
       return c === "-" && n === "-" && (this.#isWhitespace(n2) || n2 === "" || n2 === "-") || c === "/" && n === "/" && (this.#isWhitespace(n2) || n2 === "" || n2 === "/");
     }
-    #isBlockComment() {
-      var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
-      return c === "/" && n === "*" && (this.#isWhitespace(n2) || n2 === "" || n2 === "*");
-    }
     #tokenize() {
       while (this.#position < this.#source.length) {
         if (this.#isLineComment()) {
           this.#consumeComment();
-        } else if (this.#isBlockComment()) {
-          this.#consumeMultilineComment();
         } else if (this.#isWhitespace(this.#currentChar())) {
           this.#tokens.push(this.#consumeWhitespace());
         } else if (!this.#possiblePrecedingSymbol() && this.#currentChar() === "." && (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{" || this.#nextChar() === "-")) {
@@ -1074,10 +1061,11 @@
 
   // src/core/parser.js
   var ParseError = class {
-    constructor(message, token, source) {
+    constructor(message, token, source, expected) {
       this.message = message;
       this.token = token;
       this.source = source;
+      this.expected = expected || null;
       this.line = token?.line ?? null;
       this.column = token?.column ?? null;
     }
@@ -1144,7 +1132,7 @@
     requireOpToken(value) {
       var token = this.matchOpToken(value);
       if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
+      this.raiseExpected(value);
     }
     matchAnyOpToken(...ops) {
       return this.tokens.matchAnyOpToken(...ops);
@@ -1158,7 +1146,7 @@
     requireTokenType(...types) {
       var token = this.matchTokenType(...types);
       if (token) return token;
-      this.raiseError("Expected one of " + JSON.stringify(types));
+      this.raiseExpected(...types);
     }
     matchTokenType(...types) {
       return this.tokens.matchTokenType(...types);
@@ -1166,7 +1154,7 @@
     requireToken(value, type) {
       var token = this.matchToken(value, type);
       if (token) return token;
-      this.raiseError("Expected '" + value + "' but found '" + this.currentToken().value + "'");
+      this.raiseExpected(value);
     }
     peekToken(value, peek, type) {
       return this.tokens.peekToken(value, peek, type);
@@ -1234,10 +1222,14 @@
     parseAnyOf(types) {
       return this.#kernel.parseAnyOf(types, this);
     }
-    raiseError(message) {
+    raiseError(message, expected) {
       message = message || "Unexpected Token : " + this.currentToken().value;
-      var parseError = new ParseError(message, this.currentToken(), this.source);
+      var parseError = new ParseError(message, this.currentToken(), this.source, expected);
       throw new ParseRecoverySentinel(parseError);
+    }
+    raiseExpected(...expected) {
+      var msg = expected.length === 1 ? "Expected '" + expected[0] + "' but found '" + this.currentToken().value + "'" : "Expected one of: " + expected.map((e) => "'" + e + "'").join(", ");
+      this.raiseError(msg, expected);
     }
     // ===========================
     // Parser-owned methods
@@ -1719,6 +1711,7 @@
     attributes: "_, script, data-script",
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
+    fetchThrowsOn: [/4.*/, /5.*/],
     hideShowStrategies: {},
     logAll: false,
     mutatingMethods: {
@@ -4381,7 +4374,7 @@
           } else if (parser.matchToken("follow")) {
             operator = "not follow";
           } else {
-            parser.raiseError("Expected matches, contains, starts with, ends with, precede, or follow");
+            parser.raiseExpected("matches", "contains", "starts with", "ends with", "precede", "follow");
           }
         }
       }
@@ -5630,7 +5623,7 @@
     }
     static parseSource(parser) {
       if (!parser.matchAnyToken("of", "from")) {
-        parser.raiseError("Expected 'of' or 'from'");
+        parser.raiseExpected("of", "from");
       }
       return parser.requireElement("expression");
     }
@@ -5756,13 +5749,14 @@
   };
   var FetchCommand = class _FetchCommand extends Command {
     static keyword = "fetch";
-    constructor(url, argExprs, conversionType, conversion) {
+    constructor(url, argExprs, conversionType, conversion, dontThrow) {
       super();
       this.url = url;
       this.argExpressions = argExprs;
       this.args = { url, options: argExprs };
       this.conversionType = conversionType;
       this.conversion = conversion;
+      this.dontThrow = dontThrow;
     }
     static parseConversionInfo(parser) {
       var type = "text";
@@ -5794,9 +5788,21 @@
       if (conversionInfo == null && parser.matchToken("as")) {
         conversionInfo = _FetchCommand.parseConversionInfo(parser);
       }
+      var dontThrow = false;
+      if (parser.matchToken("do")) {
+        parser.requireToken("not");
+        parser.requireToken("throw");
+        dontThrow = true;
+      } else if (parser.currentToken().value === "don" && parser.token(1).value === "'" && parser.token(2).value === "t" && parser.token(1).start === parser.currentToken().end && parser.token(2).start === parser.token(1).end) {
+        parser.consumeToken();
+        parser.consumeToken();
+        parser.consumeToken();
+        parser.requireToken("throw");
+        dontThrow = true;
+      }
       var type = conversionInfo ? conversionInfo.type : "text";
       var conversion = conversionInfo ? conversionInfo.conversion : null;
-      return new _FetchCommand(url, argExprs, type, conversion);
+      return new _FetchCommand(url, argExprs, type, conversion, dontThrow);
     }
     resolve(context, { url, options }) {
       var detail = options || {};
@@ -5820,10 +5826,23 @@
         finished = true;
         return this.findNext(context);
       };
+      var checkThrow = !this.dontThrow && this.conversionType !== "response";
       return fetch(url, detail).then((resp) => {
         var resultDetails = { response: resp };
         context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
         resp = resultDetails.response;
+        if (checkThrow) {
+          var statusStr = String(resp.status);
+          var patterns = config.fetchThrowsOn || [];
+          for (var i = 0; i < patterns.length; i++) {
+            if (patterns[i].test(statusStr)) {
+              var err = new Error("fetch failed: " + resp.status + " " + resp.statusText + " (" + url + ")");
+              err.response = resp;
+              err.status = resp.status;
+              throw err;
+            }
+          }
+        }
         if (this.conversionType === "response") return complete(resp);
         if (this.conversionType === "json") return resp.json().then(complete);
         return resp.text().then((result) => {
@@ -6256,7 +6275,7 @@
         parser.requireToken("of");
       }
       if (operationToken == null) {
-        parser.raiseError("Expected one of 'into', 'before', 'at start of', 'at end of', 'after'");
+        parser.raiseExpected("into", "before", "at start of", "at end of", "after");
       }
       var target = parser.requireElement("expression");
       while (target.type === "parenthesized") target = target.expr;
@@ -8013,7 +8032,7 @@
         } else if (parser.matchToken("volume")) {
           volume = parser.requireElement("expression");
         } else {
-          parser.raiseError("Expected voice, rate, pitch, or volume");
+          parser.raiseExpected("voice", "rate", "pitch", "volume");
         }
       }
       return new _SpeakCommand(text, voice, rate, pitch, volume);
@@ -9294,7 +9313,7 @@
         parser.popFollow();
       }
       if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
-        parser.raiseError("bind requires a connector: 'and', 'with', or 'to'");
+        parser.raiseExpected("and", "with", "to");
       }
       var right = parser.requireElement("expression");
       return new _BindFeature(left, right);
