@@ -17,7 +17,7 @@ In addition to the standard numeric and equality checks, hyperscript includes `m
 - **`precedes`** / **`follows`** -- tests DOM document order: whether one element appears before or after another in the document tree.
 - **`exists`** -- tests if the value is not null and, for collections, contains at least one element.
 - **`is empty`** / **`is not empty`** -- considers `undefined`, `null`, empty strings, and zero-length arrays/objects as "empty." Works the same way as the [`no` expression](/expressions/no).
-- **`is a`** -- tests if a value is of a given type.
+- **`is a`** / **`is an`** / **`is not a`** -- tests if a value is of a given type. The type name can be any JavaScript type (`String`, `Number`, `Array`, `Date`, `HTMLElement`, etc.). `null` and `undefined` pass by default; append `!` after the type to require a non-null value.
 
 Any comparison can be made case-insensitive by appending `ignoring case`:
 
@@ -68,6 +68,13 @@ expression must be parenthesized to avoid ambiguity.
            log 'I am above the footer'">
   Check Position
 </div>
+
+<button _="on click
+             get my value
+             if it is a String!
+               log 'got a non-null string'">
+  Check Type
+</button>
 ```
 
 ### Syntax
@@ -89,7 +96,7 @@ expression must be parenthesized to avoid ambiguity.
 <expression> is [not] between <expression> and <expression>
 <expression> (precedes | does not precede) <expression>
 <expression> (follows | does not follow) <expression>
-<expression> is [not] a <type-name>
+<expression> is [not] (a | an) <type-name>[!]
 <expression> (exists | does not exist)
 <comparison> ignoring case
 ```
