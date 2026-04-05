@@ -7,67 +7,107 @@ title: ///_hyperscript
 
 ## Reactivity {#reactivity}
 
-Hyperscript has several mechanisms for making your UI respond automatically to changes in data, without
-requiring manual DOM updates or complex state management.
+Reactivity in hyperscript means: when a value changes, things that depend on it
+update automatically. You declare the relationship once, and the runtime keeps
+the DOM in sync.
 
-### The `bind` Feature {#bind}
+Hyperscript tracks reads and writes of these reactive values:
 
-The [`bind` feature](/features/bind) lets you bind an expression to a target, keeping the target in sync
-whenever the expression's value changes:
+- Global variables (`$name`)
+- Element-scoped variables (`:count`)
+- DOM-scoped variables (`^total`)
+- Attribute reads and writes
+- Mutations to arrays, sets, and maps (via `push`, `splice`, etc.)
+
+Regular local variables (`set x to ...`) are not reactive.
+
+### `live` {#live}
+
+The [`live`](/features/live) feature declares commands that re-run whenever their
+dependencies change. Whenever the value is written anywhere in the app, the block
+re-runs. You do not need to list the sources of change.
+
+{% example "Live derived value" %}
+<div _="init set $count to 0">
+  <button _="on click increment $count">+1</button>
+  <button _="on click decrement $count">-1</button>
+  <button _="on click set $count to 0">Reset</button>
+  <output _="live put 'Count: ' + $count into me">Count: 0</output>
+</div>
+{% endexample %}
+
+Click any button. The output re-renders, even though it does not listen for clicks.
+
+Use `live` for derived values and simple DOM updates.
+
+### `when` {#when}
+
+The [`when`](/features/when) feature runs commands in response to a value change,
+with access to the new value via `it`. `when` is about *reacting* with side
+effects, while `live` is about *declaring* what the DOM should look like.
+
+{% example "Reacting to a change" %}
+<input id="price" type="number" value="10" style="width: 6em;" />
+x
+<input id="qty" type="number" value="3" style="width: 6em;" />
+=
+<span _="when (#price's value * #qty's value) changes
+           put '$' + it into me">$30</span>
+{% endexample %}
+
+### `bind` {#bind}
+
+The [`bind`](/features/bind) feature keeps two values in sync, both ways. Useful
+for form inputs and shared state.
+
+{% example "Two-way binding" %}
+<input id="name-input" type="text" placeholder="Type a name" />
+<input id="name-mirror" type="text" placeholder="Mirrored here"
+       _="bind my value to #name-input's value" />
+{% endexample %}
+
+Type into either input and the other updates. The binding runs in both directions.
+
+### Arrays {#arrays}
+
+Hyperscript tracks in-place mutations on arrays, sets, and maps. A `live` block
+reading `^items` will re-run whenever a mutating method (`push`, `pop`, `splice`,
+`sort`, and so on) runs on it.
+
+{% example "Reactive array" %}
+<div _="init set ^items to []">
+  <button _="on click call ^items.push(`item ${^items.length + 1}`)">Add</button>
+  <button _="on click call ^items.pop()">Remove</button>
+  <button _="on click set ^items to []">Clear</button>
+  <ul _="live
+           set my innerHTML to ''
+           for item in ^items
+             append `<li>${item}</li>` to my innerHTML
+           end"></ul>
+  <p _="live put 'Total: ' + ^items.length into me">Total: 0</p>
+</div>
+{% endexample %}
+
+Both the list and the total re-render whenever the array changes. Neither one
+lists events: they just read `^items`, and the runtime handles the rest.
+
+Note that in this example we use a DOM-scoped variable, `^items` rather than a global variable. This encapsulates
+the reactivity in just this small bit of HTML. Generally we recommend using DOM-scoped variables when possible.
+
+### Reactivity vs. Events
+
+Reactivity is a neat feature and is useful when you have complicated dependencies in your UI that affect many different
+elements, and you don't want to track and reconcile them yourself.
+
+However, it is overkill for many features. We recommend using plain event handlers as a default and only reaching for
+reactivity when the situation demands it:
 
   ~~~ html
-  <input type="text" _="bind my.value to #output's innerHTML" />
-  <div id="output"></div>
+  <button _="on click put 'hello' into the next <output/>">Click</button>
+  <output>--</output>
   ~~~
 
-Bindings are automatically updated when the underlying data changes, with no manual wiring needed.
-
-You can bind to attributes, properties, or styles:
-
-  ~~~ hyperscript
-  bind @disabled of #submit to myForm.invalid
-  bind *opacity of #panel to if visible then 1 else 0
-  ~~~
-
-### The `when` Modifier {#when}
-
-The [`when` modifier](/features/when) on event handlers provides a declarative way to conditionally
-handle events based on reactive conditions:
-
-  ~~~ html
-  <button _="on click when #terms.checked
-               call submitForm()">
-    Submit
-  </button>
-  ~~~
-
-The button only responds to clicks when the checkbox is checked.
-
-### The `observe` Command {#observe}
-
-The [`observe` command](/commands/observe) lets you watch for mutations on elements and respond to them:
-
-  ~~~ hyperscript
-  observe childList of #container
-    log "Children changed!"
-  end
-  ~~~
-
-This uses the [MutationObserver API](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
-under the covers, but with a much simpler syntax.
-
-### Event-Driven Reactivity {#event-driven}
-
-Hyperscript's event system is itself a form of reactivity.  Custom events let you build reactive
-data flows:
-
-  ~~~ html
-  <input type="range" _="on input send valueChanged(value: my.value) to the next <output/>" />
-  <output _="on valueChanged put event.value into me"></output>
-  ~~~
-
-Combined with [async transparency](/docs/async/), this gives you reactive behavior without any
-framework overhead.
+Sometimes a click handler is just a click handler.
 
 <div class="docs-page-nav">
 <a href="/docs/components/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Components</strong></a>
