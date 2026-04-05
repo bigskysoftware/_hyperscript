@@ -189,6 +189,57 @@ which re-renders the list.
 
 When there are no matches, the `#else` branch shows the "No matches" message.
 
+### Behaviors {#behaviors}
+
+Hyper-components are one way to package reusable logic. Hyperscript also has a
+lighter-weight sibling: [`behavior`](/features/behavior). A behavior is a block
+of hyperscript that you `install` onto an existing element, rather than a new
+custom element you instantiate.
+
+  ~~~ hyperscript
+  behavior Removable
+    on click
+      remove me
+    end
+  end
+  ~~~
+
+They can accept arguments:
+
+  ~~~ hyperscript
+  behavior Removable(removeButton)
+    on click from removeButton
+      remove me
+    end
+  end
+  ~~~
+
+They are installed onto an element with `install`:
+
+  ~~~ html
+  <div class="banner" _="install Removable(removeButton: #close-banner)">
+    ...
+  </div>
+  ~~~
+
+For a more substantial example, see the [Draggable behavior](/patterns/#75-draggable-behavior) pattern.
+
+#### Behaviors vs. Components
+
+Behaviors and components solve two different problems:
+
+|            | Behaviors                                      | Components                              |
+|------------|------------------------------------------------|-----------------------------------------|
+| Definition | A block of hyperscript                         | A `<template>` with markup and `_=`     |
+| Use        | `install` on any existing element              | Place a custom tag in your HTML         |
+| Markup     | No, attaches to existing DOM                   | Yes, renders its own markup             |
+| State      | Shares the host element's scope                | Isolated DOM scope per instance         |
+| Reactive   | No, plain hyperscript                          | Yes, template re-renders on change      |
+
+Use a behavior when you have a bit of logic you want to compose onto arbitrary elements. 
+
+Use a hyper-component when you want a self-contained piece of UI with its own markup and state.
+
 <div class="docs-page-nav">
 <a href="/docs/reactivity/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Reactivity</strong></a>
 <a href="/docs/async/" class="next"><strong>Async Transparency</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>

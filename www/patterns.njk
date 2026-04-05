@@ -208,7 +208,7 @@ title: Patterns - ///_hyperscript
 <div id="no-results" class="no-results" hidden>No patterns match your search.</div>
 
 {% for pattern in collections.patterns %}
-<details class="pattern-card" data-tags="{{ pattern.data.tags | join(',') }}" data-difficulty="{{ pattern.data.difficulty }}" open>
+<details class="pattern-card" id="{{ pattern.fileSlug }}" data-tags="{{ pattern.data.tags | join(',') }}" data-difficulty="{{ pattern.data.difficulty }}" open>
     <summary class="pattern-card-header">
         <span class="pattern-card-toggle"></span>
         <span class="pattern-card-title">{{ pattern.data.title }}</span>

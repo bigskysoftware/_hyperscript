@@ -34,32 +34,51 @@ evaluate expressions:
 
 ### Writing Your Own {#writing-extensions}
 
-Hyperscript's parser is extensible via the grammar API.  You can register new commands, expressions,
-and features.
+Hyperscript has a pluggable grammar that allows you to define new features, commands and certain types of expressions.
 
-A simple custom command:
+Here is an example that adds a new command, `foo`, that logs "A Wild Foo Was Found!" if the value of its expression
+was "foo":
 
   ~~~ javascript
-  _hyperscript.addCommand("greet", function(parser, runtime, tokens) {
-    // parse the command
-    if (!tokens.matchToken("greet")) return;
-    var name = parser.requireElement("expression");
+  // register for the command keyword "foo"
+  _hyperscript.addCommand('foo', function(parser) {
+
+    // A foo command must start with "foo".
+    if(!parser.matchToken('foo')) return
+
+    // Parse an expression.
+    const expr = parser.requireElement('expression');
 
     return {
-      args: [name],
-      op: function(context, name) {
-        alert("Hello, " + name + "!");
-        return runtime.findNext(this);
+      // All expressions needed by the command to execute.
+      // These will be evaluated and the results passed to resolve().
+      args: { value: expr },
+
+      // Implement the logic of the command.
+      // Can be synchronous or asynchronous.
+      // @param {Context} context The runtime context, contains local variables.
+      // @param {Object} args The evaluated args, keyed by name.
+      resolve(context, { value }) {
+        if (value == "foo") {
+          console.log("A Wild Foo Was Found!")
+        }
+        // Return the next command to execute.
+        return context.meta.runtime.findNext(this, context)
       }
-    };
-  });
+    }
+  })
   ~~~
 
-  ~~~ html
-  <button _="on click greet 'World'">Say Hello</button>
-  ~~~
+With this command defined you can now write the following hyperscript:
 
-See the [advanced docs](/docs/advanced/#extending) for the full extension API.
+```hyperscript
+  def testFoo()
+    set str to "foo"
+    foo str
+  end
+```
+
+And "A Wild Foo Was Found!" would be printed to the console.
 
 <div class="docs-page-nav">
 <a href="/docs/reactivity/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Reactivity</strong></a>

@@ -61,10 +61,10 @@ Everything you need to know about _hyperscript
 <span>Fetch, Server-Sent Events, WebSockets</span>
 </a>
 
-<a href="/docs/advanced/" class="docs-card">
+<a href="/docs/conclusion/" class="docs-card">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.42 15.17l-5.384-3.19A1.5 1.5 0 0 1 5.25 10.8V6.75a1.5 1.5 0 0 1 .786-1.319l5.384-3.191a1.5 1.5 0 0 1 1.56 0l5.384 3.191A1.5 1.5 0 0 1 19.125 6.75v4.05a1.5 1.5 0 0 1-.786 1.319l-5.384 3.191a1.5 1.5 0 0 1-1.56-.062zM3 12l2.25 2.25M21 12l-2.25 2.25m-13.5 0L12 19.5l5.25-5.25"/></svg>
-<strong>Advanced</strong>
-<span>Behaviors, workers, JavaScript interop, debugging, extending, security</span>
+<strong>Misc. & Conclusion</strong>
+<span>Behaviors, user interaction, debugging, JavaScript interop, security</span>
 </a>
 
 <a href="/docs/reactivity/" class="docs-card">
