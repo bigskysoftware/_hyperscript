@@ -6,13 +6,73 @@ title: fetch - ///_hyperscript
 
 The `fetch` command issues an HTTP request using the browser's [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch). The result is saved into the `it` variable, and the command is asynchronous.
 
-By default the response is processed as text, but you can change this with the `as` modifier:
-- `as JSON` -- parse as JSON
-- `as HTML` -- parse as HTML
-- `as response` -- return the raw Response object
-- `as <Conversion>` -- use any [conversion](/expressions/as) on the response text
+The URL can be a naked URL or a string literal:
 
-The URL can be a naked URL or a string literal.
+```hyperscript
+fetch /api/users              -- naked URL
+fetch "https://example.com"   -- string literal
+fetch `/users/${id}`          -- template literal
+```
+
+### Request Options
+
+Pass request options with the `with` clause. These map directly to the second argument of
+the browser's [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) API
+([`RequestInit`](https://developer.mozilla.org/en-US/docs/Web/API/RequestInit)):
+
+```hyperscript
+fetch /api/users with method:"POST", body:"name=Joe", headers:{Accept:"application/json"}
+```
+
+You can also use an object literal:
+
+```hyperscript
+fetch /api/users with { method:"POST", body:"name=Joe" }
+```
+
+Common options:
+
+| Option | Description |
+|--------|-------------|
+| `method` | HTTP method (`"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, etc.). Defaults to `"GET"` |
+| `headers` | An object of request headers |
+| `body` | Request body — a string, `FormData`, `Blob`, etc. |
+| `credentials` | `"omit"`, `"same-origin"`, or `"include"` |
+| `cache` | `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, `"only-if-cached"` |
+| `mode` | `"cors"`, `"no-cors"`, `"same-origin"` |
+| `timeout` | Hyperscript-specific: milliseconds before the request is aborted |
+
+Posting a form's values:
+
+```hyperscript
+fetch /api/submit with method:"POST", body:<form/> as FormData
+```
+
+Setting an auth header:
+
+```hyperscript
+fetch /api/me with headers:{Authorization:`Bearer ${token}`} as JSON
+```
+
+### Response Types
+
+By default the response body is returned as a string. You can change this with the `as` modifier:
+
+| Form | Result |
+|------|--------|
+| _(no `as`)_ | Response body as a string |
+| `as Text` | Same as the default — response body as a string |
+| `as JSON` | Parse the body as JSON and return the resulting object |
+| `as HTML` | Parse the body as HTML and return a `DocumentFragment` |
+| `as Response` | Return the raw [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object; you handle body parsing and errors yourself |
+| `as <Conversion>` | Apply any registered [conversion](/expressions/as) to the response text (e.g. `as Int`, `as Fragment`) |
+
+The `as` clause can come before or after the `with` clause:
+
+```hyperscript
+fetch /api/users as JSON with method:"POST"
+fetch /api/users with method:"POST" as JSON
+```
 
 ### Error Handling
 
@@ -20,7 +80,7 @@ By default, `fetch` throws on non-2xx responses (404, 500, etc.), so you can
 handle errors with a `catch` block:
 
 ```hyperscript
-fetch /api/users as json
+fetch /api/users as JSON
 catch e
     log "fetch failed:", e
 end
@@ -31,15 +91,15 @@ The thrown error includes `response` and `status` properties.
 To pass through non-2xx responses without throwing, use `do not throw` (or `don't throw`):
 
 ```hyperscript
-fetch /api/users as json do not throw
-fetch /api/users as json don't throw
+fetch /api/users as JSON do not throw
+fetch /api/users as JSON don't throw
 -- it contains whatever the server sent, even on 404/500
 ```
 
-`fetch X as response` never throws — you get the raw Response and handle it yourself:
+`fetch X as Response` never throws — you get the raw Response and handle it yourself:
 
 ```hyperscript
-fetch /api/users as response
+fetch /api/users as Response
 if it.ok
     set data to it's json
 end
@@ -134,12 +194,12 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
   Get from /example!
 </button>
 
-<button _='on click fetch /test as json with method:"POST"
+<button _='on click fetch /test as JSON with method:"POST"
                     put `${its result}` into my innerHTML'>
   Post to /test!
 </button>
 
-<button _="on click fetch `${pageUrl}` as html
+<button _="on click fetch `${pageUrl}` as HTML
                     get the textContent of the <h1/> in it
                     call alert(result)">
   Get the title of the page!
@@ -154,5 +214,5 @@ document.body.addEventListener('fetch:beforeRequest', (event) => {
 ### Syntax
 
 ```ebnf
-fetch <string-like> [as [a | an] (json | html | response | text | <conversion>)] [<object-literal> | with <named-args>] [(do not | don't) throw]
+fetch <string-like> [as [a | an] (JSON | HTML | Response | Text | <conversion>)] [<object-literal> | with <named-args>] [(do not | don't) throw]
 ```

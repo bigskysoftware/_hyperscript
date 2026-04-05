@@ -8,7 +8,14 @@ The `eventsource` feature gives you a declarative way to work with [Server Sent 
 
 ### Installing
 
-Note: if you want the event source feature, you must either use the "Whole 9 Yards" release of hyperscript, or include the `/dist/eventsource.js` file.
+The `eventsource` feature is an extension and must be included separately, *after* hyperscript itself:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/eventsource.min.js"></script>
+```
+
+Or if you're using npm: `import 'hyperscript.org/dist/ext/eventsource.js'` after importing hyperscript.
 
 SSE connections can require substantial work to set up and maintain. For example, browsers are supposed to reconnect to a failed SSE stream automatically, but their behavior differs. Hyperscript manages everything for you, and reconnects connections that have failed, so your code only has to handle incoming messages.
 

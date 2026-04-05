@@ -43,7 +43,7 @@ Async operations work naturally:
 
 ```hyperscript
 start a view transition
-    fetch /api/data as html
+    fetch /api/data as HTML
     put it into #results
 end
 ```

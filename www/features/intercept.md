@@ -10,14 +10,18 @@ service worker that handles request interception according to your rules.
 
 ### Installing
 
-Include the intercept extension:
+The `intercept` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script type="module" src="/path/to/intercept.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/intercept.min.js"></script>
 ```
 
-The extension ships a companion service worker file (`intercept-sw.js`) that
-must be located next to it.
+Or if you're using npm: `import 'hyperscript.org/dist/ext/intercept.js'` after importing hyperscript.
+
+The extension also needs a companion service worker file (`intercept-sw.js`) that must
+be at a real URL in your app (service workers can't be registered from a CDN). Copy it
+to your site root or serve it alongside the extension.
 
 ### Basic Example
 

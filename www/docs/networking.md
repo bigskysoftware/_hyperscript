@@ -7,18 +7,15 @@ title: ///_hyperscript
 
 ## Networking {#networking}
 
-Hyperscript is primarily designed for front end scripting, local things like toggling a class on a div and so on,
-and is designed to pair well with [htmx](https://htmx.org), which uses a hypermedia approach for interacting with
-servers.
+Hyperscript is primarily designed for front end scripting: local things like toggling a class on a div.
 
-Broadly, we recommend that approach: you stay firmly within the original REST-ful model of the web, keeping things
-simple and consistent, and you can use hyperscript for small bits of front end functionality.  htmx and hyperscript
-integrate seamlessly, so any hyperscript you return to htmx will be automatically initialized without any additional
-work on your part.
+It is designed to pair well with [htmx](https://htmx.org), which uses the 
+[hypermedia approach](https://hypermedia.systems/hypermedia-a-reintroduction/) for interacting with
+servers.
 
 ### Fetch {#fetch}
 
-However, there are times when calling out to a remote server is useful from a scripting context, and hyperscript
+There are times, however, when calling out to a remote server is useful from a scripting context, and hyperscript
 supports the [`fetch` command](/commands/fetch) for doing so:
 
 {% example "Issue a Fetch Request" %}
@@ -29,14 +26,83 @@ supports the [`fetch` command](/commands/fetch) for doing so:
 <output>--</output>
 {% endexample %}
 
-The fetch command uses the [fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and allows you
+The fetch command uses the [fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) and allows you to
 configure the fetch as you want, including passing along headers, a body, and so forth.
 
-Additionally, you may notice that the `fetch` command, in contrast with the `fetch()` function, does not require
-that you deal with a Promise.   Instead, the hyperscript runtime deals with the promise for you: you can simply
-use the `result` of the fetch as if the fetch command was blocking.
+Notice that the `fetch` command is (or at least appears) synchronous: you make the call then deal with the results.\
+in an natural way without `await` or call backs.
 
-This is thanks to the [async transparency](/docs/async/) of hyperscript.
+This is hyperscript's [async transparency](/docs/async/) at work!
+
+#### Request Options {#fetch-options}
+
+Pass HTTP method, headers, body, and other options with the `with` clause. These map to the
+second argument of the browser's [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) API:
+
+  ~~~ hyperscript
+  fetch /api/users with method:"POST", body:"name=Joe"
+  fetch /api/me with headers:{Authorization:`Bearer ${token}`} as JSON
+  ~~~
+
+Forms can be serialized and posted directly using the `as FormData` conversion:
+
+  ~~~ hyperscript
+  fetch /api/submit with method:"POST", body:(<form/> as FormData)
+  ~~~
+
+See the [`fetch` command](/commands/fetch) for the full list of options.
+
+#### Response Types {#fetch-as}
+
+By default the response body is returned as a string. You can change this with the `as` modifier:
+
+| Form | Result |
+|------|--------|
+| _(no `as`)_ | Response body as a string |
+| `as Text` | Same as the default — response body as a string |
+| `as JSON` | Parse the body as JSON and return the resulting object |
+| `as HTML` | Parse the body as HTML and return a `DocumentFragment` |
+| `as Response` | Return the raw [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object; you handle body parsing and errors yourself |
+| `as <Conversion>` | Apply any registered [conversion](/expressions/as) to the response text (e.g. `as Int`, `as Fragment`) |
+
+#### Error Handling {#fetch-errors}
+
+By default, `fetch` throws on non-2xx responses (404, 500, etc.), matching the behavior
+of most modern HTTP libraries. You can catch the error with a `catch` block:
+
+  ~~~ hyperscript
+  on click
+    fetch /api/users as JSON
+    set $users to the result
+  catch e
+    log "fetch failed:", e
+  end
+  ~~~
+
+The thrown error carries `response` and `status` properties.
+
+If you want to pass through non-2xx responses without throwing, add `do not throw`
+(or `don't throw`):
+
+  ~~~ hyperscript
+  fetch /api/users as JSON do not throw
+  -- result contains whatever the server sent, even on 404
+  ~~~
+
+The `as Response` form never throws on status codes — you get the raw `Response` object:
+
+  ~~~ hyperscript
+  fetch /api/users as Response
+  if it's ok
+    set $users to it as JSON
+  end
+  ~~~
+
+#### Customizing Error Handling
+
+To customize which status codes throw you can set the `_hyperscript.config.fetchThrowsOn` property to an
+array of regex patterns tested against the stringified status code. The default is
+`[/4.*/, /5.*/]` (all 4xx and 5xx). Set it to `[]` to disable throwing entirely.
 
 ### Server-Sent Events {#eventsource}
 

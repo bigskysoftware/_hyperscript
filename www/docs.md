@@ -2575,7 +2575,7 @@ information directly to your clients that is [supported by all modern browsers](
 They provide real-time, uni-directional communication from your server to a browser. Server Sent Events cannot send
 information back to your server. If you need two-way communication, consider using [sockets](/features/socket/) instead.
 
-You can declare an SSE connection by using the [`eventsource` keyword](/features/event-source) and can dynamically change
+You can declare an SSE connection by using the [`eventsource` keyword](/features/eventsource) and can dynamically change
 the connected URL at any time without having to reconnect event listeners.
 
 Here is an example event source in hyperscript:

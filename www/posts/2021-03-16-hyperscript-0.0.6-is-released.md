@@ -36,7 +36,7 @@ I'm pleased to announce the [0.0.6 release](https://unpkg.com/browse/hyperscript
 
 - [Web Socket](/features/socket) support was added with both standard events-based interaction or a simple RPC mechanism.
 
-- [Server Sent Event](/features/event-source) support was added.
+- [Server Sent Event](/features/eventsource) support was added.
 
 - init blocks now are supported to initialize with
 

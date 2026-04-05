@@ -22,7 +22,7 @@ These features are available via extension scripts:
 
 | name                                  | description                                                           | example                         |
 |---------------------------------------|-----------------------------------------------------------------------|---------------------------------|
-| [eventsource](/features/event-source) | Subscribe to Server Sent Events (SSE)                                 |                                           |
+| [eventsource](/features/eventsource) | Subscribe to Server Sent Events (SSE)                                 |                                           |
 | [socket](/features/socket)            | Create a Web Socket                                                   |                                           |
 | [worker](/features/worker)            | Create a Web Worker for asynchronous work                             |                                           |
 
