@@ -7,15 +7,15 @@ title: ///_hyperscript
 
 ## Working With The DOM {#working-with-the-dom}
 
-The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of syntax
-for making this easy and natural.
+The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of
+syntax for making this easy and natural.
 
 We have glossed over a lot of this syntax in previous examples (we hope it was intuitive enough!) but now we will get
 into the details of what they all do:
 
 ### Finding Elements {#finding-things}
 
-There are two sides to DOM manipulation: finding stuff and mutating it.  In this section we will focus on how to
+There are two sides to DOM manipulation: finding stuff and mutating it. In this section we will focus on how to
 find things in the DOM.
 
 #### DOM Literals {#dom-literals}
@@ -28,32 +28,14 @@ Some are inspired by CSS, while others are our own creation.
 
 Here is a table of the DOM literals:
 
-{% syntaxes %}
-`.[[class name]]`
-`.{[[expression]]}`
-	A <dfn>class literal</dfn> starts with a `.` and returns all elements with that class.
-
-`#[[ID]]`
-`#{[[expression]]}`
-	An <dfn>ID literal</dfn> starts with a `#` and returns the element with that id.
-
-`<[[css selector]] />`
-	A <dfn>query literal</dfn> is contained within a `<` and `/>`, returns all elements matching the CSS selector.
-
-`@[[attribute name]]`
-	An <dfn>attribute literal</dfn> starts with an `@` (hence, *at*tribute, get it?) and returns the value of that
-	attribute.
-
-`*[[style property]]`
-	A <dfn>style literal</dfn> starts with an `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the
-	value of that style property.
-
-`1em`
-`0%`
-`[[expression]] px`
-	A <dfn>measurement literal</dfn> is an expression followed by a CSS unit, and it appends the unit as a string. So, the
-	above expressions are the same as `"1em"`, `"0%"` and {%syntax "&#96;${[[expression]]}px&#96;"%}.
-{% endsyntaxes%}
+| Literal             | Syntax                                                               | Description                                                                                                         |
+|---------------------|----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| class literal       | {% syntax ".[[class name]]" %} <br> {% syntax ".{[[expression]]}" %} | Starts with `.` and returns all elements with that class                                                            |
+| ID literal          | {% syntax "#[[ID]]" %} <br> {% syntax "#{[[expression]]}" %}         | Starts with `#` and returns the element with that id                                                                |
+| query literal       | {% syntax "<[[css selector]] />" %}                                  | Contained within `<` and `/>`, returns all elements matching the CSS selector                                       |
+| attribute literal   | {% syntax "@[[attribute name]]" %}                                   | Starts with `@` (hence, *at*tribute, get it?) and returns the value of that attribute                               |
+| style literal       | {% syntax "*[[style property]]" %}                                   | Starts with `*` (a reference to [CSS Tricks](https://css-tricks.com/)) and returns the value of that style property |
+| measurement literal | `1em` <br> `0%` <br> {% syntax "[[expression]] px" %}                | An expression followed by a CSS unit, appending the unit as a string                                                |
 
 Here are a few examples of these literals in action:
 
@@ -110,18 +92,18 @@ with the corresponding hyperscript:
 You can see how the support for CSS literals directly in hyperscript makes for a much cleaner script, allowing us
 to focus on the logic at hand.
 
-#### Finding Things In Other Things {#in}
+#### Finding In Things {#in}
 
-Often you want to find things *within* a particular element.  To do this you can use the `in` expression:
+Often you want to find things *within* a particular element. To do this you can use the `in` expression:
 
   ~~~ hyperscript
   -- add the class 'highlight' to all paragraph tags in the current element
   add .highlight to <p/> in me
   ~~~
 
-#### Finding The Closest Matching (Parent) Element {#closest}
+#### Finding Parents {#closest}
 
-Sometimes you wish to find the closest element in a parent hierarchy that matches some selector.  In JavaScript
+Sometimes you wish to find the closest element in a parent hierarchy that matches some selector. In JavaScript
 you might use the [`closest()` function](https://developer.mozilla.org/en-US/docs/Web/API/Element/closest)
 
 To do this in hyperscript you can use the [`closest`](/expressions/closest) expression:
@@ -132,7 +114,7 @@ To do this in hyperscript you can use the [`closest`](/expressions/closest) expr
   ~~~
 
 Note that `closest` starts with the current element
-and recurses up the DOM from there.  If you wish to start at the parent instead, you can use this form:
+and recurses up the DOM from there. If you wish to start at the parent instead, you can use this form:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the closest div to the current element, excluding the current element
@@ -149,10 +131,11 @@ a collection of things:
   add .highlight to the first <p/> in me
   ~~~
 
-#### Finding Things Relative To Other Things {#relative_positional}
+#### Finding Nearby Things {#relative_positional}
 
-You can use the [relative positional expressions](/expressions/relative-positional) `next` and `previous` to get an element
- relative to either the current element, or to another element:
+You can use the [relative positional expressions](/expressions/relative-positional) `next` and `previous` to get an
+element
+relative to either the current element, or to another element:
 
   ~~~ hyperscript
   -- add the class 'highlight' to the next paragraph found in a forward scan of the DOM
@@ -163,139 +146,127 @@ Note that `next` and `previous` support wrapping, if you want that.
 
 ### Updating The DOM {#updating_things}
 
-Using the expressions above, you should be able to find the elements you want to update easily.
+Using the expressions above, you should be able to find the elements easily.
 
-Now, on to updating them!
+#### Putting Content Into The DOM
 
-#### Set & Put {#set-and-put}
-
-The most basic way to update contents in the DOM is using the [`set`](/commands/set) and [`put`](/commands/put) commands.
-Recall that these commands can also be used to set local variables.
-
-When it comes to updating DOM elements, the `put` command is much more flexible, as we will see.
-
-First, let's just set the `innerHTML` of an element to a string:
-
-{% example "Setting innerHTML" %}
-<button _="on click set my innerHTML to 'Clicked!'">
-  Click Me
-</button>
-{% endexample %}
-
-Using the `put` command would look like this:
+Content can be put into the DOM using the [`put`](/commands/put) command. To put content into an element (that is, into 
+its `innerHTML`) you can write:
 
 {% example 'Setting properties with "put"' %}
-<button _="on click put 'Clicked!' into my innerHTML">
-  Click Me
-</button>
-{% endexample %}
-
-In fact, the `put` command is smart enough to default to `innerHTML` when you put something into an element, so we can
-omit the `innerHTML` entirely:
-
-{% example "Putting things into elements" %}
 <button _="on click put 'Clicked!' into me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
-The `put` command can also place content in different places based on how it is used:
+You can also use modifiers to the  `put` command to place content in different places relative to the target element:
 
 {% example "Put X before Y" %}
 <button _="on click put 'Clicked!' before me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
-The `put` command can be used in the following ways:
+The `put` command has the following modifiers:
 
-{% syntaxes %}
-`put [[content]] before [[element]]`
-	Puts the content in front of the element, using [`Element.before`][].
-`put [[content]] at the start of [[element]]`
-	Puts the content at the beginning of the element, using [`Element.prepend`][].
-`put [[content]] at the end of [[element]]`
-	Puts the content at the end of the element, using [`Element.append`][].
-`put [[content]] after [[element]]`
-	Puts the content after the element, using [`Element.after`][].
-{% endsyntaxes %}
+| Syntax                                                     | Description                                                                                                                                   |
+|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| {% syntax "put [[content]] before [[element]]" %}          | Puts the content in front of the element, using [`Element.before`](https://developer.mozilla.org/en-US/docs/Web/API/Element/before)           |
+| {% syntax "put [[content]] at the start of [[element]]" %} | Puts the content at the beginning of the element, using [`Element.prepend`](https://developer.mozilla.org/en-US/docs/Web/API/Element/prepend) |
+| {% syntax "put [[content]] at the end of [[element]]" %}   | Puts the content at the end of the element, using [`Element.append`](https://developer.mozilla.org/en-US/docs/Web/API/Element/append)         |
+| {% syntax "put [[content]] after [[element]]" %}           | Puts the content after the element, using [`Element.after`](https://developer.mozilla.org/en-US/docs/Web/API/Element/after)                   |
 
-[`Element.before`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/before
-[`Element.prepend`]: https://developer.mozilla.org/en-US/docs/Web/API/Element/prepend
-[`Element.append`]:  https://developer.mozilla.org/en-US/docs/Web/API/Element/append
-[`Element.after`]:   https://developer.mozilla.org/en-US/docs/Web/API/Element/after
+#### Replacing Content In The DOM
 
-This flexibility is why we generally recommend the `put` command when updating content in the DOM.
+If you want to _replace_ content in the DOM, then the [`set`](/commands/set) command is the right
+choice.
 
-##### Setting Attributes {#setting-attributes}
+To replace an element entirely in the DOM you would say:
 
-One exception to this rule is when setting attributes, which we typically recommend using `set`.
-
-It just reads better to us:
-
-{% example "Setting attributes" %}
-<button _="on click set @disabled to 'disabled'">
-  Disable Me
+{% example 'Setting properties with "put"' %}
+<button _="on click set #replace-me to 'Clicked!'">
+Click Me
 </button>
+<span id="replace-me">Not Clicked Yet...</span>
+
 {% endexample %}
 
-`set` is recommended for setting values into normal variables as well.
+Note that here the button is replaced entirely rather than the content being placed inside the button.
 
-The [`default`](/commands/default) command sets a variable only if it is currently null, undefined, or empty:
+#### DOM Mutation Security
+
+Content placed into the DOM with `put` or `set` is _not_ HTML escaped. 
+
+This is intentional: it means you can insert rich content with tags, attributes, and
+structure into the page easity. 
+
+However, it also means that if the content comes from an untrusted source (a user,
+a URL parameter, a response body you don't control), you can introduce an XSS vulnerability.
+
+For example, this is dangerous if `userInput` is not trusted:
 
   ~~~ hyperscript
-  default x to 10       -- only sets x if it has no value
-  default @count to 0   -- works with attributes too
+  put userInput into me            -- HTML is parsed; <img onerror=...> will fire
+  set #greeting to userInput       -- same risk, replacing the whole element
+  ~~~
+
+To insert text safely, target the `textContent` property instead of the element itself.
+The browser will treat the value as plain text:
+
+  ~~~ hyperscript
+  put userInput into my textContent    -- safe, text-only
+  set my textContent to userInput      -- same, different phrasing
   ~~~
 
 #### Add, Remove & Toggle {#add-remove-toggle}
 
-A very common operation in front end scripting is adding or removing classes or attributes from DOM elements. hyperscript
-supports the [`add`](/commands/add), [`remove`](/commands/remove) and [`toggle`](/commands/toggle) commands to help do this.
+A common operation in front end scripting is adding or removing classes or attributes from DOM elements.
+hyperscript supports the [`add`](/commands/add), [`remove`](/commands/remove) and [`toggle`](/commands/toggle)
+commands to do these operations.
 
 Here are some examples adding, removing and toggling classes:
 
 {% example '"add" command' %}
 <button _="on click add .red to me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
 {% example '"remove" command' %}
 <button class="red" _="on click remove .red from me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
 {% example '"toggle" command' %}
 <button _="on click toggle .red on me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
-You can also add, remove and toggle attributes as well.  Here is an example:
+You can also add, remove and toggle attributes as well. Here is an example:
 
 {% example "Toggle an attribute" %}
 <button _="on click toggle @disabled on #say-hello">
-  Toggle Disabled State
+Toggle Disabled State
 </button>
 <button id="say-hello" _="on click alert('hello!')">
-  Say Hello
+Say Hello
 </button>
 {% endexample %}
 
 Finally, you can toggle the visibility of elements by toggling a style literal:
 
-{% example "Toggle an attribute" %}
+{% example "Toggle visibility" %}
 <button _="on click toggle the *display of the next <p/>">
-  Toggle The Next Paragraph
+Toggle The Next Paragraph
 </button>
 <p>
   Hyperscript is rad!
 </p>
 {% endexample %}
 
-##### Taking Classes & Attributes {#take}
+#### Taking Classes & Attributes {#take}
 
 The [`take`](/commands/take) command removes a class (or attribute) from a set of elements and adds it to a target,
 making it perfect for "active item" patterns like tab bars and menus:
@@ -319,13 +290,13 @@ You can also take attributes with an optional replacement value:
   take @aria-selected with "true" from <li/> for the target
   ~~~
 
-##### Removing Content {#removing}
+#### Removing Content {#removing}
 
-You can also use the [`remove` command](/commands/remove) to remove content from the DOM:
+You can use the [`remove` command](/commands/remove) to remove content from the DOM:
 
 {% example "Remove an element" %}
 <button _="on click remove me">
-  Remove Me
+Remove Me
 </button>
 {% endexample %}
 
@@ -337,22 +308,22 @@ You can show and hide things with the [`show`](/commands/show) and [`hide`](/com
 
 {% example "Show, Hide" %}
 <button _="on click
-               hide me
-               wait 2s
-               show me">
-               Peekaboo
+hide me
+wait 2s
+show me">
+Peekaboo
 </button>
 {% endexample %}
 
-By default, the `show` and `hide` commands will use the `display` style property.  You can instead use `visibility`
+By default, the `show` and `hide` commands will use the `display` style property. You can instead use `visibility`
 or `opacity` with the following syntax:
 
 {% example "Show/hide strategies" %}
 <button _="on click
-               hide me with *opacity
-               wait 2s
-               show me with *opacity">
-               Peekaboo
+hide me with *opacity
+wait 2s
+show me with *opacity">
+Peekaboo
 </button>
 {% endexample %}
 
@@ -363,7 +334,7 @@ Here is an example using `show ... when` to filter a list:
 
 {% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
-                     when its innerHTML contains my value">
+when its innerHTML contains my value">
 <ul id="color-list">
   <li>Red</li>
   <li>Blue</li>
@@ -373,34 +344,23 @@ Here is an example using `show ... when` to filter a list:
 </ul>
 {% endexample %}
 
-We mentioned this above, but as a reminder, you can toggle visibility using the `toggle` command:
+#### CSS Transitions {#transitions}
 
-{% example "Toggle visibility" %}
-<button _="on click toggle the *display of the next <p/>">
-  Toggle The Next Paragraph
-</button>
-<p>
-  Hyperscript is rad!
-</p>
-{% endexample %}
-
-#### Transitions {#transitions}
-
-You can transition a style from one state to another using the [`transition` command](/commands/transition).  This
+You can transition a style from one state to another using the [`transition` command](/commands/transition). This
 allows you to animate transitions between different states:
 
 {% example '"transition" command' %}
 <button _="on click transition my *font-size to 30px
-               then wait 2s
-               then transition my *font-size to initial">
-  Transition My Font Size
+then wait 2s
+then transition my *font-size to initial">
+Transition My Font Size
 </button>
 {% endexample %}
 
 The above example makes use of the special `initial` symbol, which you can use to refer to the initial value of an
-elements style when the first transition begins.
+element's style when the first transition begins.
 
-##### Class-Based Transitions {#settling}
+#### Class-Based CSS Transitions {#settling}
 
 The `transition` command is blocking: it will wait until the transition completes before the next command executes.
 
@@ -408,18 +368,19 @@ Another common way to trigger transitions is by adding or removing classes or se
 
 However, commands like `add`, `set`, etc. do *not* block on transitions.
 
-If you wish to wait until a transition completes after adding a new class, you should use the [`settle` command](/commands/settle)
+If you wish to wait until a transition completes after adding a new class, you should use the [
+`settle` command](/commands/settle)
 which will let any transitions that are triggered by adding or removing a class finish before continuing.
 
 {% example "Wait for transitions/animations to finish" %}
 <button style="transition: all 800ms ease-in"
-         _="on click add .red then settle then remove .red">
-  Flash Red
+_="on click add .red then settle then remove .red">
+Flash Red
 </button>
 {% endexample %}
 
 If the above code did not have the `settle` command, the button would not flash red because the class `.red` would be
-added and then removed immediately
+added and then removed immediately.
 
 This would not allow the 800ms transition to `.red` to complete.
 
@@ -453,12 +414,12 @@ See the [`start a view transition` command](/commands/view-transition) for full 
 ### Measuring Things {#measuring}
 
 Sometimes you want to know the dimensions of an element in the DOM in order to perform some sort of translation or
-transition.  Hyperscript has a [`measure` command](/commands/measure) that will give you measurement information
+transition. Hyperscript has a [`measure` command](/commands/measure) that will give you measurement information
 for an element:
 
 {% example "Measure an Element" %}
 <button _="on click measure my top then
-                    put `My top is ${top}` into the next <output/>">
+put `My top is ${top}` into the next <output/>">
 Click Me To Measure My Top
 </button>
 <output>--</output>
@@ -467,9 +428,9 @@ Click Me To Measure My Top
 You can also use the pseudo-style literal form `*computed-<style property>` to get the computed (actual) style property
 value for an element:
 
-{% example "Get A Styles Computed Value" %}
+{% example "Get A Style's Computed Value" %}
 <button _="on click get my *computed-width
-                    put `My width is ${the result}` into the next <output/>">
+put `My width is ${the result}` into the next <output/>">
 Click Me To Get My Computed Width
 </button>
 <output>--</output>
@@ -526,42 +487,6 @@ You can also enter and exit fullscreen mode:
   open fullscreen #video
   close fullscreen
   ~~~
-
-#### Ask & Answer {#ask-answer}
-
-The `ask` and `answer` commands provide access to the browser's built-in dialogs:
-
-  ~~~ hyperscript
-  ask "What is your name?"
-  put it into #greeting
-
-  answer "File saved!"
-  ~~~
-
-`ask` wraps `prompt()` and places the result in `it`.  `answer` wraps `alert()` by default.
-
-With two choices, `answer` wraps `confirm()` and the result is the chosen label:
-
-  ~~~ hyperscript
-  answer "Save changes?" with "Yes" or "No"
-  if it is "Yes"
-    -- save...
-  end
-  ~~~
-
-### Speech {#speech}
-
-As a nod to [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf), hyperscript includes a `speak` command
-that uses the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) for text-to-speech:
-
-  ~~~ hyperscript
-  speak "Hello world"
-  speak "Hello" with voice "Samantha"
-  speak "Quickly now" with rate 2 with pitch 1.5
-  ~~~
-
-The command is async-transparent: it waits for the utterance to finish before continuing to the next command.  You can
-configure `voice`, `rate`, `pitch`, and `volume` using `with` clauses.
 
 <div class="docs-page-nav">
 <a href="/docs/events/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Events</strong></a>

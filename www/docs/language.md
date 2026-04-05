@@ -367,6 +367,15 @@ The [`swap`](/commands/swap) command exchanges two values:
   swap #a with #b                      -- swap two DOM elements in place
   ~~~
 
+#### Default
+
+The [`default`](/commands/default) command sets a variable only if it is currently null, undefined, or empty:
+
+  ~~~ hyperscript
+  default x to 10       -- only sets x if it has no value
+  default @count to 0   -- works with attributes too
+  ~~~
+
 ### Objects
 
 Hyperscript allows you to declare JavaScript-style plain objects:

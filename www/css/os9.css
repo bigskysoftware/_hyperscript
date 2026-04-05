@@ -902,13 +902,17 @@ tbody td:first-child {
 
 /* ---- Syntax reference (from widgets.mjs) ---- */
 
+code.syntax {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
 .syntax b {
     color: var(--info-fg);
     font-family: var(--main-font);
     line-height: 1.2em;
     font-weight: normal;
     padding: 0 .4em;
-    display: inline-block;
 }
 
 .syntax sup {

@@ -123,6 +123,46 @@ Here is an example event source in hyperscript:
 This event source will put all `message` events in to the `#div` and will log when an `open` event occurs.
 This feature also publishes events, too, so you can listen for Server Sent Events from other parts of your code.
 
+## User Interaction {#user-interaction}
+
+Hyperscript wraps a few browser APIs for prompting the user and speaking to them.
+
+### Ask & Answer {#ask-answer}
+
+The `ask` and `answer` commands provide access to the browser's built-in dialogs:
+
+  ~~~ hyperscript
+  ask "What is your name?"
+  put it into #greeting
+
+  answer "File saved!"
+  ~~~
+
+`ask` wraps `prompt()` and places the result in `it`.  `answer` wraps `alert()` by default.
+
+With two choices, `answer` wraps `confirm()` and the result is the chosen label:
+
+  ~~~ hyperscript
+  answer "Save changes?" with "Yes" or "No"
+  if it is "Yes"
+    -- save...
+  end
+  ~~~
+
+### Speech {#speech}
+
+As a nod to [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf), hyperscript includes a `speak` command
+that uses the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) for text-to-speech:
+
+  ~~~ hyperscript
+  speak "Hello world"
+  speak "Hello" with voice "Samantha"
+  speak "Quickly now" with rate 2 with pitch 1.5
+  ~~~
+
+The command is async-transparent: it waits for the utterance to finish before continuing to the next command. You can
+configure `voice`, `rate`, `pitch`, and `volume` using `with` clauses.
+
 ## Debugging {#debugging}
 
 Debugging hyperscript can be done a few different ways.  The simplest and most familiar way for most developers to debug
