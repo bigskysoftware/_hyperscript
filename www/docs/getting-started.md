@@ -7,14 +7,14 @@ title: ///_hyperscript
 
 ## Introduction
 
-Hyperscript is a scripting language for doing front end web development.  It is designed to make it very easy to
-respond to events and do simple DOM manipulation in code that is directly embedded on elements on a web page.
+Hyperscript is a scripting language for [The Web](https://en.wikipedia.org/wiki/World_Wide_Web). It is designed to embed
+well directly in [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML).
 
 Here is a simple example of some hyperscript:
 
 {% example %}
 <button _="on click toggle .red on me">
-  Click Me
+Click Me
 </button>
 {% endexample %}
 
@@ -24,100 +24,89 @@ Here is a simple example of some hyperscript:
   }
 </style>
 
-The first thing to notice is that hyperscript is defined *directly on the button*, using the `_` (underscore) attribute.
+The first thing you probably noticed is that hyperscript is defined directly on the button, using the `_` (underscore) 
+attribute.
 
-Embedding code directly on the button like this might seem strange at first, but hyperscript is one of a growing number
-of technologies that de-emphasize [Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)
-in favor of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/).
+This is the hyperscript way: putting code on the thing that does the thing.  We made up a concept called 
+[Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/) to explain why we feel this is better than the 
+[Separation of Concerns](https://en.wikipedia.org/wiki/Separation_of_concerns) approach traditionally taken in web 
+development, with scripting and markup in separate locations.
 
-Other examples of libraries going this direction are [Tailwind CSS](https://tailwindcss.com/),
-[AlpineJS](https://alpinejs.dev) and [htmx](https://htmx.org).
+The next thing you will almost certainly notice about hyperscript is its syntax, which is very different from most 
+programming languages used today. 
 
-The next thing you will notice about hyperscript is its syntax, which is very different than most programming languages
-used today. Hyperscript is part of the [xTalk](https://en.wikipedia.org/wiki/XTalk) family of scripting languages, which
-ultimately derive from [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf).  These languages all read more
-like english than the programming languages you are probably used to.
+Hyperscript is a member of the [xTalk](https://en.wikipedia.org/wiki/XTalk) family of scripting languages, which
+ultimately derive from [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf), the scripting language of
+[HyperCard](https://en.wikipedia.org/wiki/HyperCard). 
 
-This unusual syntax has advantages, once you get over the initial shock:
+These languages all read more like english than programming languages you are probably used to.
 
-* It is very distinctive, making it obvious when hyperscript is being used in a web page
+If you can get past your initial reaction, this syntax has some real advantages:
+
+* It embeds very well in HTML by avoiding noisy syntax
 * It is very easy to read, making it obvious what a script is doing
 
-Hyperscript favors read time over write time when it comes to code. It can be a bit tricky to write at first
-for some people who are used to other programming languages, but it reads very clearly once you are done.
+Hyperscript favors read time over write time when it comes to code.  Once you have written your script, it is usually
+very obvious what it does.  So, when you come back to it, you can remember what it's doing easily.
 
-Code is typically read many more times than it is written, so this tradeoff is a good one for simple
-front end scripting needs.
-
-Below you will find an overview of the various features, commands and expressions in hyperscript, as well as links to
-more detailed treatments of each them.
-
-Some other hyperscript resources you may want to check out are:
-
- * The [cookbook](/cookbook) for existing hyperscripts you can start using and modifying for your own needs.
- * The [VanillaJS/jQuery/hyperscript comparison](/comparison), which shows the differences between vanillajs, jQuery
-   and hyperscript implementations of various common UI patterns
- * Syntax highlighting for [VSCode](https://marketplace.visualstudio.com/items?itemName=dz4k.vscode-hyperscript-org) or [Sublime](https://packagecontrol.io/packages/Hyperscript)
-
-OK, let's get started with hyperscript!
+Code is typically read many more times than it is written, so this tradeoff is a good one for scripting needs.
 
 ## Install & Quick Start {#install}
 
-Hyperscript is a dependency-free JavaScript library that can be included in a web page without any build step:
+Hyperscript is a dependency-free JavaScript library. The simplest way to use it is a
+`<script>` tag pointed at a CDN — no build step required:
 
   ~~~ html
-  <script src="https://unpkg.com/hyperscript.org"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js" integrity="sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr" crossorigin="anonymous"></script>
   ~~~
 
-If you are using a build step:
+### As an ES Module
+
+Hyperscript ships as an ES module too, either from the CDN:
+
+  ~~~ html
+  <script type="module" src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.esm.min.js" integrity="sha384-lNDEj2nrXBoU9smz+Hrc/bS3az2j390bFp8N7GvggJy3MkhIYx1aKrMVbJhuobyK" crossorigin="anonymous"></script>
+  ~~~
+
+or via npm. 
+
+The package is [`hyperscript.org`](https://www.npmjs.com/package/hyperscript.org):
+
+  ~~~ bash
+  npm install hyperscript.org
+  ~~~
+
+Then import it in your bundler of choice:
 
   ~~~ js
   import 'hyperscript.org';
   ~~~
 
-After you've done this, you can begin adding hyperscript to elements:
+The import auto-initializes hyperscript on the page — no further setup needed.
 
-  ~~~ html
-  <div _="on click call alert('You clicked me!')">
+### Start Scripting
+
+Once hyperscript is installed, you can add scripts to any element using the `_` attribute:
+
+{% example "Hello World" %}
+  <button _="on click put 'Hello World' into me">
     Click Me!
-  </div>
-  ~~~
+  </button>
+{% endexample %}
 
 You can also add hyperscript within script tags that are denoted as `text/hyperscript`:
 
   ~~~ html
   <script type="text/hyperscript">
     on mousedown
-      halt the event -- prevent text selection...
-      -- do other stuff...
+      log "A mouse down happened: ", event
     end
   </script>
   ~~~
 
-Features defined in script tags will apply to the `body`.
+Hyperscript is a sister project of [`htmx`](https://htmx.org), and integrates with it seamlessly.
 
-Hyperscript has an open, pluggable grammar & some advanced features do not ship by default (e.g. [workers](/docs/advanced/#workers)).
-
-To use a feature like workers you can install the extension directly by including `/dist/ext/worker.js` after you
-include hyperscript.
-
-If your HTML is received via AJAX or generated by scripts after initial page load, you need to call 
-`_hyperscript.process()` to process the scripts on the new elements.
-
-  ~~~ js
-  element.appendChild(newContent);
-  _hyperscript.process(newContent);
-  ~~~
-
-You can also call it from hyperscript itself
-
-  ~~~ hyperscript
-  call _hyperscript.process(#new_element_id)
-  ~~~
-
-Elements added by the [`put`](/commands/put) command are processed automatically; no need to call this function.
-[`Htmx`](https://htmx.org) does the same for all processed fragments.
-
+OK, let's see how to hyperscript...
 
 <div class="docs-page-nav">
 <a href="/docs/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5m-7 7l7-7 7 7"/></svg> <strong>Docs Home</strong></a>
