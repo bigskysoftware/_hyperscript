@@ -28,12 +28,12 @@ Components support content projection through `<slot>` elements. Any children yo
 </my-card>
 ```
 
-### The `args` Proxy
+### The `attrs` Proxy
 
-The `args` proxy gives you access to attribute values evaluated as hyperscript expressions in the *parent* scope. This lets a parent pass data into a component through HTML attributes, and the component can read them via `args.attributeName`.
+The `attrs` proxy gives you access to attribute values evaluated as hyperscript expressions in the *parent* scope. This lets a parent pass data into a component through HTML attributes, and the component can read them via `attrs.attributeName`.
 
 ```html
-<template hyper-component="my-display" _="init set ^val to args.initial">
+<template hyper-component="my-display" _="init set ^val to attrs.initial">
   <span>${^val}</span>
 </template>
 
