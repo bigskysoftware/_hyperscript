@@ -25,5 +25,5 @@ If the user clicks OK, `it` is set to the first choice. If the user cancels, `it
 
 ```ebnf
 answer <expression>
-answer <expression> with <expression> | <expression>
+answer <expression> with <expression> or <expression>
 ```
