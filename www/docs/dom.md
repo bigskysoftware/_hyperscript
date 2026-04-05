@@ -155,15 +155,15 @@ its `innerHTML`) you can write:
 
 {% example 'Setting properties with "put"' %}
 <button _="on click put 'Clicked!' into me">
-Click Me
+  Click Me
 </button>
 {% endexample %}
 
-You can also use modifiers to the  `put` command to place content in different places relative to the target element:
+You can also use modifiers to the `put` command to place content in different places relative to the target element:
 
 {% example "Put X before Y" %}
 <button _="on click put 'Clicked!' before me">
-Click Me
+  Click Me
 </button>
 {% endexample %}
 
@@ -183,12 +183,11 @@ choice.
 
 To replace an element entirely in the DOM you would say:
 
-{% example 'Setting properties with "put"' %}
+{% example "Replacing an element" %}
 <button _="on click set #replace-me to 'Clicked!'">
-Click Me
+  Click Me
 </button>
 <span id="replace-me">Not Clicked Yet...</span>
-
 {% endexample %}
 
 Note that here the button is replaced entirely rather than the content being placed inside the button.
@@ -228,19 +227,19 @@ Here are some examples adding, removing and toggling classes:
 
 {% example '"add" command' %}
 <button _="on click add .red to me">
-Click Me
+  Click Me
 </button>
 {% endexample %}
 
 {% example '"remove" command' %}
 <button class="red" _="on click remove .red from me">
-Click Me
+  Click Me
 </button>
 {% endexample %}
 
 {% example '"toggle" command' %}
 <button _="on click toggle .red on me">
-Click Me
+  Click Me
 </button>
 {% endexample %}
 
@@ -248,10 +247,10 @@ You can also add, remove and toggle attributes as well. Here is an example:
 
 {% example "Toggle an attribute" %}
 <button _="on click toggle @disabled on #say-hello">
-Toggle Disabled State
+  Toggle Disabled State
 </button>
 <button id="say-hello" _="on click alert('hello!')">
-Say Hello
+  Say Hello
 </button>
 {% endexample %}
 
@@ -259,7 +258,7 @@ Finally, you can toggle the visibility of elements by toggling a style literal:
 
 {% example "Toggle visibility" %}
 <button _="on click toggle the *display of the next <p/>">
-Toggle The Next Paragraph
+  Toggle The Next Paragraph
 </button>
 <p>
   Hyperscript is rad!
@@ -296,7 +295,7 @@ You can use the [`remove` command](/commands/remove) to remove content from the 
 
 {% example "Remove an element" %}
 <button _="on click remove me">
-Remove Me
+  Remove Me
 </button>
 {% endexample %}
 
@@ -308,10 +307,10 @@ You can show and hide things with the [`show`](/commands/show) and [`hide`](/com
 
 {% example "Show, Hide" %}
 <button _="on click
-hide me
-wait 2s
-show me">
-Peekaboo
+             hide me
+             wait 2s
+             show me">
+  Peekaboo
 </button>
 {% endexample %}
 
@@ -320,10 +319,10 @@ or `opacity` with the following syntax:
 
 {% example "Show/hide strategies" %}
 <button _="on click
-hide me with *opacity
-wait 2s
-show me with *opacity">
-Peekaboo
+             hide me with *opacity
+             wait 2s
+             show me with *opacity">
+  Peekaboo
 </button>
 {% endexample %}
 
@@ -334,7 +333,7 @@ Here is an example using `show ... when` to filter a list:
 
 {% example "Filter elements with `show ... when`" %}
 <input _="on keyup show <li/> in #color-list
-when its innerHTML contains my value">
+                     when its innerHTML contains my value">
 <ul id="color-list">
   <li>Red</li>
   <li>Blue</li>
@@ -351,9 +350,9 @@ allows you to animate transitions between different states:
 
 {% example '"transition" command' %}
 <button _="on click transition my *font-size to 30px
-then wait 2s
-then transition my *font-size to initial">
-Transition My Font Size
+                    then wait 2s
+                    then transition my *font-size to initial">
+  Transition My Font Size
 </button>
 {% endexample %}
 
@@ -374,8 +373,8 @@ which will let any transitions that are triggered by adding or removing a class 
 
 {% example "Wait for transitions/animations to finish" %}
 <button style="transition: all 800ms ease-in"
-_="on click add .red then settle then remove .red">
-Flash Red
+        _="on click add .red then settle then remove .red">
+  Flash Red
 </button>
 {% endexample %}
 
@@ -419,8 +418,8 @@ for an element:
 
 {% example "Measure an Element" %}
 <button _="on click measure my top then
-put `My top is ${top}` into the next <output/>">
-Click Me To Measure My Top
+                    put `My top is ${top}` into the next <output/>">
+  Click Me To Measure My Top
 </button>
 <output>--</output>
 {% endexample %}
@@ -430,8 +429,8 @@ value for an element:
 
 {% example "Get A Style's Computed Value" %}
 <button _="on click get my *computed-width
-put `My width is ${the result}` into the next <output/>">
-Click Me To Get My Computed Width
+                    put `My width is ${the result}` into the next <output/>">
+  Click Me To Get My Computed Width
 </button>
 <output>--</output>
 {% endexample %}

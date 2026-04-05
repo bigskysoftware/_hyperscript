@@ -7,19 +7,22 @@ title: ///_hyperscript
 
 ## Async Transparency {#async}
 
-One of the most distinctive features of hyperscript is that it is "async transparent".  What that means is that,
-for the most part, you, the script writer, do not need to worry about asynchronous behavior.  In the [`fetch`](/docs/network/#fetch)
-section, for example, we did not need to use a `.then()` callback or an `await` keyword, as you would need to
-in JavaScript: we simply fetched the data and then inserted it into the DOM.
+One of the most distinctive features of hyperscript is that it is "async transparent". What that means is that,
+for the most part, you, the scriptwriter, do not need to worry about asynchronous behavior.
 
-To make this happen, the hyperscript runtime handles [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) under the covers for you, resolving them internally, so that
-asynchronous behavior simply looks linear.
+In the [`fetch`](/docs/networking/#fetch) section, for example, we do not need to use a `.then()` callback or an `await`
+keyword, as you would need to in JavaScript: we simply fetch the data and insert it into the DOM.
+
+To make this happen, the hyperscript runtime
+handles [Promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) under the
+covers for you, resolving them internally, so that asynchronous behavior looks linear.
 
 This dramatically simplifies many coding patterns and effectively
-[decolors functions](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/) (and event handlers) in hyperscript.
+[decolors functions](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/) (and event handlers) in
+hyperscript.
 
-Furthermore, this infrastructure allows hyperscript to work extremely effectively with events, allowing for
-*event driven* control flow, explained below.
+This infrastructure allows hyperscript to work effectively with events, allowing for
+something called event driven control flow demonstrated below.
 
 ### Waiting {#wait}
 
@@ -34,10 +37,11 @@ In JavaScript, if you want to wait some amount of time, you can use the venerabl
 
 This code will print `"Start"` to the console and then, after a second (1000 milliseconds) it will print `"Finish"`.
 
-To accomplish this in JavaScript requires a closure, which acts as a callback.  Unfortunately this API is awkward,
-containing a lot of syntactic noise and placing crucial information, how long the delay is, at the end.  As this
-logic becomes more complex, that delay information gets further and further away from where, syntactically, the delay
-starts.
+To accomplish this in JavaScript requires a closure, which acts as a callback. Unfortunately this API is awkward,
+containing a lot of syntactic noise and placing crucial information, namely how long the delay is, at the end. 
+
+As this logic becomes more complex, that delay information gets further and further away from where, syntactically, 
+the delay starts.
 
 Contrast that with the equivalent hyperscript, which uses the [`wait` command](/commands/wait):
 
@@ -49,34 +53,34 @@ Contrast that with the equivalent hyperscript, which uses the [`wait` command](/
 
 You can see how this reads very nicely, with a linear set of operations occurring in sequence.
 
-Under the covers, the hyperscript runtime is still using that `setTimeout()` API, but you, the script writer, are
+Under the covers, the hyperscript runtime is still using that `setTimeout()` API, but you, the scriptwriter, are
 shielded from that complexity, and you can simply write linear, natural code.
 
-This flexible runtime allows for even more interesting code.  The `wait` command, for example, can wait for an *event*
+This flexible runtime allows for even more interesting code. The `wait` command, for example, can wait for an *event*
 not just a timeout:
 
-  {% example "Waiting On Events" %}
-  <button _="on click put 'Started...' into the next <output/>
-                      wait for a continue   -- wait for a continue event...
-                      put 'Finished...' into the next <output/>
-                      wait 2s
-                      put '' into the next <output/>">
-    Start
-  </button>
-  <button _="on click send continue to the previous <button/>">
-    Continue
-  </button>
-  <output>--</output>
-  {% endexample %}
+{% example "Waiting On Events" %}
+<button _="on click put 'Started...' into the next <output/>
+                    wait for a continue -- wait for a continue event...
+                    put 'Finished...' into the next <output/>
+                    wait 2s
+                    put '' into the next <output/>">
+  Start
+</button>
+<button _="on click send continue to the previous <button/>">
+  Continue
+</button>
+<output>--</output>
+{% endexample %}
 
-Now we are starting to see how powerful the async transparent runtime of hyperscript can be: with it you are able to
+Now we are starting to see how powerful the async transparent runtime of hyperscript is: you are able to
 integrate events directly into your control flow while still writing scripts in a natural, linear fashion.
 
 Let's add a timeout to that previous example:
 
 {% example "Waiting On Events With A Timeout" %}
 <button _="on click put 'Started...' into the next <output/>
-                    wait for a continue or 3s   -- wait for a continue event...
+                    wait for a continue or 3s
                     if the result's type is 'continue'
                       put 'Finished...' into the next <output/>
                     otherwise
@@ -92,16 +96,15 @@ Let's add a timeout to that previous example:
 <output>--</output>
 {% endexample %}
 
-
-If you click the Continue button within 3 seconds, the `wait` command resume, setting the `result` to the event,
+If you click the Continue button within 3 seconds, the `wait` command resumes, setting the `result` to the event,
 so `the result's type` will be `"continue"`.
 
-If, on the other hand, you don't click the Continue button within 3 seconds, the `wait` command resume based
+If, on the other hand, you don't click the Continue button within 3 seconds, the `wait` command resumes based
 on the timeout, setting the `result` to `null`, so `the result's type` will be null.
 
 ### Toggling {#toggling}
 
-Previously we looked at the `toggle` command.  It turns out that it, too, can work with events:
+Previously we looked at the `toggle` command. It turns out that it, too, can work with events:
 
 {% example "Toggle A Class With Events" %}
 <div _="on mouseenter toggle .red until mouseleave">
@@ -112,7 +115,7 @@ Previously we looked at the `toggle` command.  It turns out that it, too, can wo
 You can, of course, toggle the class on other elements, or toggle an attribute, or use different events: the
 possibilities are endless.
 
-### Loops {#async_loops}
+### Event Driven Loops {#async_loops}
 
 You can add async behavior to a loop by adding a `wait` command in the body, but loops can also have a *loop
 condition* based on receiving an event.
@@ -122,8 +125,8 @@ Consider this hyperscript:
 {% example "An Event-Driven Loop" %}
 <button class="pulsar"
         _="on click repeat until event stop
-                    add .pulse then settle
-                    remove .pulse then settle">
+             add .pulse then settle
+             remove .pulse then settle">
   Click me to Pulse...
 </button>
 <button _="on click send stop to the previous <button/>">
@@ -139,28 +142,12 @@ button.pulsar {
 }
 </style>
 
-The loop will check if the given event, `stop`, has been received at the start of every iteration.  If not,
-the loop will continue.  This allows the cancel button to send an event to stop the loop.
+The loop will check if the given event, `stop`, has been received at the start of every iteration. If not,
+the loop will continue. This allows the cancel button to send an event to stop the loop.
 
 However, note that the CSS transition is allowed to finish smoothly, rather than abruptly,
 because the event listener that terminates the loop is only consulted once a complete loop is made, adding
 and removing the class and settling cleanly.
-
-### The `async` keyword {#async-keyword}
-
-Sometimes you do want something to occur asynchronously.    Hyperscript provides an `async` keyword that will
-tell the runtime _not_ to synchronize on a value.
-
-So, if you wanted to invoke a method that returns a promise, say `returnsAPromise()` but not wait on it to return, you write code like this:
-
-  ~~~ html
-  <button _="on click async call returnsAPromise() put 'I called it...' into the next <output/>">
-    Get The Answer...
-  </button>
-  ~~~
-
-Hyperscript will immediately put the value "I called it..." into the next output element, even if the result
-from `returnsAPromise()` has not yet resolved.
 
 <div class="docs-page-nav">
 <a href="/docs/templates/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Templates & Morphing</strong></a>
