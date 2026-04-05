@@ -168,6 +168,14 @@ With DOM-scoped variables you can target a specific element to resolve the varia
   put ^count on closest .counter into me  -- read from a specific element
   ~~~
 
+You can control DOM-scope lookup with the `dom-scope` attribute on any element:
+
+| Value | Behavior |
+|-------|----------|
+| `isolated` | Stops lookup at this element. `^var` references inside do not see outer variables, and inside writes do not leak out. This is how [components](/docs/components/) keep state private. |
+| `closest <selector>` | Resumes lookup at the nearest ancestor matching `<selector>` (skipping everything between). |
+| `parent of <selector>` | Resumes lookup at the *parent* of the nearest ancestor matching `<selector>`. |
+
 Here is an example of a click handler that uses an element scoped variable to maintain a counter,
 shared between a [`set`](/features/set) feature and an event listener:
 
