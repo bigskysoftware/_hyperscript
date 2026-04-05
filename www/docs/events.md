@@ -243,7 +243,7 @@ Like mutation and intersection events, the `from` clause can be used to observe 
 If you have logic that you wish to run when an element is initialized, you can use the `init` block to do so:
 
   ~~~ html
-  <div _="init transition my opacity to 100% over 3 seconds">
+  <div _="init transition my *opacity to 100% over 3 seconds">
     Fade Me In
   </div>
   ~~~

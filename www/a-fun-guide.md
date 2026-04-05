@@ -101,7 +101,7 @@ In fact, let's make that even nicer and fade it out:
 
 ```html
 <div id="messages">
-  <div _="on load wait 2s then transition my opacity to 0 then remove me">
+  <div _="on load wait 2s then transition my *opacity to 0 then remove me">
     Hyperscript is *REALLY* awesome...
   </div>
 </div>

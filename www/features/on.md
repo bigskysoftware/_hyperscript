@@ -143,8 +143,8 @@ API. Again, hyperscript makes this API feel more event-driven:
 ```html
 <img
   _="on intersection(intersecting) having threshold 0.5
-         if intersecting transition opacity to 1
-         else transition opacity to 0 "
+         if intersecting transition *opacity to 1
+         else transition *opacity to 0 "
   src="https://placebear.com/200/300"
 />
 ```
@@ -156,8 +156,8 @@ must be showing.
 Here is a demo:
 
 <img _="on intersection(intersecting) having threshold 0.5
-         if intersecting transition opacity to 1
-         else transition opacity to 0 "
+         if intersecting transition *opacity to 1
+         else transition *opacity to 0 "
      src="https://placebear.com/200/300"/>
 
 ### Resize Events
