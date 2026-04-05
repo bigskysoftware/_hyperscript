@@ -6,7 +6,7 @@ title: repeat - ///_hyperscript
 
 The `repeat` command provides iteration in hyperscript. It supports many forms: collection loops, conditional loops, counted loops, infinite loops, event-driven loops, and bottom-tested loops.
 
-In every form you can track the current iteration index by appending `index <identifier>` to the loop specification.
+In every form you can track the current iteration index by appending `index <identifier>` (or `indexed by <identifier>`) to the loop specification.
 
 ### Examples
 
@@ -94,14 +94,14 @@ In every form you can track the current iteration index by appending `index <ide
 ### Syntax
 
 ```ebnf
-repeat for <identifier> in <expression> [index <identifier>] <command>* [else <command>*] end
-repeat in <expression> [index <identifier>] <command>* end
-repeat while <expression> [index <identifier>] <command>* end
-repeat until <expression> [index <identifier>] <command>* end
-repeat until event <expression> [from <expression>] [index <identifier>] <command>* end
-repeat <number> times [index <identifier>] <command>* end
-repeat forever [index <identifier>] <command>* end
+repeat for <identifier> in <expression> [(index | indexed by) <identifier>] <command>* [else <command>*] end
+repeat in <expression> [(index | indexed by) <identifier>] <command>* end
+repeat while <expression> [(index | indexed by) <identifier>] <command>* end
+repeat until <expression> [(index | indexed by) <identifier>] <command>* end
+repeat until event <expression> [from <expression>] [(index | indexed by) <identifier>] <command>* end
+repeat <number> times [(index | indexed by) <identifier>] <command>* end
+repeat forever [(index | indexed by) <identifier>] <command>* end
 repeat <command>* until <expression> end
 repeat <command>* while <expression> end
-for <identifier> in <expression> [index <identifier>]
+for <identifier> in <expression> [(index | indexed by) <identifier>]
 ```

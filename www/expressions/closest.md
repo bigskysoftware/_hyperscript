@@ -4,7 +4,7 @@ title: closest - ///_hyperscript
 
 ## The `closest` Expression
 
-The `closest` expression finds the nearest ancestor element matching a CSS selector. By default it starts from the current element, but you can specify a different starting point with the `to` clause.
+The `closest` expression finds the nearest ancestor element matching a CSS selector. By default it starts from the current element, but you can specify a different starting point with the `to` clause. Use `closest parent` to start the search from the parent element instead of the element itself.
 
 ### Examples
 
@@ -19,5 +19,5 @@ The `closest` expression finds the nearest ancestor element matching a CSS selec
 ### Syntax
 
 ```ebnf
-closest <css-selector> [to <expression>]
+closest [parent] <css-selector> [to <expression>]
 ```

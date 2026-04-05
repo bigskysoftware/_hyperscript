@@ -4,7 +4,7 @@ title: decrement - ///_hyperscript
 
 ## The `decrement` Command
 
-The `decrement` command subtracts from an existing variable, property, or attribute. It defaults to subtracting `1`, but you can change the amount with `by`. If the target is null, it's treated as `0` before decrementing. This is the opposite of the [`increment` command](/commands/increment).
+The `decrement` command subtracts from an existing variable, property, or attribute. It defaults to subtracting `1`, but you can change the amount with `by`. If the target is null, it's treated as `0` before decrementing. If no target is given, it decrements the result (`it`) of the previous command. This is the opposite of the [`increment` command](/commands/increment).
 
 ### Example
 
@@ -18,5 +18,5 @@ decrement newVariable -- newVariable is defaulted to zero, then decremented to -
 ### Syntax
 
 ```ebnf
-decrement <target> [by <number>]
+decrement [<target>] [by <expression>]
 ```

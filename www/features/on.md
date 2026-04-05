@@ -45,6 +45,12 @@ You can listen to an event from another element using the `from <expr>` syntax, 
 value `elsewhere`, which will listen for the event from elsewhere in the DOM. This is useful if you want "click-away to
 close" behavior.
 
+You can also scope the listener to a subtree with `in <expr>`, which restricts the handler to events whose target matches the given expression:
+
+```html
+<div _="on click in .menu-item log 'menu item clicked'">...</div>
+```
+
 An event can specify a `debounced at` or `throttled at` value to debounce or throttle the events:
 
 ```text
@@ -154,6 +160,16 @@ Here is a demo:
          else transition opacity to 0 "
      src="https://placebear.com/200/300"/>
 
+### Resize Events
+
+The `resize` synthetic event uses the [Resize Observer](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver)
+API to fire whenever an element's size changes. The event detail exposes `width`, `height`,
+`contentRect`, and the raw observer `entry`:
+
+```html
+<div _="on resize(width, height) put `${width} × ${height}` into me"></div>
+```
+
 ### Examples
 
 ```html
@@ -171,9 +187,26 @@ Here is a demo:
 ### Syntax
 
 ```ebnf
-on [every | first] <event-name>[(<param-list>)][[\<filter>]] [<count>] [from <expression>] [<debounce> | <throttle>]
-   (or [every | first] <event-name>[(<param-list>)][[\<filter>]] [<count>] [from <expression>] [<debounce> | <throttle>])*
-    [queue (all | first | last | none)]
-    <command>+
+on [every | first] <event-spec>
+   (or [every | first] <event-spec>)*
+   [queue (all | first | last | none)]
+   <command>+
 [end]
+
+<event-spec> ::= <event-name> [(<param-list>)] [[\<filter>]] [<count>]
+                 [<synthetic-modifier>]
+                 [(from <expression> | from elsewhere | elsewhere)]
+                 [in <expression>]
+                 [<debounce> | <throttle>]
+
+<synthetic-modifier> ::=
+    | mutation [of (anything | childList | attributes | subtree | characterData | @<attr>)
+                   (or ...)*]
+    | intersection [with <expression>]
+                   [having (margin <string> | threshold <expression>) (and ...)*]
+    | resize
+
+<count> ::= <number> | <number> to <number> | <number> and on
+<debounce> ::= debounced at <time-expression>
+<throttle> ::= throttled at <time-expression>
 ```
