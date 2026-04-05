@@ -36,13 +36,14 @@
     "typings": "npx tsc --declaration dist/_hyperscript.js --allowJs --emitDeclarationOnly --skipLibCheck",
     "www": "npm run build && cp -r dist/* www/js/",
     "www:search": "cd www && npx @11ty/eleventy && npx pagefind --site _site",
-    "www:serve": "cd www && npx @11ty/eleventy && npx pagefind --site _site && npx serve _site",
+    "www:serve": "cd www && npx @11ty/eleventy --serve",
     "test:workers": "npx serve . -l 3000 -s & echo 'Open http://localhost:3000/test/manual/workers.html'",
     "scratch": "node test/global-setup.js && open test/scratch.html",
     "scratch:build": "node test/global-setup.js",
     "test:manual": "node test/manual/server.js",
     "test:connections": "node test/manual/server.js",
-    "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js"
+    "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js",
+    "update-sha": "bash scripts/update-sha.sh"
   },
   "repository": {
     "type": "git",
