@@ -81,7 +81,8 @@ With this command defined you can now write the following hyperscript:
 And "A Wild Foo Was Found!" would be printed to the console.
 
 <div class="docs-page-nav">
-<a href="/docs/reactivity/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Reactivity</strong></a>
+<a href="/docs/components/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Components</strong></a>
+<a href="/docs/conclusion/" class="next"><strong>Conclusion</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>

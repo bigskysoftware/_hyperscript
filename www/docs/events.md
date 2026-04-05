@@ -5,7 +5,7 @@ title: ///_hyperscript
 
 {% include "docs-layout-start.md" %}
 
-## Events & Event Handlers {#event}
+## Events & Functions {#event}
 
 [Events](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events) are at the core of hyperscript,
 and [event handlers](/features/on) are the primary entry point into most hyperscript code.

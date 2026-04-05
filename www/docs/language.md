@@ -973,7 +973,7 @@ These are called "pseudo-commands" because this syntax makes method calls look l
 
 <div class="docs-page-nav">
 <a href="/docs/getting-started/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Getting Started</strong></a>
-<a href="/docs/events/" class="next"><strong>Events</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/events/" class="next"><strong>Events & Functions</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>

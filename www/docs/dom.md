@@ -488,8 +488,8 @@ You can also enter and exit fullscreen mode:
   ~~~
 
 <div class="docs-page-nav">
-<a href="/docs/events/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Events</strong></a>
-<a href="/docs/templates/" class="next"><strong>Templates & Morphing</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/events/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Events & Functions</strong></a>
+<a href="/docs/async/" class="next"><strong>Async Transparency</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>

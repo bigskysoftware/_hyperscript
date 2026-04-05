@@ -295,8 +295,7 @@ I hope you find the language useful!
 Or, at least, funny.  :)
 
 <div class="docs-page-nav">
-<a href="/docs/networking/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Networking</strong></a>
-<a href="/docs/components/" class="next"><strong>Components</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/extensions/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Extensions</strong></a>
 </div>
 
 </div></div>

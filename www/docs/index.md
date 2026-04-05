@@ -27,7 +27,7 @@ Everything you need to know about _hyperscript
 
 <a href="/docs/events/" class="docs-card">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
-<strong>Events</strong>
+<strong>Events & Functions</strong>
 <span>Event handlers, functions, exception handling</span>
 </a>
 
@@ -37,22 +37,10 @@ Everything you need to know about _hyperscript
 <span>Finding elements, updating content, measuring, visibility</span>
 </a>
 
-<a href="/docs/templates/" class="docs-card">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/></svg>
-<strong>Templates & Morphing</strong>
-<span>Generate HTML with templates, update the DOM intelligently with morph</span>
-</a>
-
 <a href="/docs/async/" class="docs-card">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
 <strong>Async Transparency</strong>
 <span>No callbacks, no await — just write linear code and let the runtime handle it</span>
-</a>
-
-<a href="/docs/getting-around/" class="docs-card">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6.75V15m6-6v8.25m.503-8.557l-3.75 1.5a.75.75 0 0 1-.558 0l-3.75-1.5M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75"/></svg>
-<strong>Getting Around</strong>
-<span>Navigation, scrolling, and moving users around the page</span>
 </a>
 
 <a href="/docs/networking/" class="docs-card">
@@ -61,10 +49,16 @@ Everything you need to know about _hyperscript
 <span>Fetch, Server-Sent Events, WebSockets</span>
 </a>
 
-<a href="/docs/conclusion/" class="docs-card">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.42 15.17l-5.384-3.19A1.5 1.5 0 0 1 5.25 10.8V6.75a1.5 1.5 0 0 1 .786-1.319l5.384-3.191a1.5 1.5 0 0 1 1.56 0l5.384 3.191A1.5 1.5 0 0 1 19.125 6.75v4.05a1.5 1.5 0 0 1-.786 1.319l-5.384 3.191a1.5 1.5 0 0 1-1.56-.062zM3 12l2.25 2.25M21 12l-2.25 2.25m-13.5 0L12 19.5l5.25-5.25"/></svg>
-<strong>Misc. & Conclusion</strong>
-<span>Behaviors, user interaction, debugging, JavaScript interop, security</span>
+<a href="/docs/getting-around/" class="docs-card">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6.75V15m6-6v8.25m.503-8.557l-3.75 1.5a.75.75 0 0 1-.558 0l-3.75-1.5M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75"/></svg>
+<strong>Getting Around</strong>
+<span>Navigation, scrolling, and moving users around the page</span>
+</a>
+
+<a href="/docs/templates/" class="docs-card">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/></svg>
+<strong>Templates & Morphing</strong>
+<span>Generate HTML with templates, update the DOM intelligently with morph</span>
 </a>
 
 <a href="/docs/reactivity/" class="docs-card">
@@ -83,6 +77,12 @@ Everything you need to know about _hyperscript
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 0 0 .657-.663 48.422 48.422 0 0 0-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 0 1-.61-.58v0z"/></svg>
 <strong>Extensions</strong>
 <span>Extending hyperscript with custom commands, expressions, and features</span>
+</a>
+
+<a href="/docs/conclusion/" class="docs-card">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.42 15.17l-5.384-3.19A1.5 1.5 0 0 1 5.25 10.8V6.75a1.5 1.5 0 0 1 .786-1.319l5.384-3.191a1.5 1.5 0 0 1 1.56 0l5.384 3.191A1.5 1.5 0 0 1 19.125 6.75v4.05a1.5 1.5 0 0 1-.786 1.319l-5.384 3.191a1.5 1.5 0 0 1-1.56-.062zM3 12l2.25 2.25M21 12l-2.25 2.25m-13.5 0L12 19.5l5.25-5.25"/></svg>
+<strong>Conclusion</strong>
+<span>HyperTalk-isms, debugging, JavaScript interop, security, language history</span>
 </a>
 
 </div>

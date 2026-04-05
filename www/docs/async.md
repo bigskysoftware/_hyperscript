@@ -150,8 +150,8 @@ because the event listener that terminates the loop is only consulted once a com
 and removing the class and settling cleanly.
 
 <div class="docs-page-nav">
-<a href="/docs/templates/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Templates & Morphing</strong></a>
-<a href="/docs/getting-around/" class="next"><strong>Getting Around</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/dom/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Working With The DOM</strong></a>
+<a href="/docs/networking/" class="next"><strong>Networking</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>

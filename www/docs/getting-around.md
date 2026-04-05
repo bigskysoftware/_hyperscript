@@ -71,8 +71,8 @@ The `scroll by` form scrolls by a relative amount.  The direction defaults to `d
 {% endexample %}
 
 <div class="docs-page-nav">
-<a href="/docs/async/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Async Transparency</strong></a>
-<a href="/docs/networking/" class="next"><strong>Networking</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
+<a href="/docs/networking/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Networking</strong></a>
+<a href="/docs/templates/" class="next"><strong>Templates & Morphing</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
 </div></div>
