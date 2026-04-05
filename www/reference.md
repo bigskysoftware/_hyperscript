@@ -123,7 +123,7 @@ Magic values are special names that are automatically available in hyperscript c
 
 | name                    | description                                                 | example                                         |
 |-------------------------|-------------------------------------------------------------|-------------------------------------------------|
-| [it](/expressions/it)   | The result of a previous command (aliases: `its`, `result`) | `fetch /people as json then put it into people` |
+| [it](/expressions/it)   | The result of a previous command (aliases: `its`, `result`) | `fetch /people as JSON then put it into people` |
 
 ### Event Context
 

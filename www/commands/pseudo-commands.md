@@ -33,7 +33,7 @@ For example, this function's name, `increment()`, collides with the built-in hyp
 ```html
 <script type="text/hyperscript">
   def increment(i, j)
-    return (i as int) + (j as int)
+    return (i as Int) + (j as Int)
   end
 </script>
 ```

@@ -24,7 +24,7 @@ Here is a simple web socket declaration in hyperscript:
 
 ```hyperscript
 socket MySocket ws://myserver.com/example
-  on message as json
+  on message as JSON
     log message
 end
 ```
@@ -110,6 +110,6 @@ If you wish to modify the default RPC timeout set for the socket, you can use a 
 
 ```ebnf
 socket <socket-name> <socket-url> [with timeout <time-expression>]
-  [on message [as json] <command>+ end]
+  [on message [as JSON] <command>+ end]
 end
 ```

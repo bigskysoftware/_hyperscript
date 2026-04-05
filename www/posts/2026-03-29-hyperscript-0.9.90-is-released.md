@@ -505,8 +505,8 @@ passed through silently.
 
 **Upgrade Step:** If you were relying on 404/500 responses passing through, either:
 
-- Add `do not throw` to the fetch command: `fetch /api as json do not throw`
-- Use `as response` to get the raw Response: `fetch /api as response`
+- Add `do not throw` to the fetch command: `fetch /api as JSON do not throw`
+- Use `as Response` to get the raw Response: `fetch /api as Response`
 - Wrap in a `catch` block to handle errors
 - Set `_hyperscript.config.fetchThrowsOn = []` to restore old behavior globally
 

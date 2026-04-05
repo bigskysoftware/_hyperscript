@@ -22,11 +22,11 @@ SSE connections can require substantial work to set up and maintain. For example
 ```hyperscript
 eventsource ChatUpdates from http://myserver.com/chat-updates
 
-  on newMessage as json
+  on newMessage as JSON
     log it
   end
 
-  on updateMessage as json
+  on updateMessage as JSON
     log it
   end
 
@@ -43,7 +43,7 @@ However, servers can also send SSE messages with _no name_ attached to them. In 
 
 You can specify two different ways to decode the message contents. If you include `as string` in the message handler declaration, then the contents of the message will be populated in the handler exactly as they were sent, as a string.
 
-Instead, if you specify `as json`, then hyperscript will parse the message as a JSON formatted string. If the data is not valid JSON, then it will throw an error.
+Instead, if you specify `as JSON`, then hyperscript will parse the message as a JSON formatted string. If the data is not valid JSON, then it will throw an error.
 
 If you do not specify any encoding, then hyperscript will pass the original data through unmodified.
 
@@ -106,7 +106,7 @@ Calling the `open()` method repeatedly will close out any old connections and cr
 
 ```hyperscript
 eventsource DynamicServer
-    on message as json
+    on message as JSON
         log it
     end
 end
@@ -136,7 +136,7 @@ The following variables are populated within the event handler's scope when it i
 <script type="text/hyperscript">
   eventsource recordUpdater from http://server-name/record-updater
 
-      on message as json
+      on message as JSON
           put it.name into #name
           put it.username into #username
           put it.email into #email
@@ -161,6 +161,6 @@ The following variables are populated within the event handler's scope when it i
 
 ```ebnf
 eventsource <source-name> [from <source-url>]
-  (on <event-name> [as (json | string)] <command>+ end)*
+  (on <event-name> [as (JSON | string)] <command>+ end)*
 end
 ```
