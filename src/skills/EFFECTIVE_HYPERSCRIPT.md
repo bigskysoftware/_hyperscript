@@ -234,6 +234,8 @@ put "hello" at end of me
 put "hello" into x                      -- if x is an Element, clears and inserts
 put "hello" into my.innerHTML           -- property assignment
 put null into @foo                      -- removes the attribute
+put item at start of myArray            -- unshift
+put item at end of myArray              -- push
 
 increment x                             -- +1
 increment x by 5
@@ -258,6 +260,9 @@ remove .active from #target
 remove @disabled from me
 remove {color; font-size} from me       -- remove CSS properties
 remove me                                -- removes the element from DOM
+remove item from myArray                 -- find by value and splice
+remove item from mySet                   -- set.delete(item)
+remove key from myMap                    -- map.delete(key)
 
 toggle .active                           -- on me
 toggle .active on #target
@@ -281,6 +286,8 @@ hide me with *visibility                 -- visibility: hidden
 focus #input                             -- focus an element
 blur #input                              -- unfocus an element
 empty #container                         -- remove all children
+empty myArray                            -- splice to length 0
+empty mySet                              -- set.clear()
 select #input                            -- select text in input/textarea
 
 open #modal                              -- dialog: showModal(), details: open, popover: show
