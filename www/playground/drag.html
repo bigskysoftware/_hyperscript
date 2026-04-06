@@ -6,16 +6,16 @@
           set xoff to clientX - x
           set yoff to clientY - y
           transition
-              margin-top to '-10px'
-              box-shadow to '8px 8px 2px 1px rgba(0, 0, 0, .2)'
+              *margin-top to '-10px'
+              *box-shadow to '8px 8px 2px 1px rgba(0, 0, 0, .2)'
             over 50ms
           repeat until event pointerup from document
             wait for pointermove(pageX, pageY) or
                      pointerup(pageX, pageY) from document
             add { left: ${pageX - xoff}px; top: ${pageY - yoff}px; }
           end
-          transition margin-top to 0
-              box-shadow to '0 0 0 0'
+          transition *margin-top to 0
+              *box-shadow to '0 0 0 0'
             over 50ms
 ">
    Drag me...
