@@ -33,12 +33,17 @@
     color: var(--accent);
     margin-bottom: 0.5rem;
 }
+.docs-card-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
 .docs-card strong {
     font-family: var(--font-heading);
     font-size: 1.05rem;
     margin-bottom: 0.3rem;
 }
-.docs-card span {
+.docs-card span:not(.docs-card-icon) {
     font-size: 0.85rem;
     color: var(--text-muted);
     line-height: 1.4;
