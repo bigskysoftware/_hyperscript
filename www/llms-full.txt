@@ -234,6 +234,8 @@ put "hello" at end of me
 put "hello" into x                      -- if x is an Element, clears and inserts
 put "hello" into my.innerHTML           -- property assignment
 put null into @foo                      -- removes the attribute
+put item at start of myArray            -- unshift
+put item at end of myArray              -- push
 
 increment x                             -- +1
 increment x by 5
@@ -250,12 +252,17 @@ add .foo .bar to <li/>                   -- multiple classes
 add @disabled to me
 add {color: red; font-size: 2em} to me  -- inline styles
 add .highlight to <li/> when it is not me
+add item to myArray                      -- push to array
+add item to mySet                        -- add to set
 
 remove .active
 remove .active from #target
 remove @disabled from me
 remove {color; font-size} from me       -- remove CSS properties
 remove me                                -- removes the element from DOM
+remove item from myArray                 -- find by value and splice
+remove item from mySet                   -- set.delete(item)
+remove key from myMap                    -- map.delete(key)
 
 toggle .active                           -- on me
 toggle .active on #target
@@ -279,6 +286,8 @@ hide me with *visibility                 -- visibility: hidden
 focus #input                             -- focus an element
 blur #input                              -- unfocus an element
 empty #container                         -- remove all children
+empty myArray                            -- splice to length 0
+empty mySet                              -- set.clear()
 select #input                            -- select text in input/textarea
 
 open #modal                              -- dialog: showModal(), details: open, popover: show
@@ -655,6 +664,13 @@ x as Fixed:2                             -- toFixed(2)
 x as Values                              -- form values as object
 x as Values | FormEncoded                -- form values as URL-encoded string
 x as Values | JSONString                 -- form values as JSON string
+x as Set                                 -- iterable to Set (deduplicates)
+x as Map                                 -- object to Map
+x as Keys                               -- object/Map keys as array
+x as Entries                             -- object/Map entries as array
+x as Reversed                           -- reversed copy of array
+x as Unique                             -- deduplicated array
+x as Flat                               -- flatten nested array
 ```
 
 The pipe operator `|` chains conversions left to right.
