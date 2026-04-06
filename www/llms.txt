@@ -1,0 +1,269 @@
+# _hyperscript
+
+> A scripting language for the web, designed to be embedded directly in HTML.
+
+_hyperscript code lives in `_` attributes on HTML elements. It reads like English.
+
+```html
+<button _="on click add .active to me">Click Me</button>
+```
+
+## Full LLM Reference
+
+For the complete guide with all syntax, patterns, and anti-hallucination rules:
+https://hyperscript.org/llms-full.txt
+
+## Docs
+
+- Getting Started: https://hyperscript.org/docs/getting-started/
+- Language: https://hyperscript.org/docs/language/
+- Events & Functions: https://hyperscript.org/docs/events/
+- DOM: https://hyperscript.org/docs/dom/
+- Reactivity: https://hyperscript.org/docs/reactivity/
+- Components: https://hyperscript.org/docs/components/
+- Reference: https://hyperscript.org/reference/
+- Patterns: https://hyperscript.org/patterns/
+
+## Quick Reference
+
+### Structure
+
+Code = features. Features contain commands. Commands contain expressions.
+
+```html
+<div _="
+  set :count to 0                        -- feature: set element variable
+  on click                               -- feature: event handler
+    increment :count                     -- command
+    put :count into me                   -- command
+  end
+">0</div>
+```
+
+### Variables
+
+```
+set x to 1            -- local (this handler only)
+set :x to 1           -- element-scoped (persists across handler calls)
+set ^x to 1           -- DOM-scoped (walks up DOM tree)
+set $x to 1           -- global
+```
+
+### Magic Symbols
+
+me/my/I = current element. it/its/result = last command result. you/your = tell target.
+event = current event. target = event.target. detail = event.detail. body = document.body.
+
+### Event Handlers
+
+```
+on click ...
+on click from #other ...
+on keyup[key is 'Escape'] ...
+on click(clientX, clientY) ...
+on every click ...                       -- concurrent
+on click debounced at 300ms ...
+on click throttled at 500ms ...
+on mutation of @class ...
+on intersection(intersecting) having threshold 0.5 ...
+on resize(width, height) ...
+```
+
+### Assignment
+
+```
+set x to 10
+set my.style.color to "red"
+set *color to "red"                      -- style ref
+put "hello" into me                      -- DOM: clears children, inserts HTML
+put "hello" at end of me                 -- DOM: append
+put "hello" before me                    -- DOM: insert before
+default x to 10                          -- only sets if null/undefined/""
+increment x
+decrement x by 3
+```
+
+### DOM
+
+```
+add .active to me
+add @disabled to me
+add {color: red} to me                   -- inline styles
+remove .active from #target
+remove me                                -- removes element
+toggle .active on me
+toggle between .on and .off
+take .active from .tabs for me           -- move class
+show me
+hide me
+focus #input
+empty #container
+open #dialog
+close #dialog
+```
+
+### Control Flow
+
+```
+if x > 10 log "big" else log "small" end -- end is ALWAYS required
+repeat for item in items ... end
+repeat 3 times ... end
+repeat while x < 10 ... end
+repeat forever ... end
+for item in items index i ... end
+break
+continue
+tell #target add .active end             -- target accessed as `you`
+```
+
+### Fetching
+
+```
+fetch /api/data                          -- GET, result in `it`
+fetch /api/data as JSON
+fetch /api/data as Response              -- raw Response, no auto-throw
+fetch /api/data with method:"POST", body:"data" as JSON
+fetch /api/data as JSON do not throw     -- suppress error on non-2xx
+```
+
+### DOM References
+
+```
+#myId                                    -- by ID
+.myClass                                 -- by class
+<div.foo/>                               -- querySelectorAll
+@name                                    -- attribute on me
+*color                                   -- style property
+```
+
+### Property Access
+
+```
+#el's innerHTML                          -- possessive
+my value                                 -- my = me's
+the children of the closest <ul/>        -- of expression
+event.target                             -- dot notation
+```
+
+### Comparison & Logic
+
+```
+x is y          x is not y
+x is empty      x is not empty
+x matches .active
+x contains "sub"
+x starts with "http"
+x is between 1 and 10
+x is a String
+x and y         x or y         not x
+no x            some x
+... ignoring case
+```
+
+### Collections
+
+```
+items where its active
+items sorted by its name descending
+items mapped to its id
+"a,b,c" split by ","
+items joined by ", "
+```
+
+### Conversions
+
+```
+x as Int          x as Float         x as Number
+x as String       x as JSON          x as JSONString
+x as HTML         x as Fragment      x as Array
+x as Values       x as Values | FormEncoded
+```
+
+### Positional
+
+```
+first in <li/>
+next <input/> from me
+previous <li/> from me within #list
+closest <form/>
+closest parent <div/>
+```
+
+### Async
+
+Promises auto-resolve. No `await` needed:
+
+```
+fetch /api/data as JSON                  -- waits automatically
+wait 2s
+wait for click
+wait for click or 5s                     -- event or timeout
+```
+
+### Functions
+
+```
+def greet(name)
+  return "Hello, " + name
+end
+```
+
+### Reactivity
+
+```
+live put $count into me                  -- re-runs when $count changes
+when $x changes log it end               -- side effect on change
+bind my value to #slider's value         -- two-way sync
+```
+
+### Templates (extension)
+
+```html
+<template id="list">
+<ul>
+#for item in items
+  <li>${item.name}</li>
+#else
+  <li>No items</li>
+#end
+</ul>
+</template>
+```
+
+```
+render #list with items: data
+morph #container to it                   -- DOM-preserving update
+```
+
+### Components (extension)
+
+```html
+<template hyper-component="my-counter" _="init set ^count to 0">
+  <button _="on click increment ^count">+</button>
+  <span>${^count}</span>
+</template>
+<my-counter></my-counter>
+```
+
+## DO NOT use JavaScript syntax
+
+| Wrong | Right |
+|---|---|
+| var/let/const x = 1 | set x to 1 |
+| function foo() | def foo() |
+| await fetch() | fetch ... (auto) |
+| el.addEventListener("click",...) | on click ... |
+| === / !== | is / is not |
+| && / \|\| / ! | and / or / not |
+| console.log(x) | log x |
+| document.querySelector(".x") | <.x/> |
+| el.classList.add("x") | add .x to el |
+| el.innerHTML = "..." | put "..." into el |
+| /* comment */ | -- comment |
+| x ? y : z | if x y else z end |
+| for (let i...) | repeat / for x in y |
+| setTimeout(fn, 1000) | wait 1s |
+| try { } catch { } | catch after commands in def |
+
+No semicolons. No curly braces for blocks (use `end`). No `else if` (use `else if ... end`).
+No `this` (use `me`). No `===` (use `is`). `if` blocks ALWAYS require `end`.

@@ -3,7 +3,7 @@ name: Deploy website
 on:
   push:
     branches: [master]
-    paths: [www/**]
+    paths: [www/**, src/skills/**]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Sync llms-full.txt from skills file
+        run: cp src/skills/EFFECTIVE_HYPERSCRIPT.md www/llms-full.txt
 
       - name: Build site
         working-directory: www

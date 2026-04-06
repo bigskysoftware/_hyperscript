@@ -12,6 +12,8 @@ export default function(config) {
     config.addPassthroughCopy("fonts");
     config.addPassthroughCopy("img");
     config.addPassthroughCopy("js");
+    config.addPassthroughCopy("llms.txt");
+    config.addPassthroughCopy("llms-full.txt");
 
     config.addCollection('cookbook', coll => coll.getFilteredByGlob('cookbook/*'))
     config.addCollection('patterns', coll => {
