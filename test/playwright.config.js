@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
     testDir: '.',
     testMatch: '**/*.js',
-    testIgnore: ['fixtures.js', 'global-setup.js', 'entry.js', 'util/**', 'nuetests/**', 'manual/**', 'index.html'],
+    testIgnore: ['fixtures.js', 'htmx-fixtures.js', 'global-setup.js', 'entry.js', 'util/**', 'nuetests/**', 'manual/**', 'vendor/**', 'index.html'],
     globalSetup: './global-setup.js',
     fullyParallel: true,
     projects: [
