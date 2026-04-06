@@ -40,8 +40,6 @@ See also [pseudo-commands](/commands/pseudo-commands/).
 
 Expressions are the values and references that commands operate on. They include DOM selectors, property access, comparisons, math, and type conversions. Hyperscript expressions are designed to read naturally and work seamlessly with the DOM.
 
-See [expressions](/expressions) for an overview.
-
 ### DOM References
 
 | name                                                                 | description                                        | example                         |

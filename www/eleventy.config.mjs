@@ -15,7 +15,6 @@ export default function(config) {
     config.addPassthroughCopy("llms.txt");
     config.addPassthroughCopy("llms-full.txt");
 
-    config.addCollection('cookbook', coll => coll.getFilteredByGlob('cookbook/*'))
     config.addCollection('patterns', coll => {
         var order = { beginner: 0, intermediate: 1, advanced: 2 };
         return coll.getFilteredByGlob('patterns/*').sort((a, b) => {
