@@ -1009,7 +1009,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 
 .hero {
     text-align: center;
-    padding: 1.5rem 0 1rem;
+    padding: 1.5rem 1.5rem 1rem;
 }
 
 .hero-logo {
@@ -1019,7 +1019,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     margin-bottom: -0.2rem;
 }
 
-.hero-accent { color: var(--accent); }
+.hero-accent { color: #4a6fa5; font-weight: 900; }
 
 .hero-title {
     font-family: var(--font-heading);
@@ -1028,6 +1028,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     letter-spacing: 0.02em;
     color: var(--text);
     margin-bottom: 0.2rem;
+    filter: url(#pixelate);
 }
 
 .hero h1 {
