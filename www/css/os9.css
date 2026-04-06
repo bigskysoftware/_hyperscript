@@ -1349,6 +1349,27 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     margin-top: 0;
 }
 
+/* ---- Asides / Callouts ---- */
+
+.aside {
+    margin: 2rem 0;
+    padding: 1.5rem 2rem;
+    background: var(--bg-subtle);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95em;
+    color: var(--text-muted);
+}
+.aside h3, .aside strong {
+    color: var(--text);
+}
+.aside table {
+    font-size: 0.9em;
+}
+.aside p:last-child {
+    margin-bottom: 0;
+}
+
 /* ---- Responsive ---- */
 
 @media (max-width: 45em) {
