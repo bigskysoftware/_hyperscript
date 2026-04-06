@@ -7,7 +7,7 @@ title: ///_hyperscript
     <img src="/img/logo.png" alt="hyperscript logo" class="hero-logo">
     <div class="hero-title"><span class="hero-accent">_</span>hyper<span class="hero-accent">s</span>cript</div>
     <h1>Finally... A scripting language for the web</h1>
-    <p class="subtitle">Scripting without tears: concise <a href="/docs/dom">DOM manipulation</a>, <a href="/docs/events">events</a>, <a href="/docs/reactivity">reactivity</a> & <a href="/docs">more</a>, no <a href="/docs/async/">async or await</a>.</p>
+    <p class="subtitle">Scripting HTML without tears: concise <a href="/docs/dom">DOM manipulation</a>, <a href="/docs/events">events</a>, <a href="/docs/reactivity">reactivity</a> & <a href="/docs">more</a>, no <a href="/docs/async/">async or await</a>.</p>
 
     <div class="hero-split">
         <div class="window hero-code">
@@ -103,7 +103,8 @@ title: ///_hyperscript
     <h2>DOM Native</h2>
     <p>CSS selectors are first-class syntax. Reference elements by ID with <code>#foo</code>,
     by class with <code>.bar</code>, or with full query selectors like <code>&lt;nav a.active/&gt;</code>.
-    No <code>querySelector</code> calls - just write selectors directly in your code.</p>
+    </p>
+    <p>No <code>querySelectorAll()</code> calls: write selectors directly in your code.</p>
 {% highlight "html" %}
 <button _="on click add .highlight to <p/> in me">
 <div _="on click put 'Hello' into #output">
@@ -113,8 +114,9 @@ title: ///_hyperscript
 
 <div class="feature">
     <h2>Event Oriented</h2>
-    <p>Every script starts with an event. Send events between elements, filter them with
-    conditions, queue or debounce them. Events are the backbone of hyperscript.</p>
+    <p>In hyperscript, events are first class citizens. Respond to events easily.  Send events between elements,
+    filter them with conditions, queue abd debounce them.</p>
+    <p>Hyperscript &#x2764;&#xFE0F;  events!</p>
 {% highlight "html" %}
 <button _="on click send hello to <form/>">
 <form _="on hello put 'Got it!' into me">
@@ -123,20 +125,9 @@ title: ///_hyperscript
 </div>
 
 <div class="feature">
-    <h2>Reactive</h2>
-    <p>Watch any value - variables, properties, attributes - and react when it changes.
-    The runtime tracks dependencies automatically. <a href="/features/bind">Bind</a> values together for two-way sync.</p>
-{% highlight "html" %}
-<input type="text" id="name" />
-<h1 _="when #name.value changes put it into me"></h1>
-<input _="bind $search" />
-{% endhighlight %}
-</div>
-
-<div class="feature">
     <h2>Async Transparent</h2>
-    <p>Write linear, top-to-bottom code. Waiting, fetching, and animating just work -
-    no promises, no callbacks, no async/await. Hyperscript handles it for you.</p>
+    <p>Write linear, top-to-bottom code. Waiting, fetching, and animating just work.</p>
+    <p>No more promises, no more callbacks, no async/await. Hyperscript handles it for you.</p>
 {% highlight "html" %}
 <button _="on click
               put 'Loading...' into me
@@ -148,18 +139,30 @@ title: ///_hyperscript
 </div>
 
 <div class="feature">
-    <h2>xTalk Syntax</h2>
-    <p>Inspired by <a href="https://hypercard.org/HyperTalk%20Reference%202.4.pdf">HyperTalk</a>, hyperscript reads like
-     English and embeds naturally in HTML. An <a href="https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk">xTalk</a> language
-    for the modern web.</p>
-{% highlight "hyperscript" %}
-on click
-  if I match .active
-    remove .active from me
-    put 'Enable' into me
-  else
-    add .active to me
-    put 'Disable' into me
+    <h2>Components</h2>
+    <p>Define reusable custom elements with reactive templates. Write markup with
+    <code>${}</code> interpolation, and the runtime handles re-rendering via morphing.</p>
+    <p>Components should be easy.  Hyperscript makes them easy.</p>
+{% highlight "html" %}
+<template hyper-component="click-counter"
+          _="init set ^count to 0">
+  <button _="on click increment ^count">+</button>
+  <span>Clicks: ${^count}</span>
+</template>
+
+<click-counter></click-counter>
+<click-counter></click-counter>
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>Reactive</h2>
+    <p>Reactivity should be easy too.  You shouldn't need to declare signals or useEffects().  You should just
+    write the code.<p>
+    <p>Hyperscript tracks dependencies automatically, updating content when they change.</p>
+{% highlight "html" %}
+<input type="text" id="name" _="bind me to $value"/>
+<h1 _="when $value changes put it into me"></h1>
 {% endhighlight %}
 </div>
 
@@ -181,6 +184,22 @@ _hyperscript.addCommand("greet",
     }
   })
 // use it: <button _="on click greet 'World'">
+{% endhighlight %}
+</div>
+
+<div class="feature">
+    <h2>xTalk Syntax</h2>
+    <p>Inspired by <a href="https://hypercard.org/HyperTalk%20Reference%202.4.pdf">HyperTalk</a>, hyperscript reads like
+     English and embeds naturally in HTML. An <a href="https://en.wikipedia.org/wiki/HyperTalk#Descendants_of_HyperTalk">xTalk</a> language
+    for the modern web.</p>
+{% highlight "hyperscript" %}
+on click
+  if I match .active
+    remove .active from me
+    put 'Enable' into me
+  else
+    add .active to me
+    put 'Disable' into me
 {% endhighlight %}
 </div>
 

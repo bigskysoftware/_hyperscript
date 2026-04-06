@@ -153,25 +153,14 @@ body {
 
 /* Logo */
 .nav-logo-img {
-    height: 28px;
+    height: 44px;
     width: auto;
     image-rendering: pixelated;
     vertical-align: middle;
-    margin-right: 4px;
 }
 .nav-logo {
-    font-family: var(--font-heading);
-    font-size: 1.3rem !important;
-    letter-spacing: -0.5px;
-    padding: 6px 14px 6px 0 !important;
-    color: var(--text) !important;
-    text-shadow:
-        0.5px 0 0 currentColor,
-        -0.5px 0 0 currentColor,
-        1px 0 0 currentColor,
-        -1px 0 0 currentColor;
+    padding: 0 4px 0 0 !important;
     flex-shrink: 0;
-    min-width: 4.5ch;
 }
 
 .nav-logo:hover {
@@ -179,18 +168,8 @@ body {
     color: var(--accent) !important;
 }
 
-.logo-slashes {
-    color: var(--accent);
-    text-shadow:
-        0.5px 0 0 var(--accent),
-        -0.5px 0 0 var(--accent),
-        1px 0 0 var(--accent),
-        -1px 0 0 var(--accent);
-}
-
-.nav-logo:hover .logo-slashes,
-.nav-logo:hover .logo-underscore {
-    color: var(--accent);
+.nav-logo:hover .nav-logo-img {
+    filter: brightness(1.2);
 }
 
 .nav-spacer { flex: 1; }
@@ -622,17 +601,11 @@ hr {
 .window-title::before {
     content: '';
     display: inline-block;
-    width: 12px;
-    height: 9px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-    opacity: 0.35;
-    background: repeating-linear-gradient(
-        to bottom,
-        var(--text) 0px,
-        var(--text) 1px,
-        transparent 1px,
-        transparent 3px
-    );
+    background: url('/img/wizard-hat.png') center/contain no-repeat;
+    image-rendering: pixelated;
 }
 
 .window-body {
