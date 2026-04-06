@@ -141,14 +141,14 @@ With proper `Cache-Control` headers (which CDNs like jsDelivr set automatically)
 never download it again.  The browser stores both the downloaded file and its compiled bytecode,
 so subsequent page loads pay zero network cost and near-zero parse cost across all your pages that use it.
 
-Furthermore, browsers download resources in parallel.  While hyperscript is loading, your
+Furthermore, **browsers download resources in parallel**.  While hyperscript is loading, your
 images, stylesheets, and other assets are loading too, and only the largest one usually matters.  A single 
 hero image is typically 200KB–2MB, dwarfing hyperscript.  
 
 In practice, hyperscript typically finishes downloading long before images, meaning it adds nothing to your overall page 
 load.  
 
-So, in most cases, hyperscript is effectively free, hiding entirely within the download time of assets you were already 
+So, in most cases, hyperscript is effectively _oo_, hiding entirely within the download time of assets you were already 
 paying for.
 
 </div>
