@@ -99,6 +99,29 @@ place whenever its dependencies change:
 
 This forms the basis of [hyper-components](/docs/components/).
 
+### Live Templates {#live-templates}
+
+You can use templates directly in your HTML by adding a `live` attribute to it. 
+
+The output appears after the template element and re-renders automatically when dependencies change,
+using morphing to preserve focus and event handlers.
+
+  ~~~ html
+  <template live _="init set ^count to 0">
+    <button _="on click increment ^count">+</button>
+    <p>Count: ${^count}</p>
+  </template>
+  ~~~
+
+The template renders into a `display:contents` wrapper, so it has no effect on layout.
+
+Live templates use the same `${}` interpolation and `#for`/`#if` control flow as
+the `render` command and [hyper-components](/docs/components/).
+
+While live template and components may seem similar (and they share syntaxes), they serve different purposes: Components 
+are for reusing the same template in multiple places.  Live templates are for dynamically rerendering a
+single template in a specific spot.
+
 <div class="docs-page-nav">
 <a href="/docs/getting-around/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Getting Around</strong></a>
 <a href="/docs/reactivity/" class="next"><strong>Reactivity</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
