@@ -82,7 +82,7 @@ title: ///_hyperscript
     <div style="text-align:center">
         <div class="install-bar"
              _="on click
-                  writeText('<script src=&quot;https://unpkg.com/hyperscript.org@0.9.14&quot;></script>') on navigator.clipboard
+                  writeText('<script src=&quot;https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js&quot; integrity=&quot;sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr&quot; crossorigin=&quot;anonymous&quot;></script>') on navigator.clipboard
                   set old to #install-label's innerHTML
                   put 'Copied!' into #install-label
                   add .install-flash to me
@@ -90,7 +90,7 @@ title: ///_hyperscript
                   put old into #install-label
                   remove .install-flash from me">
             <span class="install-label" id="install-label">Install</span>
-            <code class="install-code">&lt;script src="https://unpkg.com/hyperscript.org@0.9.14"&gt;&lt;/script&gt;</code>
+            <code class="install-code">&lt;script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90"&gt;&lt;/script&gt;</code>
             <span class="install-copy">copy</span>
         </div>
     </div>
