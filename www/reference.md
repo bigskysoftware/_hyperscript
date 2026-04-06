@@ -50,7 +50,7 @@ See [expressions](/expressions) for an overview.
 | [class reference](/expressions/class-reference)                      | A CSS class reference                              | `.active`                       |
 | [query reference](/expressions/query-reference)                      | A CSS query selector                               | `<button/>` `<:focused/>`      |
 | [attribute reference](/expressions/attribute-ref)                    | An element attribute reference                     | `@selected`                     |
-| style reference                                                      | An element style reference                         | `*color` `*computed-fontSize`  |
+| [style reference](/expressions/style-ref)                            | An element style reference                         | `*color` `*computed-fontSize`  |
 | [closest expression](/expressions/closest)                           | Find closest ancestor matching a selector          | `closest <div/>`               |
 | [relative positional](/expressions/relative-positional/)             | Navigate to relative elements                      | `next <div/> from me`          |
 | [positional expressions](/expressions/positional)                    | Get a positional value from a set                  | `first from <div/>`            |
@@ -73,25 +73,25 @@ See [expressions](/expressions) for an overview.
 | [comparison operator](/expressions/comparison-operator)              | Comparison and type-checking operators              | `x == "foo"` `I match <:active/>`     |
 | [logical operator](/expressions/logical-operator)                    | Logical operators                                  | `x and y` `not z` `a or false`        |
 | [no operator](/expressions/no)                                       | Emptiness/existence check                          | `no element.children`                  |
-| some operator                                                        | Existence check (inverse of `no`)                  | `some <.results/>`                     |
+| [some operator](/expressions/some)                                   | Existence check (inverse of `no`)                  | `some <.results/>`                     |
 | [as expression](/expressions/as)                                     | Converts an expression to a new type               | `"10" as Int`                          |
-| pipe operator                                                        | Chain conversions left to right                    | `x as Values \| JSONString`            |
+| [pipe operator](/expressions/as)                                     | Chain conversions left to right                    | `x as Values \| JSONString`            |
 | type assertion                                                       | Postfix type check that throws on mismatch (`!` for non-null) | `x:String` `x:Int!`             |
-| in expression                                                        | Containment check                                  | `"foo" in myArray`                     |
-| starts with / ends with                                              | String prefix/suffix check                         | `url starts with "https"`              |
-| is between                                                           | Inclusive range check                              | `x is between 1 and 10`               |
-| precedes / follows                                                   | DOM document-order check                           | `#a precedes #b`                       |
-| ignoring case                                                        | Case-insensitive modifier for comparisons          | `x contains "hi" ignoring case`        |
+| [in expression](/expressions/comparison-operator#is-in)              | Containment check                                  | `"foo" in myArray`                     |
+| [starts with / ends with](/expressions/comparison-operator)          | String prefix/suffix check                         | `url starts with "https"`              |
+| [is between](/expressions/comparison-operator)                       | Inclusive range check                              | `x is between 1 and 10`               |
+| [precedes / follows](/expressions/comparison-operator)               | DOM document-order check                           | `#a precedes #b`                       |
+| [ignoring case](/expressions/comparison-operator)                    | Case-insensitive modifier for comparisons          | `x contains "hi" ignoring case`        |
 
 ### Collection Expressions
 
 | name                                                                 | description                                        | example                                 |
 |----------------------------------------------------------------------|----------------------------------------------------|-----------------------------------------|
-| where                                                                | Filter a collection                                | `items where its active`               |
-| sorted by                                                            | Sort a collection                                  | `items sorted by its name descending`  |
-| mapped to                                                            | Map/project a collection                           | `items mapped to its id`               |
-| split by                                                             | Split a string into an array                       | `"a,b" split by ","`                   |
-| joined by                                                            | Join an array into a string                        | `items joined by ", "`                 |
+| [where](/expressions/collection-operators)                           | Filter a collection                                | `items where its active`               |
+| [sorted by](/expressions/collection-operators)                       | Sort a collection                                  | `items sorted by its name descending`  |
+| [mapped to](/expressions/collection-operators)                       | Map/project a collection                           | `items mapped to its id`               |
+| [split by](/expressions/collection-operators)                        | Split a string into an array                       | `"a,b" split by ","`                   |
+| [joined by](/expressions/collection-operators)                       | Join an array into a string                        | `items joined by ", "`                 |
 
 ### Literals
 

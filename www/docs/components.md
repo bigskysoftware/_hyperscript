@@ -11,6 +11,10 @@ Hyper-components let you define reusable custom elements using a `<template>` ta
 You write markup with `${}` interpolation, attach hyperscript with `_=`, and the
 runtime handles reactive re-rendering via morphing.
 
+Hyper-components is an extension and must be loaded separately after hyperscript.
+
+See the [component feature page](/features/components) for installation details.
+
 ### Defining a Component {#defining}
 
 A component is a `<template>` with a `hyper-component` attribute. The value is the

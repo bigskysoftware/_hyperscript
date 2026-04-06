@@ -6,6 +6,19 @@ title: components - ///_hyperscript
 
 Components let you define reusable custom elements using a `<template>` tag. You write your markup with `${}` interpolation, attach hyperscript with `_=`, and hyperscript handles reactive re-rendering automatically.
 
+### Installing
+
+Hyper-components is an extension and must be included separately, *after* hyperscript itself:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/component.min.js"></script>
+```
+
+Or if you're using npm: `import 'hyperscript.org/dist/ext/component.js'` after importing hyperscript.
+
+### Defining a Component
+
 To define a component, create a `<template>` with a `hyper-component` attribute set to your tag name (which must contain a dash, per the custom elements spec). Then use the component anywhere in your page like a normal HTML element.
 
 Component-scoped variables use the `^` prefix (e.g. `^count`). These are local to each component instance -- multiple instances of the same component each get their own scope. The component's `_` attribute runs when the element connects, so `init` is the natural place to set up initial state.
