@@ -121,14 +121,14 @@ OK, let's see how to hyperscript...
 
 You might be wondering: how big is this thing?
 
-Hyperscript is ~36KB over the wire (minified + brotli'd).  That's the
+Hyperscript is ~38KB over the wire (minified + brotli'd).  That's the
 full language: parser, runtime, async engine, event system, everything.
 
 Here's what that means in practice:
 
 | Network | Typical Speed | Latency | Transfer Time | Total  |
 |---------|---------------|---------|---------------|--------|
-| 3G      | 2 Mbps        | ~100ms  | ~144ms        | ~250ms |
+| 3G      | 2 Mbps        | ~100ms  | ~152ms        | ~250ms |
 | 4G      | 30 Mbps       | ~50ms   | ~10ms         | ~60ms  |
 | 5G      | 100+ Mbps     | ~10ms   | ~3ms          | ~13ms  |
 
@@ -143,7 +143,7 @@ so subsequent page loads pay zero network cost and near-zero parse cost across a
 
 Furthermore, **browsers download resources in parallel**.  While hyperscript is loading, your
 images, stylesheets, and other assets are loading too, and only the largest one usually matters.  A single 
-hero image is typically 200KB–2MB, dwarfing hyperscript.  
+hero image is typically 200KB–2MB, dwarfing hyperscript's 38KB.  
 
 In practice, hyperscript typically finishes downloading long before images, meaning it adds nothing to your overall page 
 load.  
