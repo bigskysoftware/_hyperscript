@@ -56,8 +56,15 @@ append "</div>"
 put it into #people
 ```
 
+#### Append to a set
+
+```hyperscript
+set mySet to [] as Set
+append "item" to mySet                   -- set.add("item")
+```
+
 ### Syntax
 
 ```ebnf
-append <expression> [to <string> | <array> | <element>]
+append <expression> [to <string> | <array> | <set> | <element>]
 ```

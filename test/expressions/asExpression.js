@@ -400,4 +400,48 @@ test.describe("as operator", () => {
 		})
 		expect(result).toBe('firstName=John&lastName=Connor&areaCode=213&phone=555-1212')
 	})
+
+	test("converts array as Set", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const r = _hyperscript("[1,2,2,3] as Set")
+			return { isSet: r instanceof Set, size: r.size }
+		})
+		expect(result.isSet).toBe(true)
+		expect(result.size).toBe(3)
+	})
+
+	test("converts object as Map", async ({evaluate}) => {
+		const result = await evaluate(() => {
+			const r = _hyperscript("{a:1, b:2} as Map")
+			return { isMap: r instanceof Map, a: r.get("a"), size: r.size }
+		})
+		expect(result.isMap).toBe(true)
+		expect(result.a).toBe(1)
+		expect(result.size).toBe(2)
+	})
+
+	test("converts object as Keys", async ({run}) => {
+		const result = await run("{a:1, b:2} as Keys", {})
+		expect(result).toEqual(["a", "b"])
+	})
+
+	test("converts object as Entries", async ({run}) => {
+		const result = await run("{a:1} as Entries", {})
+		expect(result).toEqual([["a", 1]])
+	})
+
+	test("converts array as Reversed", async ({run}) => {
+		const result = await run("[1,2,3] as Reversed", {})
+		expect(result).toEqual([3, 2, 1])
+	})
+
+	test("converts array as Unique", async ({run}) => {
+		const result = await run("[1,2,2,3,3] as Unique", {})
+		expect(result).toEqual([1, 2, 3])
+	})
+
+	test("converts nested array as Flat", async ({run}) => {
+		const result = await run("[[1,2],[3,4]] as Flat", {})
+		expect(result).toEqual([1, 2, 3, 4])
+	})
 })

@@ -157,4 +157,24 @@ test.describe("the add command", () => {
 		// nothing matches .nope, so result is empty -> #none shown
 		await expect(find('#none')).not.toHaveAttribute('hidden');
 	});
+
+	test("can add a value to an array", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2,3]
+		                      add 4 to :arr
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3,4");
+	});
+
+	test("can add a value to a set", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :s to [] as Set
+		                      add 'a' to :s
+		                      add 'b' to :s
+		                      add 'a' to :s
+		                      put :s.size into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("2");
+	});
 });

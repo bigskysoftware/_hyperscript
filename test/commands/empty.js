@@ -26,4 +26,31 @@ test.describe("the empty command", () => {
 		await expect(find('.clearme').first()).toHaveText("");
 		await expect(find('.clearme').last()).toHaveText("");
 	});
+
+	test("can empty an array", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2,3]
+		                      empty :arr
+		                      put :arr.length into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("0");
+	});
+
+	test("can empty a set", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :s to [1,2,3] as Set
+		                      empty :s
+		                      put :s.size into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("0");
+	});
+
+	test("can empty a map", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :m to {a:1, b:2} as Map
+		                      empty :m
+		                      put :m.size into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("0");
+	});
 });

@@ -37,6 +37,15 @@ def fillList(array, ul)
 end
 ```
 
+### Arrays
+
+`put` works with arrays for positional insertion:
+
+```hyperscript
+put item at start of myArray             -- unshift
+put item at end of myArray               -- push
+```
+
 ### Syntax
 
 ```ebnf

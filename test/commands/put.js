@@ -264,4 +264,22 @@ test.describe("the put command", () => {
 		await expect(find('#d1')).not.toHaveAttribute('foo');
 	});
 
+	test("can put at start of an array", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [2,3]
+		                      put 1 at start of :arr
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3");
+	});
+
+	test("can put at end of an array", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2]
+		                      put 3 at end of :arr
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3");
+	});
+
 });

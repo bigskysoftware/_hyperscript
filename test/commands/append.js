@@ -99,4 +99,14 @@ test.describe("the append command", () => {
 		await expect(find('span.topping')).toHaveClass(/topping/);
 	});
 
+	test("can append a value to a set", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :s to [1,2] as Set
+		                      append 3 to :s
+		                      append 1 to :s
+		                      put :s.size into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("3");
+	});
+
 });

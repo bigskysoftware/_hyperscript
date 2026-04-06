@@ -4,7 +4,15 @@ title: empty - ///_hyperscript
 
 ## The `empty` Command
 
-The `empty` command removes all child nodes from an element. If no target is given, it empties the current element (`me`).
+The `empty` command removes all child nodes from an element, or clears a collection. If no target is given, it empties the current element (`me`).
+
+For arrays, sets, and maps, `empty` clears all entries:
+
+```hyperscript
+empty myArray                            -- splices to length 0
+empty mySet                              -- set.clear()
+empty myMap                              -- map.clear()
+```
 
 ### Examples
 

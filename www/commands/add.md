@@ -30,8 +30,17 @@ The `when` clause lets you filter which elements in the target actually get the 
 
 ```
 
+### Collections
+
+`add` also works with arrays and sets:
+
+```hyperscript
+add item to myArray                      -- array.push(item)
+add item to mySet                        -- set.add(item)
+```
+
 ### Syntax
 
 ```ebnf
-add (<class-ref>+ | <attribute-ref> | <object-literal>) [to <target-expression>] [when <expression>]
+add (<class-ref>+ | <attribute-ref> | <object-literal> | <expression>) to <target-expression> [when <expression>]
 ```

@@ -356,6 +356,9 @@ export class AppendCommand extends Command {
         if (Array.isArray(target)) {
             target.push(value);
             context.meta.runtime.notifyMutation(target);
+        } else if (target instanceof Set) {
+            target.add(value);
+            context.meta.runtime.notifyMutation(target);
         } else if (target instanceof Element) {
             if (value instanceof Element) {
                 target.insertAdjacentElement("beforeend", value);

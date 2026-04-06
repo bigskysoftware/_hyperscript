@@ -383,6 +383,13 @@ export class PutCommand extends Command {
                         cmd.putInto(context, elt, prop, valueToPut);
                     });
                 }
+            } else if (Array.isArray(root)) {
+                if (this.operation === "start") {
+                    root.unshift(valueToPut);
+                } else {
+                    root.push(valueToPut);
+                }
+                context.meta.runtime.notifyMutation(root);
             } else {
                 var ops = { before: Element.prototype.before, after: Element.prototype.after,
                             start: Element.prototype.prepend, end: Element.prototype.append };

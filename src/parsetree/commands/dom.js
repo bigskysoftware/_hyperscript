@@ -120,7 +120,7 @@ class VisibilityCommand extends Command {
 export class AddCommand extends Command {
     static keyword = "add";
 
-    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when) {
+    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when, valueExpr) {
         super();
         this.variant = variant;
         this.classRefs = classRefs;
@@ -129,10 +129,13 @@ export class AddCommand extends Command {
         this.to = toExpr;
         this.toExpr = toExpr;
         this.when = when;
+        this.valueExpr = valueExpr;
         if (variant === "class") {
             this.args = { to: toExpr, classRefs };
         } else if (variant === "attribute") {
             this.args = { to: toExpr };
+        } else if (variant === "collection") {
+            this.args = { to: toExpr, value: valueExpr };
         } else {
             this.args = { to: toExpr, css: cssDeclaration };
         }
@@ -144,12 +147,21 @@ export class AddCommand extends Command {
         var classRef = parser.parseElement("classRef");
         var attributeRef = null;
         var cssDeclaration = null;
+        var valueExpr = null;
         if (classRef == null) {
             attributeRef = parser.parseElement("attributeRef");
             if (attributeRef == null) {
                 cssDeclaration = parser.parseElement("styleLiteral");
                 if (cssDeclaration == null) {
-                    parser.raiseError("Expected either a class reference or attribute expression");
+                    // Fall through to general expression for collection support:
+                    // add item to myArray, add item to mySet
+                    // Only if "to" follows — otherwise it's a parse error
+                    parser.pushFollow("to");
+                    try { valueExpr = parser.parseElement("expression"); }
+                    finally { parser.popFollow(); }
+                    if (valueExpr == null || !parser.currentToken() || parser.currentToken().value !== "to") {
+                        parser.raiseError("Expected either a class reference or attribute expression");
+                    }
                 }
             }
         } else {
@@ -173,17 +185,31 @@ export class AddCommand extends Command {
             return new AddCommand("class", classRefs, null, null, toExpr, when);
         } else if (attributeRef) {
             return new AddCommand("attribute", null, attributeRef, null, toExpr, when);
-        } else {
+        } else if (cssDeclaration) {
             return new AddCommand("css", null, null, cssDeclaration, toExpr, null);
+        } else {
+            return new AddCommand("collection", null, null, null, toExpr, null, valueExpr);
         }
     }
 
-    resolve(context, { to, classRefs, css }) {
+    resolve(context, { to, classRefs, css, value }) {
         var runtime = context.meta.runtime;
         var cmd = this;
         runtime.nullCheck(to, this.toExpr);
         var result;
-        if (this.variant === "class") {
+        if (this.variant === "collection") {
+            if (Array.isArray(to)) {
+                to.push(value);
+            } else if (to instanceof Set) {
+                to.add(value);
+            } else if (to instanceof Map) {
+                throw new Error("Use 'set myMap[key] to value' for Maps");
+            } else {
+                throw new Error("Cannot add to " + typeof to);
+            }
+            runtime.notifyMutation(to);
+            return runtime.findNext(this, context);
+        } else if (this.variant === "class") {
             runtime.forEach(classRefs, function (classRef) {
                 if (cmd.when) {
                     result = runtime.implicitLoopWhen(to, cmd.when, context,
@@ -313,11 +339,23 @@ export class RemoveCommand extends Command {
         var result;
         if (this.variant === "element") {
             runtime.nullCheck(element, this.elementExpr);
-            runtime.implicitLoop(element, function (target) {
-                if (target.parentElement && (from == null || from.contains(target))) {
-                    target.parentElement.removeChild(target);
-                }
-            });
+            if (from != null && Array.isArray(from)) {
+                var idx = from.indexOf(element);
+                if (idx > -1) from.splice(idx, 1);
+                runtime.notifyMutation(from);
+            } else if (from instanceof Set) {
+                from.delete(element);
+                runtime.notifyMutation(from);
+            } else if (from instanceof Map) {
+                from.delete(element);
+                runtime.notifyMutation(from);
+            } else {
+                runtime.implicitLoop(element, function (target) {
+                    if (target.parentElement && (from == null || from.contains(target))) {
+                        target.parentElement.removeChild(target);
+                    }
+                });
+            }
         } else if (this.variant === "css") {
             runtime.nullCheck(from, this.fromExpr);
             var propNames = _cssPropertyNames(css);
@@ -958,9 +996,17 @@ export class EmptyCommand extends Command {
 
     resolve(ctx, { target }) {
         var elt = target || ctx.me;
-        ctx.meta.runtime.implicitLoop(elt, function (e) {
-            e.replaceChildren();
-        });
+        if (Array.isArray(elt)) {
+            elt.splice(0);
+            ctx.meta.runtime.notifyMutation(elt);
+        } else if (elt instanceof Set || elt instanceof Map) {
+            elt.clear();
+            ctx.meta.runtime.notifyMutation(elt);
+        } else {
+            ctx.meta.runtime.implicitLoop(elt, function (e) {
+                e.replaceChildren();
+            });
+        }
         return this.findNext(ctx);
     }
 }

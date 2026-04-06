@@ -125,6 +125,29 @@ export const conversions = {
     FormEncoded: function (val) {
         return new URLSearchParams(val).toString();
     },
+    Set: function (val) {
+        return new Set(val);
+    },
+    Map: function (val) {
+        return new Map(Object.entries(val));
+    },
+    Keys: function (val) {
+        if (val instanceof Map) return Array.from(val.keys());
+        return Object.keys(val);
+    },
+    Entries: function (val) {
+        if (val instanceof Map) return Array.from(val.entries());
+        return Object.entries(val);
+    },
+    Reversed: function (val) {
+        return Array.from(val).reverse();
+    },
+    Unique: function (val) {
+        return [...new Set(val)];
+    },
+    Flat: function (val) {
+        return Array.from(val).flat();
+    },
     HTML: _toHTML,
     Fragment: function (val, runtime) {
         var frag = document.createDocumentFragment();

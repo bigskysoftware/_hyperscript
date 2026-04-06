@@ -11,6 +11,8 @@ By default, hyperscript provides the following conversions:
 * `Array` - convert to Array
 * `Boolean` - convert to boolean
 * `Date` - convert to Date
+* `Entries` - object or Map entries as an array of `[key, value]` pairs
+* `Flat` - flatten a nested array one level
 * `Float` - convert to float
 * `FormEncoded` - converts an object into a form-encoded string
 * `Fragment` - converts a string into an HTML Fragment
@@ -18,9 +20,14 @@ By default, hyperscript provides the following conversions:
 * `Int` - convert to integer
 * `JSON` - parse a JSON string into an object
 * `JSONString` - convert to a JSON string
+* `Keys` - object or Map keys as an array
+* `Map` - convert an object to a Map (via `Object.entries`)
 * `Number` - convert to number
 * `Object` - convert from a JSON string
+* `Reversed` - a reversed copy of an array
+* `Set` - convert an iterable to a Set (deduplicates)
 * `String` - convert to String
+* `Unique` - deduplicated array (via Set, preserves order)
 * `Values` - converts a Form (or other element) into a struct containing its input names/values
 * `Fixed<:N>` - convert to a fixed precision string representation of the number, with an optional precision of `N`
 

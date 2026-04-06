@@ -36,6 +36,16 @@ The `when` clause lets you filter which elements are affected. The expression is
 </div>
 ```
 
+### Collections
+
+`remove` also works with arrays, sets, and maps:
+
+```hyperscript
+remove item from myArray                 -- finds by value, splices
+remove item from mySet                   -- set.delete(item)
+remove key from myMap                    -- map.delete(key)
+```
+
 ### Syntax
 
 ```ebnf

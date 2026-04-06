@@ -103,4 +103,22 @@ test.describe("the remove command", () => {
 		expect(outerHTML).toContain("bar");
 		expect(outerHTML).toContain("doh");
 	});
+
+	test("can remove a value from an array", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2,3,4]
+		                      remove 3 from :arr
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,4");
+	});
+
+	test("can remove a value from a set", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :s to ['a','b','c'] as Set
+		                      remove 'b' from :s
+		                      put :s.size into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("2");
+	});
 });

@@ -250,6 +250,8 @@ add .foo .bar to <li/>                   -- multiple classes
 add @disabled to me
 add {color: red; font-size: 2em} to me  -- inline styles
 add .highlight to <li/> when it is not me
+add item to myArray                      -- push to array
+add item to mySet                        -- add to set
 
 remove .active
 remove .active from #target
@@ -655,6 +657,13 @@ x as Fixed:2                             -- toFixed(2)
 x as Values                              -- form values as object
 x as Values | FormEncoded                -- form values as URL-encoded string
 x as Values | JSONString                 -- form values as JSON string
+x as Set                                 -- iterable to Set (deduplicates)
+x as Map                                 -- object to Map
+x as Keys                               -- object/Map keys as array
+x as Entries                             -- object/Map entries as array
+x as Reversed                           -- reversed copy of array
+x as Unique                             -- deduplicated array
+x as Flat                               -- flatten nested array
 ```
 
 The pipe operator `|` chains conversions left to right.
