@@ -116,6 +116,23 @@ test.describe("the transition command", () => {
 		await expect(find('div')).toHaveCSS('width', '100px');
 	});
 
+	test("can transition on query ref with possessive", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			var wa = document.getElementById('work-area');
+			wa.innerHTML = '<div></div><div></div>';
+			wa.querySelector('div').setAttribute('_', "on click transition the next <div/>'s *width from 0px to 100px");
+			_hyperscript.process(wa);
+		});
+		await find('div').first().dispatchEvent('click');
+		await expect(find('div').nth(1)).toHaveCSS('width', '100px');
+	});
+
+	test("can transition on query ref with of syntax", async ({html, find}) => {
+		await html("<div _=\"on click transition *width of the next &lt;span/> from 0px to 100px\"></div><span></span>");
+		await find('div').dispatchEvent('click');
+		await expect(find('span')).toHaveCSS('width', '100px');
+	});
+
 	test("can use initial to transition to original value", async ({html, find}) => {
 		await html("<div style='width: 10px' _='on click 1 transition my *width to 100px " +
 			"                                              on click 2 transition my *width to initial'></div>");
