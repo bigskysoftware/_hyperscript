@@ -26,7 +26,7 @@ export class Context {
             Object.defineProperty(this.locals, 'clipboard', {
                 get() { return navigator.clipboard.readText(); },
                 set(v) { navigator.clipboard.writeText(String(v)); },
-                enumerable: true,
+                enumerable: false,
                 configurable: true
             });
         }
