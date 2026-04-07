@@ -165,7 +165,7 @@ title: ///_hyperscript
     <code>${}</code> interpolation, and the runtime handles re-rendering via morphing.</p>
     <p>Components should be easy.  Hyperscript makes them easy.</p>
 {% highlight "html" %}
-<template hyper-component="click-counter"
+<template component="click-counter"
           _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Clicks: ${^count}</span>
