@@ -1,10 +1,11 @@
 /**
  * Bind Feature - Reactive binding (sugar over `when ... changes`)
  *
- *   bind <left> and <right>
- *   bind <left> with <right>
- *   bind <left> to <right>
- *     Two-way. Both sides stay in sync.
+ *   bind X to Y    (also: bind X and Y, bind X with Y)
+ *
+ * Initialization: Y (right side) wins when X is writable.
+ * If X is not writable, X wins (one-way: X drives Y).
+ * If neither side is writable, error.
  *
  * If either side evaluates to a DOM element, bind auto-detects
  * the appropriate property (value, checked, valueAsNumber, etc.).
@@ -78,38 +79,43 @@ function _isAssignable(expr) {
 }
 
 /**
- * Unified bind: resolve each side, create two effects. Left wins on init.
+ * Unified bind: resolve each side, create effects.
+ *
+ * In `bind X to Y`:
+ *   - if X is writable, Y wins as the initial value (right→left first)
+ *   - if X is not writable and Y is writable, X wins (left→right only)
+ *   - if neither is writable, error
  */
 function _bind(left, right, target, feature, runtime) {
     var ctx = runtime.makeContext(target, feature, target, null);
 
-    // Resolve each side: evaluate the expression, check if it's an element
     var leftSide = _resolveSide(left, target, feature, runtime, ctx);
     var rightSide = _resolveSide(right, target, feature, runtime, ctx);
 
-    // Validate assignability
-    if (!leftSide.element && !_isAssignable(left)) {
-        throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+    var leftWritable = leftSide.element || _isAssignable(left);
+    var rightWritable = rightSide.element || _isAssignable(right);
+
+    if (!leftWritable && !rightWritable) {
+        throw new Error("bind requires at least one writable side");
     }
-    if (!rightSide.element && !_isAssignable(right)) {
-        throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
+
+    // When X (left) is writable, right→left runs first so Y wins on init
+    if (leftWritable) {
+        runtime.reactivity.createEffect(
+            function () { return rightSide.read(); },
+            function (newValue) { leftSide.write(newValue); },
+            { element: target }
+        );
     }
 
-    // Effect 1: left -> right
-    runtime.reactivity.createEffect(
-        function () { return leftSide.read(); },
-        function (newValue) { rightSide.write(newValue); },
-        { element: target }
-    );
+    if (rightWritable) {
+        runtime.reactivity.createEffect(
+            function () { return leftSide.read(); },
+            function (newValue) { rightSide.write(newValue); },
+            { element: target }
+        );
+    }
 
-    // Effect 2: right -> left
-    runtime.reactivity.createEffect(
-        function () { return rightSide.read(); },
-        function (newValue) { leftSide.write(newValue); },
-        { element: target }
-    );
-
-    // form.reset() handling: if either side is a form element, listen for reset
     _setupFormReset(leftSide, rightSide, target, runtime);
 }
 

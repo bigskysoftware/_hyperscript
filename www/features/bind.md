@@ -104,17 +104,19 @@ programmatically checks the matching radio and unchecks the others.
 
 ### Initialization
 
-When both sides have values on init, the **left side wins**:
+In `bind X to Y`, the **right side (Y) wins** as the initial value when X is writable.
+Think of it as "X follows Y":
 
 ```html
-<!-- The input's current value drives the variable on init -->
-<input type="text" value="Bob" _="bind me to $name" />
+<!-- Y (me/input) wins: the input's value initializes $name -->
+<input type="text" value="Bob" _="bind $name to me" />
 
-<!-- The variable drives the input on init -->
-<input type="text" _="bind $name to me" />
+<!-- Y ($name) wins: the variable initializes the input -->
+<input type="text" value="Bob" _="bind me to $name" />
 ```
 
-If either side is `undefined` or `null`, the other side wins regardless of position.
+If only one side is writable, the read-only side always wins (one-way binding).
+If neither side is writable, an error is thrown.
 
 ### Infinite Loop Prevention
 

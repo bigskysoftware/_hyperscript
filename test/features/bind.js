@@ -354,64 +354,64 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$darkMode })
 	})
 
-	test('variable on left drives class on init', async ({html, find, run, evaluate}) => {
+	test('right side wins on class init', async ({html, find, run, evaluate}) => {
 		await run("set $highlighted to true")
-		await html(`<div _="bind $highlighted and .highlight">test</div>`)
+		await html(`<div _="bind .highlight to $highlighted">test</div>`)
 		await new Promise(r => setTimeout(r, 100))
 		await expect(find('div')).toHaveClass('highlight')
 		await evaluate(() => { delete window.$highlighted })
 	})
 
 	// ================================================================
-	// Initialization: left side wins
+	// Initialization: right side (Y in "bind X to Y") wins
 	// ================================================================
 
-	test('init: variable on left wins over input value on right', async ({html, find, run, evaluate}) => {
+	test('init: right side wins — input value (Y) overwrites variable (X)', async ({html, find, run, evaluate}) => {
 		await run("set $name to 'Alice'")
-		await html(`<input type="text" value="Bob" _="bind $name and my value" />`)
-		await new Promise(r => setTimeout(r, 100))
-		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Alice')
-		expect(await evaluate(() => window.$name)).toBe('Alice')
-		await evaluate(() => { delete window.$name })
-	})
-
-	test('init: input value on left wins over variable on right', async ({html, find, run, evaluate}) => {
-		await run("set $name to 'Alice'")
-		await html(`<input type="text" value="Bob" _="bind my value and $name" />`)
+		await html(`<input type="text" value="Bob" _="bind $name to my value" />`)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Bob')
 		expect(await evaluate(() => window.$name)).toBe('Bob')
 		await evaluate(() => { delete window.$name })
 	})
 
-	test('init: undefined left side loses to defined right side', async ({html, find, run, evaluate}) => {
-		await html(`<div data-color="red" _="bind $color and @data-color"></div>`)
+	test('init: right side wins — variable (Y) overwrites input value (X)', async ({html, find, run, evaluate}) => {
+		await run("set $name to 'Alice'")
+		await html(`<input type="text" value="Bob" _="bind my value to $name" />`)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Alice')
+		expect(await evaluate(() => window.$name)).toBe('Alice')
+		await evaluate(() => { delete window.$name })
+	})
+
+	test('init: right side wins — attribute (Y) initializes variable (X)', async ({html, find, run, evaluate}) => {
+		await html(`<div data-color="red" _="bind $color to @data-color"></div>`)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => window.$color)).toBe('red')
 		await evaluate(() => { delete window.$color })
 	})
 
-	test('init: defined left side wins over null right side', async ({html, find, run, evaluate}) => {
+	test('init: right side wins — variable (Y) initializes attribute (X)', async ({html, find, run, evaluate}) => {
 		await run("set $theme to 'dark'")
-		await html(`<div _="bind $theme and @data-theme"></div>`)
+		await html(`<div _="bind @data-theme to $theme"></div>`)
 		await new Promise(r => setTimeout(r, 100))
 		await expect(find('div')).toHaveAttribute('data-theme', 'dark')
 		await evaluate(() => { delete window.$theme })
 	})
 
-	test('init: present class on left wins over false variable on right', async ({html, find, run, evaluate}) => {
-		await run("set $isDark to false")
-		await html(`<div class="dark" _="bind .dark and $isDark"></div>`)
+	test('init: right side wins — variable (Y) drives class (X)', async ({html, find, run, evaluate}) => {
+		await run("set $isDark to true")
+		await html(`<div _="bind .dark to $isDark"></div>`)
 		await new Promise(r => setTimeout(r, 100))
-		expect(await evaluate(() => window.$isDark)).toBe(true)
+		await expect.poll(() => find('div').getAttribute('class')).toContain('dark')
 		await evaluate(() => { delete window.$isDark })
 	})
 
-	test('init: true variable on left wins over absent class on right', async ({html, find, run, evaluate}) => {
-		await run("set $isDark to true")
-		await html(`<div _="bind $isDark and .dark"></div>`)
+	test('init: right side wins — class (Y) drives variable (X)', async ({html, find, run, evaluate}) => {
+		await run("set $isDark to false")
+		await html(`<div class="dark" _="bind $isDark to .dark"></div>`)
 		await new Promise(r => setTimeout(r, 100))
-		await expect.poll(() => find('div').getAttribute('class')).toContain('dark')
+		expect(await evaluate(() => window.$isDark)).toBe(true)
 		await evaluate(() => { delete window.$isDark })
 	})
 
@@ -419,11 +419,10 @@ test.describe('the bind feature', () => {
 	// Expression types: possessive, of-expression, attributeRefAccess
 	// ================================================================
 
-	test('possessive property: bind $var and my value', async ({html, find, run, evaluate}) => {
-		await run("set $myVal to 'hello'")
-		await html(`<input type="text" value="" _="bind $myVal and my value" />`)
+	test('possessive property: bind $var to my value', async ({html, find, run, evaluate}) => {
+		await html(`<input type="text" value="hello" _="bind $myVal to my value" />`)
 		await new Promise(r => setTimeout(r, 100))
-		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('hello')
+		expect(await evaluate(() => window.$myVal)).toBe('hello')
 
 		await find('input').fill('world')
 		await expect.poll(() => evaluate(() => window.$myVal)).toBe('world')
@@ -441,14 +440,13 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$label })
 	})
 
-	test('of-expression: bind $var and value of #input', async ({html, find, run, evaluate}) => {
-		await run("set $search to 'initial'")
+	test('of-expression: bind $var to value of #input', async ({html, find, run, evaluate}) => {
 		await html(
-			`<input type="text" id="of-input" value="" />` +
-			`<div _="bind $search and value of #of-input"></div>`
+			`<input type="text" id="of-input" value="initial" />` +
+			`<div _="bind $search to value of #of-input"></div>`
 		)
 		await new Promise(r => setTimeout(r, 100))
-		expect(await evaluate(() => document.getElementById('of-input').value)).toBe('initial')
+		expect(await evaluate(() => window.$search)).toBe('initial')
 		await evaluate(() => { delete window.$search })
 	})
 
@@ -564,8 +562,17 @@ test.describe('the bind feature', () => {
 		).toBe(75)
 	})
 
-	test('element on left wins on init: prepopulated input pushes into variable', async ({html, find, run, evaluate}) => {
+	test('right side wins on init: variable (Y) initializes input (X)', async ({html, find, run, evaluate}) => {
+		await run("set $name to 'Alice'")
 		await html(`<input type="text" value="Bob" _="bind me to $name" />`)
+		await new Promise(r => setTimeout(r, 100))
+		expect(await evaluate(() => window.$name)).toBe('Alice')
+		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Alice')
+		await evaluate(() => { delete window.$name })
+	})
+
+	test('right side wins on init: input (Y) initializes variable (X)', async ({html, find, run, evaluate}) => {
+		await html(`<input type="text" value="Bob" _="bind $name to me" />`)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => window.$name)).toBe('Bob')
 		expect(await evaluate(() => document.querySelector('#work-area input').value)).toBe('Bob')
