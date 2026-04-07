@@ -14,9 +14,12 @@ title: ///_hyperscript
 </svg>
 
 <div class="hero">
-    <img src="/img/logo.png" alt="hyperscript logo" class="hero-logo"
-         _="on mouseenter set my @src to '/img/logo-animated.gif'
-            on mouseleave set my @src to '/img/logo.png'">
+    <div class="hero-logo"
+         _="on mouseenter add .active to me
+            on mouseleave remove .active from me">
+        <img src="/img/logo.png" alt="hyperscript logo" class="hero-logo-static">
+        <img src="/img/logo-animated.gif" alt="" class="hero-logo-animated">
+    </div>
     <div class="hero-title">hyper<span class="hero-accent">s</span>cript</div>
     <h1>Finally... A scripting language for the web</h1>
     <p class="subtitle">Scripting HTML without tears: concise <a href="/docs/dom">DOM manipulation</a>, <a href="/docs/events">events</a>, <a href="/docs/reactivity">reactivity</a> & <a href="/docs">more</a>, no <a href="/docs/async/">async or await</a>.</p>
