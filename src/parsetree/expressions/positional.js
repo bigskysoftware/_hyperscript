@@ -55,7 +55,7 @@ export class RelativePositionalExpression extends Expression {
         } else if (parser.matchToken("within")) {
             withinElt = parser.requireElement("unaryExpression");
         } else {
-            withinElt = document.body;
+            withinElt = null; // resolved to document.body at runtime
         }
 
         var wrapping = false;
@@ -142,12 +142,11 @@ export class RelativePositionalExpression extends Expression {
                 }
             }
         } else {
-            if (withinElt) {
-                if (this.forwardSearch) {
-                    return this.scanForwardQuery(from, withinElt, css, this.wrapping);
-                } else {
-                    return this.scanBackwardsQuery(from, withinElt, css, this.wrapping);
-                }
+            var root = withinElt ?? document.body;
+            if (this.forwardSearch) {
+                return this.scanForwardQuery(from, root, css, this.wrapping);
+            } else {
+                return this.scanBackwardsQuery(from, root, css, this.wrapping);
             }
         }
     }

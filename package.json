@@ -25,7 +25,7 @@
     "./ext/*": "./dist/ext/*"
   },
   "bin": {
-    "_hyperscript": "dist/platform/node-hyperscript.js"
+    "hyperscript.org": "dist/platform/node-hyperscript.js"
   },
   "scripts": {
     "build": "node build.config.mjs",
