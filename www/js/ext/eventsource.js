@@ -187,7 +187,7 @@
     };
   }
   function decode(data, encoding) {
-    if (encoding == "json") {
+    if (encoding.toLowerCase() === "json") {
       return JSON.parse(data);
     }
     return data;

@@ -113,7 +113,7 @@ var SocketFeature = class _SocketFeature extends Feature {
     if (parser.matchToken("on")) {
       parser.requireToken("message");
       if (parser.matchToken("as")) {
-        parser.requireToken("json");
+        if (!parser.matchToken("JSON")) parser.requireToken("json");
         jsonMessages = true;
       }
       messageHandler = parser.requireElement("commandList");

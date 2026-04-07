@@ -27,11 +27,11 @@ title: ///_hyperscript
 <input type="text"
        placeholder="Search..."
        _="on input
-              hide #no-match
-              show <li:not(#no-match)/> in #hero-results
-                when its textContent contains my value
-                ignoring case
-              show #no-match when the result is empty" />
+            hide #no-match
+            show <li:not(#no-match)/> in #hero-results
+              when its textContent contains my value
+              ignoring case
+            show #no-match when the result is empty" />
 {% endhighlight %}
             </div>
         </div>
@@ -173,6 +173,9 @@ title: ///_hyperscript
 {% highlight "html" %}
 <input type="text" id="name" _="bind me to $value"/>
 <h1 _="when $value changes put it into me"></h1>
+<template live>
+  The value is ${value}!
+</template>
 {% endhighlight %}
 </div>
 

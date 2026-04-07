@@ -11,6 +11,12 @@
 }
 
 @font-face {
+    font-family: "Sikago";
+    src: url("/fonts/Sikago.ttf") format("truetype");
+    font-display: block;
+}
+
+@font-face {
     font-family: "IBM Plex Sans";
     src: url("/fonts/IBMPlexSans-Regular.woff2") format("woff2");
     font-weight: 400; font-style: normal; font-display: swap;
@@ -409,7 +415,7 @@ pre { margin: 0; overflow-x: auto; }
 
 /* Code blocks — dark (Nord) */
 pre[class*="language-"] {
-    background: #2e3440;
+    background: #1e2228;
     border: 1px solid #3b4252;
     border-radius: var(--radius);
     padding: 12px 14px;
@@ -419,14 +425,14 @@ pre[class*="language-"] {
 }
 
 pre[class*="language-"] code {
-    color: #d8dee9;
+    color: #e2e8f0;
 }
 
-pre[class*="language-"] .token.comment { color: #616e88; }
+pre[class*="language-"] .token.comment { color: #5a6578; font-style: italic; }
 pre[class*="language-"] .token.string,
-pre[class*="language-"] .token.attr-value { color: #a3be8c; }
+pre[class*="language-"] .token.attr-value { color: #7ec699; }
 pre[class*="language-"] .token.punctuation,
-pre[class*="language-"] .token.operator { color: #d8dee9; }
+pre[class*="language-"] .token.operator { color: #c0cfe0; }
 pre[class*="language-"] .token.entity,
 pre[class*="language-"] .token.url,
 pre[class*="language-"] .token.symbol,
@@ -436,16 +442,16 @@ pre[class*="language-"] .token.variable,
 pre[class*="language-"] .token.constant,
 pre[class*="language-"] .token.property,
 pre[class*="language-"] .token.regex,
-pre[class*="language-"] .token.inserted { color: #d08770; }
+pre[class*="language-"] .token.inserted { color: #e6994a; }
 pre[class*="language-"] .token.atrule,
 pre[class*="language-"] .token.keyword,
-pre[class*="language-"] .token.attr-name { color: #81a1c1; }
+pre[class*="language-"] .token.attr-name { color: #6cb6ff; font-weight: bold; }
 pre[class*="language-"] .token.function,
-pre[class*="language-"] .token.deleted { color: #88c0d0; }
+pre[class*="language-"] .token.deleted { color: #5bc4e0; }
 pre[class*="language-"] .token.tag,
-pre[class*="language-"] .token.selector { color: #b48ead; }
-pre[class*="language-"] .token.bold { color: #81a1c1; }
-pre[class*="language-"] .token.builtin { color: #ebcb8b; }
+pre[class*="language-"] .token.selector { color: #d2a0e0; }
+pre[class*="language-"] .token.bold { color: #6cb6ff; }
+pre[class*="language-"] .token.builtin { color: #f0d26e; }
 
 /* Reset when inside example/window/card containers */
 .example-code pre[class*="language-"],
@@ -1019,16 +1025,17 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     margin-bottom: -0.2rem;
 }
 
-.hero-accent { color: #4a6fa5; font-weight: 900; }
+.hero-accent { color: #5b8fd4; font-weight: 900; }
 
 .hero-title {
-    font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 10vw, 6rem);
+    font-family: "Sikago", var(--font-heading);
+    font-size: clamp(3rem, 12vw, 8rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--text);
-    margin-bottom: 0.2rem;
-    filter: url(#pixelate);
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    /* filter: url(#pixelate); -- Sikago is already a pixel font */
 }
 
 .hero h1 {
@@ -1060,7 +1067,7 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 }
 
 .hero-code .window-body {
-    background: #2e3440;
+    background: #1e2228;
     padding: 0;
 }
 

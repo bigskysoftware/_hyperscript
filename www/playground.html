@@ -59,9 +59,33 @@ title: Try it! - ///_hyperscript
         flex-shrink: 0;
     }
     .preview-frame { flex: 1; background: white; border: none; min-height: 0; }
-    .pane-editor { background: #2e3440; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-    .pane-editor .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .pane-editor { background: #1e2228; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .pane-editor .pane-label { background: #282e36; color: #e2e8f0; border-color: #3b4252; }
     .CodeMirror { flex: 1; height: auto; font-size: 14px; font-family: var(--mono-font); font-weight: bold; }
+    /* Custom CodeMirror theme */
+    .cm-s-hyperscript.CodeMirror { background: #1e2228; color: #e2e8f0; }
+    .cm-s-hyperscript .CodeMirror-gutters { background: #1e2228; border-right: 1px solid #2e3440; }
+    .cm-s-hyperscript .CodeMirror-linenumber { color: #4a5568; }
+    .cm-s-hyperscript .CodeMirror-cursor { border-left: 1px solid #e2e8f0; }
+    .cm-s-hyperscript .CodeMirror-selected { background: #2e3a4e; }
+    .cm-s-hyperscript .CodeMirror-activeline-background { background: #252b33; }
+    .cm-s-hyperscript .CodeMirror-matchingbracket { color: #f0d26e !important; text-decoration: underline; }
+    .cm-s-hyperscript span.cm-tag { color: #d2a0e0; }
+    .cm-s-hyperscript span.cm-bracket { color: #e2e8f0; }
+    .cm-s-hyperscript span.cm-attribute { color: #6cb6ff; }
+    .cm-s-hyperscript span.cm-string { color: #7ec699; }
+    .cm-s-hyperscript span.cm-string-2 { color: #7ec699; }
+    .cm-s-hyperscript span.cm-keyword { color: #6cb6ff; font-weight: bold; }
+    .cm-s-hyperscript span.cm-number { color: #e6994a; }
+    .cm-s-hyperscript span.cm-comment { color: #5a6578; font-style: italic; }
+    .cm-s-hyperscript span.cm-def { color: #5bc4e0; }
+    .cm-s-hyperscript span.cm-variable { color: #e2e8f0; }
+    .cm-s-hyperscript span.cm-variable-2 { color: #e2e8f0; }
+    .cm-s-hyperscript span.cm-property { color: #e2e8f0; }
+    .cm-s-hyperscript span.cm-operator { color: #c0cfe0; }
+    .cm-s-hyperscript span.cm-atom { color: #e6994a; }
+    .cm-s-hyperscript span.cm-meta { color: #5bc4e0; }
+    .cm-s-hyperscript span.cm-builtin { color: #f0d26e; }
 
     .playground-status {
         padding: 3px 12px;
@@ -73,16 +97,13 @@ title: Try it! - ///_hyperscript
     }
     .playground-status .error { color: #c00; }
 
-    /* Dark-themed hyperscript tokens (for nord) */
-    .cm-hs-keyword { color: #b48ead; }
-    .cm-hs-symbol-global { color: #88c0d0; }
-    .cm-hs-symbol-element { color: #d08770; }
-    .cm-hs-symbol-dom { color: #a3be8c; }
-    .cm-hs-symbol-inherited-attr { color: #ebcb8b; }
-    .cm-hs-string { color: #a3be8c; }
-    .cm-hs-number { color: #d08770; }
-    .cm-hs-operator { color: #81a1c1; }
-    .cm-hs-comment { color: #616e88; font-style: italic; }
+    /* Hyperscript overlay tokens — must beat cm-string when both apply */
+    .cm-hs-keyword { color: #6cb6ff !important; font-weight: bold; }
+    .cm-hs-symbol-global { color: #5bc4e0 !important; }
+    .cm-hs-symbol-element { color: #e6994a !important; }
+    .cm-hs-symbol-dom { color: #7ec699 !important; }
+    .cm-hs-symbol-inherited-attr { color: #f0d26e !important; }
+    .cm-hs-comment { color: #5a6578 !important; font-style: italic; }
 
     /* Console */
     .pane-console {
@@ -90,10 +111,10 @@ title: Try it! - ///_hyperscript
         flex-direction: column;
         flex: 0 1 180px;
         min-height: 80px;
-        background: #2e3440;
-        border-top: 1px solid #4c566a;
+        background: #1e2228;
+        border-top: 1px solid #3b4252;
     }
-    .pane-console .pane-label { background: #3b4252; color: #d8dee9; border-color: #4c566a; }
+    .pane-console .pane-label { background: #282e36; color: #e2e8f0; border-color: #3b4252; }
     .pane-console { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     .console-output {
         flex: 1;
@@ -102,25 +123,25 @@ title: Try it! - ///_hyperscript
         font-family: var(--mono-font);
         font-size: 12px;
         font-weight: bold;
-        color: #d8dee9;
-        background: #3b4252;
+        color: #e2e8f0;
+        background: #252b33;
     }
-    .console-output .log { color: #d8dee9; }
-    .console-output .warn { color: #ebcb8b; }
-    .console-output .error { color: #bf616a; }
-    .console-output .result { color: #88c0d0; }
-    .console-output .separator { color: #4c566a; border-top: 1px solid #3b4252; margin: 4px 0; }
+    .console-output .log { color: #e2e8f0; }
+    .console-output .warn { color: #f0d26e; }
+    .console-output .error { color: #e05555; }
+    .console-output .result { color: #5bc4e0; }
+    .console-output .separator { color: #3b4252; border-top: 1px solid #2e3440; margin: 4px 0; }
     .console-output div { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
     .console-input-line {
         display: flex;
         align-items: center;
-        border-top: 1px solid #4c566a;
+        border-top: 1px solid #3b4252;
         padding: 4px 10px;
-        background: #2e3440;
+        background: #1e2228;
         flex-shrink: 0;
     }
     .console-prompt {
-        color: #88c0d0;
+        color: #5bc4e0;
         font-family: var(--mono-font);
         font-size: 13px;
         margin-right: 6px;
@@ -132,7 +153,7 @@ title: Try it! - ///_hyperscript
         border: none;
         outline: none;
         box-shadow: none;
-        color: #eceff4;
+        color: #e2e8f0;
         font-family: var(--mono-font);
         font-size: 12px;
         font-weight: bold;
@@ -144,28 +165,28 @@ title: Try it! - ///_hyperscript
         line-height: 1.5;
         height: 18px;
     }
-    .console-input::placeholder { color: #616e88; }
+    .console-input::placeholder { color: #5a6578; }
 
     /* Resize handles */
     .resize-handle-h {
         width: 5px;
         cursor: col-resize;
-        background: #3b4252;
+        background: #2e3440;
         flex-shrink: 0;
         transition: background 0.15s;
     }
     .resize-handle-h:hover,
-    .resize-handle-h.dragging { background: #88c0d0; }
+    .resize-handle-h.dragging { background: #5bc4e0; }
 
     .resize-handle-v {
         height: 5px;
         cursor: row-resize;
-        background: #3b4252;
+        background: #2e3440;
         flex-shrink: 0;
         transition: background 0.15s;
     }
     .resize-handle-v:hover,
-    .resize-handle-v.dragging { background: #88c0d0; }
+    .resize-handle-v.dragging { background: #5bc4e0; }
 
     @media (max-width: 768px) {
         .playground-panes { flex-direction: column; }
@@ -177,7 +198,6 @@ title: Try it! - ///_hyperscript
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/lint/lint.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/nord.min.css">
 
 <div class="playground">
     <div class="playground-toolbar">
@@ -274,6 +294,13 @@ CodeMirror.defineMode("html-hyperscript", function (config) {
                 if (stream.match(/^\^[a-zA-Z_]\w*/)) return "hs-symbol-dom";
                 if (stream.match(/^\$[a-zA-Z_]\w*/)) return "hs-symbol-global";
                 if (stream.match(/^:[a-zA-Z_]\w*/)) return "hs-symbol-element";
+                if (stream.match(/^[a-zA-Z_]\w*/)) {
+                    var word = stream.current();
+                    if (HS_KEYWORD_SET.has(word)) return "hs-keyword";
+                    return null;
+                }
+                if (stream.match(/^#[a-zA-Z_][\w-]*/)) return "hs-symbol-element";
+                if (stream.match(/^\.[a-zA-Z_][\w-]*/)) return "hs-symbol-dom";
                 stream.next();
                 return null;
             }
@@ -373,7 +400,7 @@ CodeMirror.registerHelper("hint", "html-hyperscript", hsHint);
 // ============================================================
 var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
     mode: 'html-hyperscript',
-    theme: 'nord',
+    theme: 'hyperscript',
     lineNumbers: true,
     tabSize: 2,
     indentWithTabs: false,
