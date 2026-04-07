@@ -1821,6 +1821,7 @@
       return Array.from(val);
     },
     JSON: function(val) {
+      if (typeof Response !== "undefined" && val instanceof Response) return val.json();
       return JSON.parse(val);
     },
     JSONString: function(val) {
@@ -1838,6 +1839,29 @@
     },
     FormEncoded: function(val) {
       return new URLSearchParams(val).toString();
+    },
+    Set: function(val) {
+      return new Set(val);
+    },
+    Map: function(val) {
+      return new Map(Object.entries(val));
+    },
+    Keys: function(val) {
+      if (val instanceof Map) return Array.from(val.keys());
+      return Object.keys(val);
+    },
+    Entries: function(val) {
+      if (val instanceof Map) return Array.from(val.entries());
+      return Object.entries(val);
+    },
+    Reversed: function(val) {
+      return Array.from(val).reverse();
+    },
+    Unique: function(val) {
+      return [...new Set(val)];
+    },
+    Flat: function(val) {
+      return Array.from(val).flat();
     },
     HTML: _toHTML,
     Fragment: function(val, runtime2) {
@@ -2140,7 +2164,7 @@
         }
       }
     }
-    unifiedEval(parseElement, ctx, shortCircuitOnValue) {
+    unifiedEval(parseElement, ctx) {
       var async = false;
       var evaluatedArgs = {};
       if (parseElement.args) {
@@ -2170,15 +2194,6 @@
               async = true;
             }
             evaluatedArgs[name] = value;
-            if (value) {
-              if (shortCircuitOnValue === true) {
-                break;
-              }
-            } else {
-              if (shortCircuitOnValue === false) {
-                break;
-              }
-            }
           } else {
             evaluatedArgs[name] = argument;
           }
@@ -4481,8 +4496,25 @@
         return lhsVal || rhsVal;
       }
     }
+    // override to handle promise-compatible and/or short-circuiting
     evaluate(context) {
-      return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
+      var self2 = this;
+      var shortCircuitValue = this.operator === "or";
+      var lhsVal = this.lhs.evaluate(context);
+      var continueWith = function(resolvedLhs) {
+        if (!!resolvedLhs === shortCircuitValue) {
+          return resolvedLhs;
+        }
+        var rhsVal = self2.rhs.evaluate(context);
+        if (rhsVal && rhsVal.then) {
+          return rhsVal.then((r) => self2.resolve(context, { lhs: resolvedLhs, rhs: r }));
+        }
+        return self2.resolve(context, { lhs: resolvedLhs, rhs: rhsVal });
+      };
+      if (lhsVal && lhsVal.then) {
+        return lhsVal.then(continueWith);
+      }
+      return continueWith(lhsVal);
     }
   };
   var DotOrColonPathNode = class extends Expression {
@@ -5577,6 +5609,9 @@
       if (Array.isArray(target)) {
         target.push(value);
         context.meta.runtime.notifyMutation(target);
+      } else if (target instanceof Set) {
+        target.add(value);
+        context.meta.runtime.notifyMutation(target);
       } else if (target instanceof Element) {
         if (value instanceof Element) {
           target.insertAdjacentElement("beforeend", value);
@@ -5765,11 +5800,11 @@
       parser.matchToken("a") || parser.matchToken("an");
       if (parser.matchToken("json") || parser.matchToken("JSON") || parser.matchToken("Object")) {
         type = "json";
-      } else if (parser.matchToken("response")) {
+      } else if (parser.matchToken("response") || parser.matchToken("Response")) {
         type = "response";
       } else if (parser.matchToken("html") || parser.matchToken("HTML")) {
         type = "html";
-      } else if (parser.matchToken("text") || parser.matchToken("String")) {
+      } else if (parser.matchToken("text") || parser.matchToken("Text") || parser.matchToken("String")) {
       } else {
         conversion = parser.requireElement("dotOrColonPath").evalStatically();
       }
@@ -6343,6 +6378,13 @@
               cmd.putInto(context, elt, prop, valueToPut);
             });
           }
+        } else if (Array.isArray(root)) {
+          if (this.operation === "start") {
+            root.unshift(valueToPut);
+          } else {
+            root.push(valueToPut);
+          }
+          context.meta.runtime.notifyMutation(root);
         } else {
           var ops = {
             before: Element.prototype.before,
@@ -7155,7 +7197,7 @@
   };
   var AddCommand = class _AddCommand extends Command {
     static keyword = "add";
-    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when) {
+    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when, valueExpr) {
       super();
       this.variant = variant;
       this.classRefs = classRefs;
@@ -7164,10 +7206,13 @@
       this.to = toExpr;
       this.toExpr = toExpr;
       this.when = when;
+      this.valueExpr = valueExpr;
       if (variant === "class") {
         this.args = { to: toExpr, classRefs };
       } else if (variant === "attribute") {
         this.args = { to: toExpr };
+      } else if (variant === "collection") {
+        this.args = { to: toExpr, value: valueExpr };
       } else {
         this.args = { to: toExpr, css: cssDeclaration };
       }
@@ -7177,12 +7222,21 @@
       var classRef = parser.parseElement("classRef");
       var attributeRef = null;
       var cssDeclaration = null;
+      var valueExpr = null;
       if (classRef == null) {
         attributeRef = parser.parseElement("attributeRef");
         if (attributeRef == null) {
           cssDeclaration = parser.parseElement("styleLiteral");
           if (cssDeclaration == null) {
-            parser.raiseError("Expected either a class reference or attribute expression");
+            parser.pushFollow("to");
+            try {
+              valueExpr = parser.parseElement("expression");
+            } finally {
+              parser.popFollow();
+            }
+            if (valueExpr == null || !parser.currentToken() || parser.currentToken().value !== "to") {
+              parser.raiseError("Expected either a class reference or attribute expression");
+            }
           }
         }
       } else {
@@ -7203,16 +7257,30 @@
         return new _AddCommand("class", classRefs, null, null, toExpr, when);
       } else if (attributeRef) {
         return new _AddCommand("attribute", null, attributeRef, null, toExpr, when);
-      } else {
+      } else if (cssDeclaration) {
         return new _AddCommand("css", null, null, cssDeclaration, toExpr, null);
+      } else {
+        return new _AddCommand("collection", null, null, null, toExpr, null, valueExpr);
       }
     }
-    resolve(context, { to, classRefs, css }) {
+    resolve(context, { to, classRefs, css, value }) {
       var runtime2 = context.meta.runtime;
       var cmd = this;
       runtime2.nullCheck(to, this.toExpr);
       var result;
-      if (this.variant === "class") {
+      if (this.variant === "collection") {
+        if (Array.isArray(to)) {
+          to.push(value);
+        } else if (to instanceof Set) {
+          to.add(value);
+        } else if (to instanceof Map) {
+          throw new Error("Use 'set myMap[key] to value' for Maps");
+        } else {
+          throw new Error("Cannot add to " + typeof to);
+        }
+        runtime2.notifyMutation(to);
+        return runtime2.findNext(this, context);
+      } else if (this.variant === "class") {
         runtime2.forEach(classRefs, function(classRef) {
           if (cmd.when) {
             result = runtime2.implicitLoopWhen(
@@ -7351,11 +7419,23 @@
       var result;
       if (this.variant === "element") {
         runtime2.nullCheck(element, this.elementExpr);
-        runtime2.implicitLoop(element, function(target) {
-          if (target.parentElement && (from == null || from.contains(target))) {
-            target.parentElement.removeChild(target);
-          }
-        });
+        if (from != null && Array.isArray(from)) {
+          var idx = from.indexOf(element);
+          if (idx > -1) from.splice(idx, 1);
+          runtime2.notifyMutation(from);
+        } else if (from instanceof Set) {
+          from.delete(element);
+          runtime2.notifyMutation(from);
+        } else if (from instanceof Map) {
+          from.delete(element);
+          runtime2.notifyMutation(from);
+        } else {
+          runtime2.implicitLoop(element, function(target) {
+            if (target.parentElement && (from == null || from.contains(target))) {
+              target.parentElement.removeChild(target);
+            }
+          });
+        }
       } else if (this.variant === "css") {
         runtime2.nullCheck(from, this.fromExpr);
         var propNames = _cssPropertyNames(css);
@@ -7927,9 +8007,17 @@
     }
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
-      ctx.meta.runtime.implicitLoop(elt, function(e) {
-        e.replaceChildren();
-      });
+      if (Array.isArray(elt)) {
+        elt.splice(0);
+        ctx.meta.runtime.notifyMutation(elt);
+      } else if (elt instanceof Set || elt instanceof Map) {
+        elt.clear();
+        ctx.meta.runtime.notifyMutation(elt);
+      } else {
+        ctx.meta.runtime.implicitLoop(elt, function(e) {
+          e.replaceChildren();
+        });
+      }
       return this.findNext(ctx);
     }
   };
@@ -9778,6 +9866,76 @@
   kernel.registerModule(bind_exports);
   kernel.registerModule(live_exports);
   kernel.registerModule(template_exports);
+  var liveTemplatesProcessed = /* @__PURE__ */ new WeakSet();
+  runtime.addBeforeProcessHook(function(elt) {
+    if (!elt || !elt.querySelectorAll) return;
+    elt.querySelectorAll("template[live]").forEach(function(tmpl) {
+      if (liveTemplatesProcessed.has(tmpl)) return;
+      liveTemplatesProcessed.add(tmpl);
+      var source = tmpl.innerHTML;
+      var script = tmpl.getAttribute("_") || tmpl.getAttribute("data-script") || "";
+      tmpl.removeAttribute("_");
+      tmpl.removeAttribute("data-script");
+      var wrapper = document.createElement("div");
+      wrapper.style.display = "contents";
+      wrapper.setAttribute("data-live-template", "");
+      tmpl.after(wrapper);
+      if (script) {
+        wrapper.setAttribute("_", script);
+        runtime.processNode(wrapper);
+      }
+      var stamped = false;
+      function stamp(html) {
+        if (!stamped) {
+          wrapper.innerHTML = html;
+          runtime.processNode(wrapper);
+          stamped = true;
+        } else {
+          runtime.morph(wrapper, html);
+        }
+      }
+      function render() {
+        var ctx = runtime.makeContext(wrapper, null, wrapper, null);
+        var buf = [];
+        ctx.meta.__ht_template_result = buf;
+        var tokens = tokenizer.tokenize(source, "lines");
+        var parser = new Parser(kernel, tokens);
+        var cmds;
+        try {
+          cmds = parser.parseElement("commandList");
+          parser.ensureTerminated(cmds);
+        } catch (e) {
+          console.error("live-template parse error:", e.message || e);
+          return "";
+        }
+        cmds.execute(ctx);
+        if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
+        var resolve;
+        var promise = new Promise(function(r) {
+          resolve = r;
+        });
+        ctx.meta.resolve = resolve;
+        return promise.then(function() {
+          return buf.join("");
+        });
+      }
+      queueMicrotask(function() {
+        var result = render();
+        if (result && result.then) {
+          result.then(function(html) {
+            stamp(html);
+            setupEffect();
+          });
+        } else {
+          stamp(result);
+          setupEffect();
+        }
+      });
+      function setupEffect() {
+        reactivity.createEffect(render, stamp, { element: wrapper });
+      }
+    });
+  });
   function evaluate(src, ctx, args) {
     let body;
     if ("document" in globalScope) {
