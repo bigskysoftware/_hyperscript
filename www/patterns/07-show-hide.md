@@ -5,7 +5,7 @@ difficulty: beginner
 ---
 
 {% example "Click to show and hide" %}
-<button _="on click toggle the *display of #panel between 'none' and 'block'">Toggle Panel</button>
+<button _="on click toggle the *display of the next <div/> between 'none' and 'block'">Toggle Panel</button>
 <div id="panel" style="display:none; padding: 1em; background: #f0f0f0; margin-top: 0.5em;">
   I appear and disappear!
 </div>
