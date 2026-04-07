@@ -4,6 +4,7 @@
 
 # Clean all build artifacts
 clean:
+    rm -rf dist
     rm -rf jetbrains/.gradle jetbrains/.intellijPlatform jetbrains/build
     rm -rf common/tree-sitter-hyperscript/src common/tree-sitter-hyperscript/build
     rm -rf lsp/node_modules vscode/node_modules
@@ -54,6 +55,15 @@ test-lsp:
       console.assert(hover.getHover('toggle'), 'should have hover for toggle'); \
       console.log('All LSP tests passed'); \
     "
+
+# Build all plugins (JetBrains, VS Code) into tools/dist/
+build-all: build-iife
+    rm -rf dist
+    mkdir -p dist
+    cd jetbrains && ./gradlew buildPlugin
+    cp jetbrains/build/distributions/*.zip dist/
+    cd vscode && vsce package -o ../dist/
+    @echo "Built tools/dist/"
 
 # Launch VS Code with the extension for testing
 run-vscode:
