@@ -127,7 +127,9 @@ export class LanguageKernel {
 
     parseUnaryExpression(parser) {
         parser.matchToken("the"); // optional "the"
-        return parser.parseAnyOf(this.#unaryExpressions) || parser.parseElement("postfixExpression");
+        var result = parser.parseAnyOf(this.#unaryExpressions);
+        if (result) return this.parseElement("indirectExpression", parser, result);
+        return parser.parseElement("postfixExpression");
     }
 
     parseExpression(parser) {

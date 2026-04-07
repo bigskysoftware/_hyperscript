@@ -222,4 +222,37 @@ test.describe("the relative positional expression", () => {
 		expect(await evaluate(() => _hyperscript("the previous <h1/> from #d2 in .c1 with wrapping"))).toBeUndefined()
 		expect(await evaluate(() => _hyperscript("the previous <h1/> from #d3 in .c1 with wrapping"))).toBeUndefined()
 	})
+
+	// ================================================================
+	// Possessive access on positional expressions
+	// ================================================================
+
+	test("can access property of next element with possessive", async ({html, evaluate}) => {
+		await html('<div id="d1"></div><div id="d2">hello</div>')
+		let result = await evaluate(() => _hyperscript("the next <div/>'s textContent", {me: document.getElementById('d1')}))
+		expect(result).toBe('hello')
+	})
+
+	test("can access property of previous element with possessive", async ({html, evaluate}) => {
+		await html('<div id="d1">world</div><div id="d2"></div>')
+		let result = await evaluate(() => _hyperscript("the previous <div/>'s textContent", {me: document.getElementById('d2')}))
+		expect(result).toBe('world')
+	})
+
+	test("can access style of next element with possessive", async ({html, find, evaluate}) => {
+		await html('<div id="d1"></div><div id="d2" style="color: red"></div>')
+		let result = await evaluate(() => _hyperscript("the next <div/>'s *color", {me: document.getElementById('d1')}))
+		expect(result).toBe('red')
+	})
+
+	test("can write to next element with put command", async ({html, find, evaluate}) => {
+		await evaluate(() => {
+			var wa = document.getElementById('work-area');
+			wa.innerHTML = '<div id="d1"></div><div id="d2">original</div>';
+			wa.querySelector('#d1').setAttribute('_', "on click put 'updated' into the next <div/>'s textContent");
+			_hyperscript.process(wa);
+		});
+		await find('#d1').dispatchEvent('click');
+		await expect(find('#d2')).toHaveText('updated');
+	})
 })

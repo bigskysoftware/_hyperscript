@@ -34,7 +34,7 @@ export class RelativePositionalExpression extends Expression {
         if (!op) return;
         var forwardSearch = op.value === "next";
 
-        var thingElt = parser.parseElement("expression");
+        var thingElt = parser.parseElement("leaf");
 
         if (parser.matchToken("from")) {
             parser.pushFollow("in");
