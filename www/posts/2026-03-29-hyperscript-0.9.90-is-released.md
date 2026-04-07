@@ -304,6 +304,23 @@ If you are upgrading from 0.9.14 or earlier, the following breaking changes may 
 
 <div class="upgrade-section">
 
+#### Validate your codebase
+
+This release includes a CLI validation tool. Run it before and after upgrading to catch any
+syntax errors introduced by the breaking changes below:
+
+```bash
+npx hyperscript.org --validate
+```
+
+This scans your `.html` and `._hs` files, parses all hyperscript, and reports errors with
+file, line, and column numbers. See the [full documentation](/docs/conclusion/#validate) for
+options like targeting specific directories, adding file extensions, and CI integration.
+
+</div>
+
+<div class="upgrade-section">
+
 #### 1. Extension paths moved
 
 All extension scripts have been reorganized into a `dist/ext/` subdirectory.

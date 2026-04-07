@@ -186,6 +186,71 @@ full debugger.
 <output>--</output>
 {% endexample %}
 
+## CLI Validation {#validate}
+
+Hyperscript ships with a command-line tool that scans your codebase for parse errors. It extracts
+hyperscript from HTML attributes (`_`, `script`, `data-script`) and `<script type="text/hyperscript">`
+blocks, parses each snippet, and reports errors with file, line, and column numbers.
+
+### Basic Usage
+
+```bash
+npx hyperscript.org --validate
+```
+
+This recursively scans the current directory for `.html`, `.htm`, and `._hs` files. Errors are
+printed with source context and underlines pointing to the problem:
+
+```
+src/index.html:14:23 error: Unexpected Token : sett
+  14 |   <button _="on click sett x to 10">Bad command</button>
+     |                       ~~~~
+```
+
+### Targeting Specific Files or Directories {#validate-paths}
+
+Pass paths as arguments to limit the scan:
+
+```bash
+npx hyperscript.org --validate src/ templates/
+npx hyperscript.org --validate index.html about.html
+```
+
+### Additional File Extensions {#validate-ext}
+
+By default only `.html`, `.htm`, and `._hs` files are scanned. Use `--ext` to add more:
+
+```bash
+npx hyperscript.org --validate --ext .njk,.erb,.jinja
+```
+
+### Additional Attributes {#validate-attr}
+
+If your project uses custom attribute names for hyperscript, add them with `--attr`:
+
+```bash
+npx hyperscript.org --validate --attr hs,data-hs
+```
+
+### CI Integration {#validate-ci}
+
+The tool exits with code 0 when no errors are found and code 1 when there are errors,
+making it easy to add to a CI pipeline. Use `--quiet` to suppress individual error details
+and only print the summary:
+
+```bash
+npx hyperscript.org --validate --quiet
+```
+
+### What It Checks
+
+The validator catches **syntax errors** — misspelled commands, missing expressions, unterminated
+strings, unbalanced braces, and anything else the parser rejects. It does not execute your
+hyperscript, so runtime concerns like missing DOM elements or undefined variables are not reported.
+
+For `._hs` files, the entire file is parsed as a hyperscript program. For HTML files, each
+hyperscript region is parsed independently.
+
 ## Using JavaScript {#js-migration}
 
 Hyperscript is directly integrated with JavaScript, providing ways to use them side by side and migrate with ease.
