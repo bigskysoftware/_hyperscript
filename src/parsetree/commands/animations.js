@@ -88,13 +88,11 @@ export class TransitionCommand extends Command {
         var to = [];
 
         do {
-            parser.pushFollow("from");
-            parser.pushFollow("to");
+            var follows = parser.pushFollows("from", "to");
             try {
                 propExprs.push(parser.requireElement("expression"));
             } finally {
-                parser.popFollow();
-                parser.popFollow();
+                parser.popFollows(follows);
             }
 
             from.push(parser.matchToken("from") ? parser.requireElement("expression") : null);

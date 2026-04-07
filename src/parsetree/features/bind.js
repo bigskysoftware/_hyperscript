@@ -24,16 +24,12 @@ export class BindFeature extends Feature {
     static parse(parser) {
         if (!parser.matchToken("bind")) return;
 
-        parser.pushFollow("and");
-        parser.pushFollow("with");
-        parser.pushFollow("to");
+        var follows = parser.pushFollows("and", "with", "to");
         var left;
         try {
             left = parser.requireElement("expression");
         } finally {
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
         }
 
         if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {

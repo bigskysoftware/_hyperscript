@@ -196,19 +196,11 @@ export class SymbolRef extends Expression {
             }
             var targetExpr = null;
             if (scope === "inherited" && parser.matchToken("on")) {
-                parser.pushFollow("to");
-                parser.pushFollow("into");
-                parser.pushFollow("before");
-                parser.pushFollow("after");
-                parser.pushFollow("then");
+                var follows = parser.pushFollows("to", "into", "before", "after", "then");
                 try {
                     targetExpr = parser.requireElement("expression");
                 } finally {
-                    parser.popFollow();
-                    parser.popFollow();
-                    parser.popFollow();
-                    parser.popFollow();
-                    parser.popFollow();
+                    parser.popFollows(follows);
                 }
             }
             return new SymbolRef(identifier, scope, name, targetExpr);
@@ -1144,12 +1136,12 @@ class DotOrColonPathNode extends Expression {
 const COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
 
 function _parseCollectionOperand(parser, keyword) {
-    var follows = COLLECTION_KEYWORDS.filter(k => k !== keyword);
-    follows.forEach(f => parser.pushFollow(f));
+    var others = COLLECTION_KEYWORDS.filter(k => k !== keyword);
+    var count = parser.pushFollows(...others);
     try {
         return parser.requireElement("expression");
     } finally {
-        follows.forEach(() => parser.popFollow());
+        parser.popFollows(count);
     }
 }
 

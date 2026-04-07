@@ -453,13 +453,11 @@ export class ToggleCommand extends VisibilityCommand {
             visibility = true;
             hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, styleProp);
             if (parser.matchToken("of")) {
-                parser.pushFollow("with");
-                parser.pushFollow("between");
+                var follows = parser.pushFollows("with", "between");
                 try {
                     onExpr = parser.requireElement("expression");
                 } finally {
-                    parser.popFollow();
-                    parser.popFollow();
+                    parser.popFollows(follows);
                 }
             } else {
                 onExpr = parser.requireElement("implicitMeTarget");

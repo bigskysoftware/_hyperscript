@@ -173,6 +173,14 @@ export class Parser {
         return this.tokens.popFollow();
     }
 
+    pushFollows(...strs) {
+        return this.tokens.pushFollows(...strs);
+    }
+
+    popFollows(count) {
+        return this.tokens.popFollows(count);
+    }
+
     clearFollows() {
         return this.tokens.clearFollows();
     }

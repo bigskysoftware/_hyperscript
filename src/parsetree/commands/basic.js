@@ -434,19 +434,17 @@ export class PickCommand extends Command {
         parser.matchToken("the");
 
         if (parser.matchToken("first")) {
-            parser.pushFollow("of");
-            parser.pushFollow("from");
+            var follows = parser.pushFollows("of", "from");
             try { var count = parser.requireElement("expression"); }
-            finally { parser.popFollow(); parser.popFollow(); }
+            finally { parser.popFollows(follows); }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("first", root, null, null, null, count);
         }
 
         if (parser.matchToken("last")) {
-            parser.pushFollow("of");
-            parser.pushFollow("from");
+            var follows = parser.pushFollows("of", "from");
             try { var count = parser.requireElement("expression"); }
-            finally { parser.popFollow(); parser.popFollow(); }
+            finally { parser.popFollows(follows); }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("last", root, null, null, null, count);
         }
@@ -454,10 +452,9 @@ export class PickCommand extends Command {
         if (parser.matchToken("random")) {
             var count = null;
             if (parser.currentToken().type === "NUMBER") {
-                parser.pushFollow("of");
-                parser.pushFollow("from");
+                var follows = parser.pushFollows("of", "from");
                 try { count = parser.requireElement("expression"); }
-                finally { parser.popFollow(); parser.popFollow(); }
+                finally { parser.popFollows(follows); }
             }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("random", root, null, null, null, count);
@@ -465,40 +462,37 @@ export class PickCommand extends Command {
 
         if (parser.matchToken("item") || parser.matchToken("items")
          || parser.matchToken("character") || parser.matchToken("characters")) {
-            parser.pushFollow("of");
-            parser.pushFollow("from");
+            var follows = parser.pushFollows("of", "from");
             try { var range = PickCommand.parsePickRange(parser); }
-            finally { parser.popFollow(); parser.popFollow(); }
+            finally { parser.popFollows(follows); }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("range", root, range, null, null);
         }
 
         if (parser.matchToken("match")) {
             parser.matchToken("of");
-            parser.pushFollow("of");
-            parser.pushFollow("from");
+            var follows = parser.pushFollows("of", "from");
             try {
                 var re = parser.parseElement("expression");
                 var flags = "";
                 if (parser.matchOpToken("|")) {
                     flags = parser.requireTokenType("IDENTIFIER").value;
                 }
-            } finally { parser.popFollow(); parser.popFollow(); }
+            } finally { parser.popFollows(follows); }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("match", root, null, re, flags);
         }
 
         if (parser.matchToken("matches")) {
             parser.matchToken("of");
-            parser.pushFollow("of");
-            parser.pushFollow("from");
+            var follows = parser.pushFollows("of", "from");
             try {
                 var re = parser.parseElement("expression");
                 var flags = "gu";
                 if (parser.matchOpToken("|")) {
                     flags = 'g' + parser.requireTokenType("IDENTIFIER").value.replace('g', '');
                 }
-            } finally { parser.popFollow(); parser.popFollow(); }
+            } finally { parser.popFollows(follows); }
             var root = PickCommand.parseSource(parser);
             return new PickCommand("matches", root, null, re, flags);
         }

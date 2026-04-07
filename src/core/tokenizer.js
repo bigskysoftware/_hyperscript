@@ -176,6 +176,15 @@ export class Tokens {
         this.#follows.pop();
     }
 
+    pushFollows(...strs) {
+        for (var i = 0; i < strs.length; i++) this.#follows.push(strs[i]);
+        return strs.length;
+    }
+
+    popFollows(count) {
+        for (var i = 0; i < count; i++) this.#follows.pop();
+    }
+
     clearFollows() {
         var tmp = this.#follows;
         this.#follows = [];
