@@ -407,7 +407,7 @@ export class RemoveCommand extends Command {
 export class ToggleCommand extends VisibilityCommand {
     static keyword = "toggle";
 
-    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
+    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp) {
         super();
         this.classRef = classRef;
         this.classRef2 = classRef2;
@@ -422,8 +422,11 @@ export class ToggleCommand extends VisibilityCommand {
         this.betweenClass = betweenClass;
         this.betweenAttr = betweenAttr;
         this.hideShowStrategy = hideShowStrategy;
+        this.betweenValues = betweenValues;
+        this.toggleExpr = toggleExpr;
+        this.styleProp = styleProp;
         this.onExpr = onExpr;
-        this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
+        this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs, betweenValues };
     }
 
     static parse(parser) {
@@ -431,60 +434,77 @@ export class ToggleCommand extends VisibilityCommand {
         parser.matchAnyToken("the", "my");
 
         var visibility = false;
-        var between = false;
         var hideShowStrategy = null;
         var onExpr = null;
         var classRef = null;
         var classRef2 = null;
         var classRefs = null;
         var attributeRef = null;
+        var attributeRef2 = null;
+        var betweenClass = false;
+        var betweenAttr = false;
+        var toggleExpr = null;
+        var styleProp = null;
 
+        // Branch 1: style ref — toggle *display [of <expr>]
         if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
-            var name = styleRef.value.slice(1);
+            styleProp = styleRef.value.slice(1);
             visibility = true;
-            hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
+            hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, styleProp);
             if (parser.matchToken("of")) {
                 parser.pushFollow("with");
+                parser.pushFollow("between");
                 try {
                     onExpr = parser.requireElement("expression");
                 } finally {
+                    parser.popFollow();
                     parser.popFollow();
                 }
             } else {
                 onExpr = parser.requireElement("implicitMeTarget");
             }
-        } else if (parser.matchToken("between")) {
+        }
+        // Branch 2: between class/attr — toggle between .x and .y
+        else if (parser.matchToken("between")) {
             classRef = parser.parseElement("classRef");
             if (classRef != null) {
-                var betweenClass = true;
+                betweenClass = true;
                 parser.requireToken("and");
                 classRef2 = parser.requireElement("classRef");
             } else {
-                var betweenAttr = true;
-                var attributeRef = parser.parseElement("attributeRef");
-                if (attributeRef == null) {
-                    parser.raiseError("Expected either a class reference or attribute expression");
-                }
-                parser.requireToken("and");
-                var attributeRef2 = parser.requireElement("attributeRef");
-            }
-        } else {
-            classRef = parser.parseElement("classRef");
-            if (classRef == null) {
+                betweenAttr = true;
                 attributeRef = parser.parseElement("attributeRef");
                 if (attributeRef == null) {
                     parser.raiseError("Expected either a class reference or attribute expression");
                 }
-            } else {
-                classRefs = [classRef];
-                while ((classRef = parser.parseElement("classRef"))) {
-                    classRefs.push(classRef);
-                }
+                parser.requireToken("and");
+                attributeRef2 = parser.requireElement("attributeRef");
+            }
+        }
+        // Branch 3: class ref(s) — toggle .foo [.bar ...]
+        else if ((classRef = parser.parseElement("classRef"))) {
+            classRefs = [classRef];
+            while ((classRef = parser.parseElement("classRef"))) {
+                classRefs.push(classRef);
+            }
+        }
+        // Branch 4: attribute ref — toggle @attr
+        else if ((attributeRef = parser.parseElement("attributeRef"))) {
+            // single attribute toggle
+        }
+        // Branch 5: assignable expression — toggle <expr> between ...
+        else {
+            parser.pushFollow("between");
+            toggleExpr = parser.parseElement("assignableExpression");
+            parser.popFollow();
+            if (toggleExpr == null) {
+                parser.raiseError("Expected a class reference, attribute, style property, or settable expression");
             }
         }
 
-        if (visibility !== true) {
+        // Target element (for non-style, non-expression branches)
+        if (!visibility && !toggleExpr) {
             if (parser.matchToken("on")) {
                 onExpr = parser.requireElement("expression");
             } else {
@@ -492,6 +512,23 @@ export class ToggleCommand extends VisibilityCommand {
             }
         }
 
+        // Postfix: between <val1>[, <val2>] and <valN>
+        var betweenValues = null;
+        if (parser.matchToken("between")) {
+            parser.pushFollow("and");
+            betweenValues = [parser.requireElement("expression")];
+            while (parser.matchOpToken(",")) {
+                betweenValues.push(parser.requireElement("expression"));
+            }
+            parser.popFollow();
+            parser.requireToken("and");
+            betweenValues.push(parser.requireElement("expression"));
+        }
+        if (toggleExpr && !betweenValues) {
+            parser.raiseError("toggle <expression> requires 'between' with values");
+        }
+
+        // Modifiers: for <duration> | until <event> [from <source>]
         var time = null;
         var evt = null;
         var from = null;
@@ -505,10 +542,31 @@ export class ToggleCommand extends VisibilityCommand {
             }
         }
 
-        return new ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy);
+        return new ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp);
     }
 
-    toggle(context, on, classRef, classRef2, classRefs) {
+    toggle(context, on, classRef, classRef2, classRefs, betweenValues) {
+        if (this.betweenValues) {
+            // Value cycling: toggle <target> between val1, val2 and valN
+            if (this.visibility) {
+                context.meta.runtime.implicitLoop(on, (target) => {
+                    var current = target.style[this.styleProp] || getComputedStyle(target)[this.styleProp];
+                    var idx = betweenValues.findIndex(v => v == current);
+                    target.style[this.styleProp] = betweenValues[(idx + 1) % betweenValues.length];
+                });
+            } else {
+                var current = this.toggleExpr.evaluate(context);
+                var idx = betweenValues.findIndex(v => v == current);
+                var next = betweenValues[(idx + 1) % betweenValues.length];
+                var lhsValues = {};
+                for (var key in this.toggleExpr.lhs) {
+                    var val = this.toggleExpr.lhs[key];
+                    lhsValues[key] = val && val.evaluate ? val.evaluate(context) : val;
+                }
+                this.toggleExpr.set(context, lhsValues, next);
+            }
+            return;
+        }
         context.meta.runtime.nullCheck(on, this.onExpr);
         if (this.visibility) {
             context.meta.runtime.implicitLoop(on, (target) => {
@@ -552,12 +610,12 @@ export class ToggleCommand extends VisibilityCommand {
         }
     }
 
-    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs }) {
+    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs, betweenValues }) {
         if (time) {
             return new Promise((resolve) => {
-                this.toggle(context, on, classRef, classRef2, classRefs);
+                this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
                 setTimeout(() => {
-                    this.toggle(context, on, classRef, classRef2, classRefs);
+                    this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
                     resolve(this.findNext(context));
                 }, time);
             });
@@ -567,15 +625,15 @@ export class ToggleCommand extends VisibilityCommand {
                 target.addEventListener(
                     evt,
                     () => {
-                        this.toggle(context, on, classRef, classRef2, classRefs);
+                        this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
                         resolve(this.findNext(context));
                     },
                     { once: true }
                 );
-                this.toggle(context, on, classRef, classRef2, classRefs);
+                this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
             });
         } else {
-            this.toggle(context, on, classRef, classRef2, classRefs);
+            this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
             return this.findNext(context);
         }
     }

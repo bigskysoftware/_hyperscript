@@ -202,4 +202,53 @@ test.describe("the toggle command", () => {
 		);
 		expect(hasClass2).toBe(false);
 	});
+
+	test("can toggle *display between two values", async ({html, find}) => {
+		await html("<div style='display:none' _=\"on click toggle *display of me between 'none' and 'flex'\"></div>");
+		await expect(find('div')).toHaveCSS('display', 'none');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'flex');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('display', 'none');
+	});
+
+	test("can toggle *opacity between three values", async ({html, find}) => {
+		await html("<div style='opacity:0' _=\"on click toggle *opacity of me between '0', '0.5' and '1'\"></div>");
+		await expect(find('div')).toHaveCSS('opacity', '0');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '0.5');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '1');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveCSS('opacity', '0');
+	});
+
+	test("can toggle a global variable between two values", async ({html, find, evaluate}) => {
+		await html("<div _=\"on click toggle $mode between 'edit' and 'preview'\"></div>");
+		await find('div').dispatchEvent('click');
+		var val = await evaluate(() => window.$mode);
+		expect(val).toBe('edit');
+		await find('div').dispatchEvent('click');
+		val = await evaluate(() => window.$mode);
+		expect(val).toBe('preview');
+		await find('div').dispatchEvent('click');
+		val = await evaluate(() => window.$mode);
+		expect(val).toBe('edit');
+	});
+
+	test("can toggle a global variable between three values", async ({html, find, evaluate}) => {
+		await html("<div _=\"on click toggle $state between 'a', 'b' and 'c'\"></div>");
+		await find('div').dispatchEvent('click');
+		var val = await evaluate(() => window.$state);
+		expect(val).toBe('a');
+		await find('div').dispatchEvent('click');
+		val = await evaluate(() => window.$state);
+		expect(val).toBe('b');
+		await find('div').dispatchEvent('click');
+		val = await evaluate(() => window.$state);
+		expect(val).toBe('c');
+		await find('div').dispatchEvent('click');
+		val = await evaluate(() => window.$state);
+		expect(val).toBe('a');
+	});
 });
