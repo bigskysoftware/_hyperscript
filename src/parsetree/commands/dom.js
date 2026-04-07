@@ -973,12 +973,13 @@ export class BlurCommand extends Command {
 }
 
 /**
- * EmptyCommand - Clear an element's content
+ * EmptyCommand - Clear an element's content or input value
  *
  * Parses: empty [<expr>]
+ *         clear [<expr>]   (alias)
  */
 export class EmptyCommand extends Command {
-    static keyword = "empty";
+    static keyword = ["empty", "clear"];
 
     constructor(target) {
         super();
@@ -986,7 +987,7 @@ export class EmptyCommand extends Command {
     }
 
     static parse(parser) {
-        if (!parser.matchToken("empty")) return;
+        if (!parser.matchToken("empty") && !parser.matchToken("clear")) return;
         var target = null;
         if (!parser.commandBoundary(parser.currentToken())) {
             target = parser.requireElement("expression");
@@ -1004,9 +1005,71 @@ export class EmptyCommand extends Command {
             ctx.meta.runtime.notifyMutation(elt);
         } else {
             ctx.meta.runtime.implicitLoop(elt, function (e) {
-                e.replaceChildren();
+                var tag = e.tagName;
+                if (tag === "INPUT") {
+                    if (e.type === "checkbox" || e.type === "radio") e.checked = false;
+                    else e.value = "";
+                } else if (tag === "TEXTAREA") {
+                    e.value = "";
+                } else if (tag === "SELECT") {
+                    e.selectedIndex = -1;
+                } else if (tag === "FORM") {
+                    e.querySelectorAll("input, textarea, select").forEach(function (inp) {
+                        if (inp.tagName === "INPUT") {
+                            if (inp.type === "checkbox" || inp.type === "radio") inp.checked = false;
+                            else inp.value = "";
+                        } else if (inp.tagName === "TEXTAREA") {
+                            inp.value = "";
+                        } else if (inp.tagName === "SELECT") {
+                            inp.selectedIndex = -1;
+                        }
+                    });
+                } else {
+                    e.replaceChildren();
+                }
             });
         }
+        return this.findNext(ctx);
+    }
+}
+
+/**
+ * ResetCommand - Reset a form or input to its default value
+ *
+ * Parses: reset [<expr>]
+ */
+export class ResetCommand extends Command {
+    static keyword = "reset";
+
+    constructor(target) {
+        super();
+        this.args = { target };
+    }
+
+    static parse(parser) {
+        if (!parser.matchToken("reset")) return;
+        var target = null;
+        if (!parser.commandBoundary(parser.currentToken())) {
+            target = parser.requireElement("expression");
+        }
+        return new ResetCommand(target);
+    }
+
+    resolve(ctx, { target }) {
+        var elt = target || ctx.me;
+        ctx.meta.runtime.implicitLoop(elt, function (e) {
+            var tag = e.tagName;
+            if (tag === "FORM") {
+                e.reset();
+            } else if (tag === "INPUT") {
+                if (e.type === "checkbox" || e.type === "radio") e.checked = e.defaultChecked;
+                else e.value = e.defaultValue;
+            } else if (tag === "TEXTAREA") {
+                e.value = e.defaultValue;
+            } else if (tag === "SELECT") {
+                for (var i = 0; i < e.options.length; i++) e.options[i].selected = e.options[i].defaultSelected;
+            }
+        });
         return this.findNext(ctx);
     }
 }

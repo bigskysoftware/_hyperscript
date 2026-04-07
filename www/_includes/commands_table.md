@@ -8,7 +8,7 @@
 | [continue](/commands/continue)     | Skips the remainder of a loop and continues at the top of the next iteration. | `repeat 3 times continue end`                                                           |
 | [decrement](/commands/decrement)   | Subtracts a value from a variable, property, or attribute                     | `decrement counter`                                                                     |
 | [default](/commands/default)       | Sets a variable to a value if it is currently undefined                       | `default x to 0`                                                                        |
-| [empty](/commands/empty)           | Removes all child nodes from an element                                       | `empty #results`                                                                         |
+| [empty/clear](/commands/empty)     | Clears an element's content, input value, or collection                        | `empty #results`, `clear #search`                                                        |
 | [exit](/commands/exit)              | Exits the current handler without returning a value                           | `if x is null exit`                                                                      |
 | [focus](/commands/focus)           | Focuses an element                                                            | `focus #search-input`                                                                    |
 | [blur](/commands/blur)             | Removes focus from an element                                                 | `blur me`                                                                                |
@@ -27,6 +27,7 @@
 | [pick](/commands/pick)             | Selects items from arrays, strings and regex match results                    | `pick first 3 of arr`, `pick match of "(\w+)" of str`                                   |
 | [put](/commands/put)               | Puts a value into a given variable or property                                | `put "cool!" into me`                                                                   |
 | [remove](/commands/remove)         | Removes content                                                               | `log "bye, bye" then remove me`                                                         |
+| [reset](/commands/reset)           | Resets a form or input to its default value                                    | `reset #my-form`                                                                        |
 | [render](/commands/render)         | Renders an HTML template with interpolation                                   | `render #my-template with items: data`                                                  |
 | [repeat](/commands/repeat)         | Iterates                                                                      | `repeat for x in [1, 2, 3] log x end`                                                   |
 | [return](/commands/return)         | Returns a value                                                               | `return 42`                                                                             |

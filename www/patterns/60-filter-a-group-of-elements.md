@@ -11,19 +11,19 @@ of the [`show` command](/commands/show)
 <input type="text" placeholder="Search Quotes..."
        _="on keyup
            if the event's key is 'Escape'
-             set my value to ''
+             clear me
              trigger keyup
            else
             show <blockquote/> in #quotes when its textContent contains my value">
 {% endexample %}
 
-Here we do the search on keyup.  If the key was an escape, we reset the value of the input and rerun the event,
+Here we do the search on keyup.  If the key was an escape, we clear the input and rerun the event,
 which shows all quotes.
 
 <input type="text" placeholder="Search Quotes..."
        _="on keyup
            if the event's key is 'Escape'
-             set my value to ''
+             clear me
              trigger keyup
            else
             show <blockquote/> in #quotes when its textContent contains my value">
