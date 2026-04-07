@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Live Template Test</title>
-    <script src="/dist/_hyperscript.js"></script>
+    <script src="/_hyperscript/dist/_hyperscript.js"></script>
 </head>
 <body>
     <h2>Live Template: Counter</h2>
@@ -21,8 +21,7 @@
                      get #new-item's value
                      if it is not empty
                        add it to ^items
-                       set #new-item's value to ''
-                     end">Add</button>
+                       set #new-item's value to ''">Add</button>
         <ul>
             #for item in ^items
                 <li>${item}</li>
@@ -35,8 +34,8 @@
     <hr>
 
     <h2>Live Template: Global State</h2>
-    <div _="init set $name to 'World'">
-        <input type="text" value="World" _="on input set $name to my value" />
+    <div>
+        <input type="text" value="World" _="bind me to $name" />
     </div>
     <template live>
         <p>Hello, ${$name}!</p>
