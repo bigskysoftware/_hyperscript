@@ -23,7 +23,11 @@ title: ///_hyperscript
     <div class="hero-title">hyper<span class="hero-accent">s</span>cript</div>
     <h1>Finally... A scripting language for the web</h1>
     <p class="subtitle">Scripting HTML without tears: concise <a href="/docs/dom">DOM manipulation</a>, <a href="/docs/events">events</a>, <a href="/docs/reactivity">reactivity</a> & <a href="/docs">more</a>, no <a href="/docs/async/">async or await</a>.</p>
-    <p class="subtitle">38KB (<a href="/docs/getting-started/#size">10ms over 4G</a>), zero dependencies, install with a script tag.</p>
+    <p class="subtitle">38KB (<a href="/docs/getting-started/#size">10ms over 4G</a>), zero dependencies, install with <button class="copy-install"
+        _="on click halt the event
+            set the clipboard to the .install-bar's @data-install
+            put `<span class='copy-toast'>Install URL Copied!</span>` at the end of me
+            wait 1s then remove the last <span/> in me">a script tag</button>.</p>
 
     <div class="hero-split">
         <div class="window hero-code">
@@ -97,8 +101,9 @@ title: ///_hyperscript
 
     <div style="text-align:center">
         <div class="install-bar"
+             data-install='<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js" integrity="sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr" crossorigin="anonymous"></script>'
              _="on click
-                  writeText('<script src=&quot;https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js&quot; integrity=&quot;sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr&quot; crossorigin=&quot;anonymous&quot;></script>') on navigator.clipboard
+                  set the clipboard to my @data-install
                   set old to #install-label's innerHTML
                   put 'Copied!' into #install-label
                   add .install-flash to me

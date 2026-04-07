@@ -1080,6 +1080,9 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
 .subtitle {
     font-size: 1.05rem;
     color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+.subtitle:last-of-type {
     margin-bottom: 1.5rem;
 }
 
@@ -1225,6 +1228,21 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     color: var(--text-muted);
     display: flex;
     align-items: center;
+}
+
+.copy-install {
+    all: unset; cursor: pointer; position: relative;
+    color: var(--accent); font-weight: 500; text-decoration: underline;
+}
+.copy-install:hover { color: var(--accent-hover); }
+.copy-toast {
+    position: absolute; left: 50%; bottom: calc(100% + 6px);
+    transform: translateX(-50%); white-space: nowrap;
+    font-size: 0.8em; padding: 4px 10px;
+    background: #fffde6; border: 1px solid #e0d88a; border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    pointer-events: none;
+    color: #555;
 }
 
 /* ---- Talk page ---- */

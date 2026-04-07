@@ -205,16 +205,10 @@ title: Try it! - ///_hyperscript
         <div class="toolbar-spacer"></div>
         <select id="examples" class="toolbar-select">
             <option value="">Load example...</option>
-            <option value="counter">Counter</option>
-            <option value="hide_remove">Hide &amp; Remove</option>
-            <option value="drag">Drag &amp; Drop</option>
-            <option value="modal">Modal Dialog</option>
-            <option value="goto">Go To Buttons</option>
-            <option value="input_mirroring">Input Mirroring</option>
-            <option value="password_visibility">Password Toggle</option>
+            <option value="hello">Hello</option>
+            <option value="simple_counter">Counter</option>
+            <option value="reactive_counter">Reactive Counter</option>
             <option value="colors">Color Cycle</option>
-            <option value="search">Live Search</option>
-            <option value="todo_list">Reactive Todo List</option>
         </select>
         <button class="btn btn-sm" id="run-btn">Run (Ctrl+Enter)</button>
         <button class="btn btn-sm" id="share-btn">Share</button>
@@ -260,9 +254,10 @@ title: Try it! - ///_hyperscript
 // Built-in examples
 // ============================================================
 var BUILTIN_EXAMPLES = {
-    counter: '<h2>Counter</h2>\n<div _="init set ^count to 0">\n  <button _="on click increment ^count">+1</button>\n  <button _="on click decrement ^count">-1</button>\n  <input _="bind ^count to me" />\n</div>',
-    colors: '<h2>Color Cycle</h2>\n<button style="padding:12px 24px;font-size:1.1rem;cursor:pointer"\n        _="on pointerdown\n             repeat until event pointerup from document\n               set rand to Math.random() * 360\n               transition #color-target\'s *background-color\n                 to `hsl(${rand} 100% 85%)` over 200ms\n             end\n             transition #color-target\'s *background-color to initial">\n  Press and hold\n</button>\n<div id="color-target" style="margin-top:1em;padding:2em;border:1px solid #ddd;border-radius:4px;text-align:center">Watch me change!</div>',
-    search: '<h2>Live Search</h2>\n<input type="text" placeholder="Search..."\n       _="on input\n            show &lt;li/&gt; in #results\n              when its textContent contains my value" />\n<ul id="results">\n  <li>Apples</li>\n  <li>Bananas</li>\n  <li>Cherries</li>\n  <li>Dates</li>\n  <li>Elderberries</li>\n  <li>Figs</li>\n  <li>Grapes</li>\n</ul>',
+    simple_counter: '<h2>Counter</h2>\n<button _="on click\n               increment :count\n               put :count into the next <output/>">\n  Click me\n</button>\n<output>0</output>',
+    reactive_counter: '<h2>Reactive Counter</h2>\n<div _="init set ^count to 0">\n  <button _="on click increment ^count">+1</button>\n  <button _="on click decrement ^count">-1</button>\n  <output _="live put ^count into me">0</output>\n</div>',
+    hello: '<h2>Hello</h2>\n<input type="text" placeholder="Your name..."\n       _="on input put `Hello, ${my value}!` into the next <output/>" />\n<output></output>',
+    colors: '<h2>Color Cycle</h2>\n<button\n        _="on pointerdown\n             repeat until event pointerup from document\n               set rand to Math.random() * 360\n               transition *background-color of the next <div/>\n                 to `hsl(${rand} 100% 85%)` over 200ms\n             end\n             transition *background-color of the next <div/> to initial">\n  Press and hold\n</button>\n<div style="margin-top:1em;padding:2em;border:1px solid #ddd;border-radius:4px;text-align:center">Watch me change!</div>',
 };
 
 // ============================================================
@@ -425,13 +420,13 @@ if (sharedSrc) {
     try {
         cm.setValue(LZString.decompressFromEncodedURIComponent(sharedSrc));
     } catch (e) {
-        cm.setValue(BUILTIN_EXAMPLES.counter);
+        cm.setValue(BUILTIN_EXAMPLES.hello);
     }
 } else if (snippet) {
     localStorage.removeItem('playground-snippet');
     cm.setValue(snippet);
 } else {
-    cm.setValue(BUILTIN_EXAMPLES.counter);
+    cm.setValue(BUILTIN_EXAMPLES.hello);
 }
 
 // ============================================================

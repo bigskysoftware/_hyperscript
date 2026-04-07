@@ -135,20 +135,21 @@ Here's what that means in practice:
 On 3G, hyperscript loads in about a quarter of a second.  On a modern connection it's
 effectively instant.
 
-More importantly: **this is a one-time cost.**  Once the browser downloads hyperscript, it's cached.
+More importantly: **this is usually a one-time cost.**
 
 With proper `Cache-Control` headers (which CDNs like jsDelivr set automatically), returning visitors
 never download it again.  The browser stores both the downloaded file and its compiled bytecode,
 so subsequent page loads pay zero network cost and near-zero parse cost across all your pages that use it.
 
-Furthermore, **browsers download resources in parallel**.  While hyperscript is loading, your
-images, stylesheets, and other assets are loading too, and only the largest one usually matters.  A single 
+Furthermore, **browsers download resources in parallel**.  
+
+While hyperscript is loading, your images, stylesheets, and other assets are loading too, and only the largest ones matter.  A single 
 hero image is typically 200KB–2MB, dwarfing hyperscript's 38KB.  
 
 In practice, hyperscript typically finishes downloading long before images, meaning it adds nothing to your overall page 
 load.  
 
-So, in most cases, hyperscript is effectively _oo_, hiding entirely within the download time of assets you were already 
+So, in most cases, hyperscript is effectively free, hiding for one trip entirely within the download time of assets you were already 
 paying for.
 
 </div>
