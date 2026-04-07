@@ -14,7 +14,9 @@ title: ///_hyperscript
 </svg>
 
 <div class="hero">
-    <img src="/img/logo.png" alt="hyperscript logo" class="hero-logo">
+    <img src="/img/logo.png" alt="hyperscript logo" class="hero-logo"
+         _="on mouseenter set my @src to '/img/logo-animated.gif'
+            on mouseleave set my @src to '/img/logo.png'">
     <div class="hero-title">hyper<span class="hero-accent">s</span>cript</div>
     <h1>Finally... A scripting language for the web</h1>
     <p class="subtitle">Scripting HTML without tears: concise <a href="/docs/dom">DOM manipulation</a>, <a href="/docs/events">events</a>, <a href="/docs/reactivity">reactivity</a> & <a href="/docs">more</a>, no <a href="/docs/async/">async or await</a>.</p>
@@ -130,7 +132,7 @@ title: ///_hyperscript
 {% highlight "html" %}
 <button _="on click send hello to <form/>">
 <form _="on hello put 'Got it!' into me">
-<input _="on keyup[key is 'Escape'] set my value to ''">
+<input _="on keyup[key is 'Escape'] clear me">
 {% endhighlight %}
 </div>
 
