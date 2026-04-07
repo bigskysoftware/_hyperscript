@@ -731,6 +731,28 @@ figure.box > :last-child {
     display: none;
 }
 
+.example-actions {
+    padding: 4px 10px;
+    background: var(--bg-subtle);
+    border-top: 1px solid var(--border);
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.example-action-btn {
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--chrome-gradient);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+}
+
 /* Style bare buttons/inputs in example outputs */
 figure.box button,
 figure.box input[type="text"],

@@ -8,86 +8,27 @@ You can easily filter down the visibility of a set of elements based on a condit
 of the [`show` command](/commands/show)
 
 {% example %}
+<div>
 <input type="text" placeholder="Search Quotes..."
        _="on keyup
            if the event's key is 'Escape'
-             clear me
-             trigger keyup
+             clear then trigger keyup
            else
-            show <blockquote/> in #quotes when its textContent contains my value">
+            show <blockquote/> in the next <div/>
+               when its textContent contains my value
+               ignoring case">
+<div class="quotes">
+<blockquote>"Talk is cheap. Show me the code." &mdash; Linus Torvalds</blockquote>
+<blockquote>"Programs must be written for people to read, and only incidentally for machines to execute." &mdash; Harold Abelson</blockquote>
+<blockquote>"Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live." &mdash; John Woods</blockquote>
+<blockquote>"I'm not a great programmer; I'm just a good programmer with great habits." &mdash; Kent Beck</blockquote>
+<blockquote>"Truth can only be found in one place: the code." &mdash; Robert C. Martin</blockquote>
+<blockquote>"A language that doesn't affect the way you think about programming is not worth knowing." &mdash; Alan Perlis</blockquote>
+<blockquote>"Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?" &mdash; Brian Kernighan</blockquote>
+</div>
+</div>
+<style>.quotes { height: 15em; overflow-y: scroll; margin-top: 0.5em; }</style>
 {% endexample %}
 
-Here we do the search on keyup.  If the key was an escape, we clear the input and rerun the event,
-which shows all quotes.
-
-<input type="text" placeholder="Search Quotes..."
-       _="on keyup
-           if the event's key is 'Escape'
-             clear me
-             trigger keyup
-           else
-            show <blockquote/> in #quotes when its textContent contains my value">
-
-
-#### Programming Quotes
-<div id="quotes" class="box" style="height: 20em; overflow: scroll;">
-
-> "Talk is cheap. Show me the code."
->
-> &#8211; Linus Torvalds
-
-> "when you don't create things, you become defined by your tastes rather than ability. your tastes only narrow & exclude people. so create."
->
-> &#8211; Why The Lucky Stiff
-
-> "Programs must be written for people to read, and only incidentally for machines to execute."
->
-> &#8211; Harold Abelson, Structure and Interpretation of Computer Programs
-
-> "Programming today is a race between software engineers striving to build bigger and better idiot>
-> &#8211;proof programs, and the Universe trying to produce bigger and better idiots. So far, the Universe is winning."
->
-> &#8211; Rick Cook, The Wizardry Compiled
-
-> "Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live"
->
-> &#8211; John Woods
-
-> "The best programs are written so that computing machines can perform them quickly and so that human beings can understand them clearly. A programmer is ideally an essayist who works with traditional aesthetic and literary forms as well as mathematical concepts, to communicate the way that an algorithm works and to convince a reader that the results will be correct."
->
-> &#8211; Donald E. Knuth, Selected Papers on Computer Science
-
-> "I'm not a great programmer; I'm just a good programmer with great habits."
->
-> &#8211; Kent Beck
-
-> "Give a man a program, frustrate him for a day.
-      Teach a man to program, frustrate him for a lifetime."
->
-> &#8211; Muhammad Waseem
-
-> "Truth can only be found in one place: the code."
->
-> &#8211; Robert C. Martin, Clean Code: A Handbook of Agile Software Craftsmanship
-
-> "That's the thing about people who think they hate computers. What they really hate is lousy programmers."
->
-> &#8211; Larry Niven
-
-> "A language that doesn't affect the way you think about programming is not worth knowing."
->
-> &#8211; Alan J. Perlis
-
-> "The most disastrous thing that you can ever learn is your first programming language."
->
-> &#8211; Alan Kay
-
-> "Objectoriented programming offers a sustainable way to write spaghetti code. It lets you accrete programs as a series of patches."
->
-> &#8211; Paul Graham, Hackers & Painters: Big Ideas from the Computer Age
-
-> "Everyone knows that debugging is twice as hard as writing a program in the first place. So if you're as clever as you can be when you write it, how will you ever debug it?"
->
-> &#8211; Brian Kernighan
-
-</div>
+Here we do the search on keyup. If the key was an escape, we clear the input and rerun the event,
+which shows all quotes. The `the next <div/>` expression targets the sibling container without needing an ID.

@@ -420,12 +420,16 @@ var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
 // ============================================================
 var params = new URLSearchParams(window.location.search);
 var sharedSrc = params.get('src');
+var snippet = localStorage.getItem('playground-snippet');
 if (sharedSrc) {
     try {
         cm.setValue(LZString.decompressFromEncodedURIComponent(sharedSrc));
     } catch (e) {
         cm.setValue(BUILTIN_EXAMPLES.counter);
     }
+} else if (snippet) {
+    localStorage.removeItem('playground-snippet');
+    cm.setValue(snippet);
 } else {
     cm.setValue(BUILTIN_EXAMPLES.counter);
 }

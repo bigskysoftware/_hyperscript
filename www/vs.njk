@@ -1,0 +1,612 @@
+---
+layout: layout.njk
+title: hyperscript vs javascript - ///_hyperscript
+---
+
+<style>
+.vs-page { max-width: 80ch; margin: 0 auto; padding: 2rem 1rem; }
+.vs-page h1 { text-align: center; margin-bottom: 0.5rem; }
+.vs-page .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; }
+.vs-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+.vs-pair h3 { grid-column: 1 / -1; margin-bottom: 0.25rem; }
+.vs-pair .desc { grid-column: 1 / -1; color: var(--text-muted); margin: 0 0 0.5rem; font-size: 0.95rem; }
+.vs-label {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+.vs-pair pre { margin: 0 !important; }
+.vs-demo {
+    grid-column: 1 / -1;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+}
+.vs-demo .vs-label { margin-bottom: 0.5rem; }
+.vs-demo button, .vs-demo input {
+    font-size: 0.95rem;
+    padding: 4px 10px;
+}
+.vs-demo .active {
+    background: var(--accent);
+    color: white;
+    border-radius: var(--radius);
+}
+.vs-demo ul { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.vs-demo li { padding: 2px 0; font-size: 0.9rem; }
+.vs-demo li a { color: var(--accent); }
+@media (max-width: 60ch) {
+    .vs-pair { grid-template-columns: 1fr; }
+}
+</style>
+<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/js/vs-mock-sw.js", { scope: "/" });
+}
+</script>
+
+<div class="vs-page">
+
+# hyperscript vs JavaScript
+
+<p class="subtitle"></p>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Click to toggle a class</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click toggle .active on me">
+  Toggle
+</button>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button id="btn">Toggle</button>
+<script>
+  document.getElementById("btn")
+    .addEventListener("click", function() {
+      this.classList.toggle("active");
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<button _="on click toggle .active on me">Toggle</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Hide on click with a fade</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<div _="on click transition my *opacity to 0
+              then remove me">
+  Click to dismiss
+</div>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<div id="msg">Click to dismiss</div>
+<script>
+  document.getElementById("msg")
+    .addEventListener("click", function() {
+      this.style.transition = "opacity 500ms";
+      this.style.opacity = 0;
+      this.addEventListener("transitionend", () => {
+        this.remove();
+      }, { once: true });
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<div _="on click transition my *opacity to 0 then remove me" style="cursor:pointer; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); display:inline-block">Click to dismiss</div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Debounced input search</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<input _="on input debounced at 300ms
+            fetch /search?q=${my value}
+            put the result into #results" />
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<input id="search" />
+<script>
+  let timer;
+  document.getElementById("search")
+    .addEventListener("input", function() {
+      clearTimeout(timer);
+      const val = this.value;
+      timer = setTimeout(() => {
+        fetch("/search?q=" + encodeURIComponent(val))
+          .then(r => r.text())
+          .then(html => {
+            document.getElementById("results")
+              .innerHTML = html;
+          });
+      }, 300);
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<input type="text" placeholder="Search Macs..."
+       _="on input debounced at 300ms
+            fetch /virtual/search?q=${my value}
+            put the result into the next <ul/>" />
+<ul></ul>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Show/hide with a when filter</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<input _="on input
+          show <li/> in #list
+            when its textContent contains my value
+            ignoring case" />
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<input id="filter" />
+<script>
+  document.getElementById("filter")
+    .addEventListener("input", function() {
+      const val = this.value.toLowerCase();
+      document.querySelectorAll("#list li")
+        .forEach(li => {
+          li.style.display =
+            li.textContent.toLowerCase()
+              .includes(val) ? "" : "none";
+        });
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<input type="text" placeholder="Type to filter..."
+       _="on input
+            show <li/> in the next <ul/>
+              when its textContent contains my value
+              ignoring case" />
+<ul>
+<li>Macintosh 128K</li>
+<li>Macintosh Plus</li>
+<li>Macintosh SE</li>
+<li>Macintosh II</li>
+<li>PowerBook 100</li>
+<li>Quadra 700</li>
+</ul>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Keyboard shortcut</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<body _="on keydown[key is '/']
+          focus #search">
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<script>
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "/") {
+      document.getElementById("search").focus();
+    }
+  });
+</script>
+{% endhighlight %}
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Toggle between two elements</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click toggle between
+             .tabs-code and .tabs-preview
+             on #panel">
+  Switch View
+</button>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button id="switch">Switch View</button>
+<script>
+  document.getElementById("switch")
+    .addEventListener("click", function() {
+      const panel = document.getElementById("panel");
+      if (panel.classList.contains("tabs-code")) {
+        panel.classList.remove("tabs-code");
+        panel.classList.add("tabs-preview");
+      } else {
+        panel.classList.remove("tabs-preview");
+        panel.classList.add("tabs-code");
+      }
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<button _="on click toggle between .vs-mode-a and .vs-mode-b on next <div/>">Switch View</button>
+<div class="vs-mode-a" style="margin-top:0.5rem; padding:8px; border:1px solid var(--border); border-radius:var(--radius)"
+     _="live if I match .vs-mode-a put 'Mode A' into me else put 'Mode B' into me">Mode A</div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Drag and drop reorder</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<div class="item"
+     _="on dragstart add .dragging to me
+        on dragend remove .dragging from me
+        on dragover(event)
+          event.preventDefault()
+          get closest <div.item/> to event.target
+          if it is not me
+            put me before it">
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<script>
+  let dragged;
+  document.querySelectorAll(".item").forEach(item => {
+    item.draggable = true;
+    item.addEventListener("dragstart", function() {
+      dragged = this;
+      this.classList.add("dragging");
+    });
+    item.addEventListener("dragend", function() {
+      this.classList.remove("dragging");
+    });
+    item.addEventListener("dragover", function(e) {
+      e.preventDefault();
+      const target = e.target.closest(".item");
+      if (target && target !== dragged) {
+        target.parentNode
+          .insertBefore(dragged, target);
+      }
+    });
+  });
+</script>
+{% endhighlight %}
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Confirm before delete</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click
+            answer 'Delete this item?' with 'Yes' or 'No'
+            if it is 'Yes'
+              fetch /api/items/${@data-id} with method:'DELETE'
+              remove closest <tr/>">
+  Delete
+</button>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button class="delete-btn">Delete</button>
+<script>
+  document.querySelectorAll(".delete-btn")
+    .forEach(btn => {
+      btn.addEventListener("click", function() {
+        if (!confirm("Delete this item?")) return;
+        const row = this.closest("tr");
+        const id = row.dataset.id;
+        fetch("/api/items/" + id, { method: "DELETE" })
+          .then(() => row.remove());
+      });
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<table style="width:100%; font-size:0.9rem">
+<tr data-id="1"><td>Macintosh 128K</td><td style="text-align:right"><button _="on click answer 'Delete this item?' with 'Yes' or 'No'
+    if it is 'Yes' fetch /virtual/items/${closest <tr/>'s @data-id} with method:'DELETE' then remove closest <tr/>">Delete</button></td></tr>
+<tr data-id="2"><td>Macintosh Plus</td><td style="text-align:right"><button _="on click answer 'Delete this item?' with 'Yes' or 'No'
+    if it is 'Yes' fetch /virtual/items/${closest <tr/>'s @data-id} with method:'DELETE' then remove closest <tr/>">Delete</button></td></tr>
+<tr data-id="3"><td>Macintosh SE</td><td style="text-align:right"><button _="on click answer 'Delete this item?' with 'Yes' or 'No'
+    if it is 'Yes' fetch /virtual/items/${closest <tr/>'s @data-id} with method:'DELETE' then remove closest <tr/>">Delete</button></td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Reactive counter</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click increment $count">+1</button>
+<output _="live put $count into me">0</output>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button id="inc">+1</button>
+<output id="out">0</output>
+<script>
+  let count = 0;
+  document.getElementById("inc")
+    .addEventListener("click", () => {
+      count++;
+      document.getElementById("out")
+        .textContent = count;
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<button _="on click increment $vsCount">+1</button>
+<output _="live put $vsCount into me">0</output>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Two-way binding</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<input type="range" id="slider" />
+<output _="bind $val to #slider's value
+           live put $val into me" />
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<input type="range" id="slider" />
+<output id="display"></output>
+<script>
+  const slider = document.getElementById("slider");
+  const display = document.getElementById("display");
+  slider.addEventListener("input", function() {
+    display.textContent = this.value;
+  });
+  display.textContent = slider.value;
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<input type="range" id="vs-slider" _="on input set $vsSliderVal to my value" />
+<output _="live put $vsSliderVal into me">50</output>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Load content on scroll</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<div id="sentinel"
+     _="on intersection(intersecting) having threshold 0.1
+          if intersecting
+            fetch /api/more?page=${@data-page}
+            put the result at end of #feed
+            increment @data-page">
+</div>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<div id="sentinel"></div>
+<script>
+  let page = 1;
+  const sentinel = document.getElementById("sentinel");
+  const observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) {
+      fetch("/api/more?page=" + page)
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById("feed")
+            .insertAdjacentHTML("beforeend", html);
+          page++;
+        });
+    }
+  }, { threshold: 0.1 });
+  observer.observe(sentinel);
+</script>
+{% endhighlight %}
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Open/close a dialog</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click open #modal">Open</button>
+<dialog id="modal">
+  <p>Hello!</p>
+  <button _="on click close #modal">Close</button>
+</dialog>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button id="open-btn">Open</button>
+<dialog id="modal">
+  <p>Hello!</p>
+  <button id="close-btn">Close</button>
+</dialog>
+<script>
+  const modal = document.getElementById("modal");
+  document.getElementById("open-btn")
+    .addEventListener("click", () => modal.showModal());
+  document.getElementById("close-btn")
+    .addEventListener("click", () => modal.close());
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<button _="on click open #vs-modal">Open</button>
+<dialog id="vs-modal" style="border-radius:var(--radius); border:1px solid var(--border)">
+  <p style="margin-top:0">Hello!</p>
+  <button _="on click close #vs-modal">Close</button>
+</dialog>
+</div>
+</div>
+
+<!-- ============================================================ -->
+
+<div class="vs-pair">
+<h3>Morph after fetch</h3>
+<p class="desc"></p>
+<div>
+<div class="vs-label">hyperscript</div>
+
+{% highlight "html" %}
+<button _="on click
+            fetch /api/component
+            morph #target to the result">
+  Refresh
+</button>
+{% endhighlight %}
+</div>
+<div>
+<div class="vs-label">JavaScript</div>
+
+{% highlight "html" %}
+<button id="refresh">Refresh</button>
+<script>
+  // Requires a morph library (idiomorph, morphdom, etc.)
+  document.getElementById("refresh")
+    .addEventListener("click", async () => {
+      const resp = await fetch("/api/component");
+      const html = await resp.text();
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      Idiomorph.morph(
+        document.getElementById("target"),
+        template.content,
+        { morphStyle: "outerHTML" }
+      );
+    });
+</script>
+{% endhighlight %}
+</div>
+<div class="vs-demo">
+<div class="vs-label">Try it</div>
+<button _="on click fetch /virtual/component then morph #vs-morph-target to the result">Refresh</button>
+<div id="vs-morph-target" style="margin-top:0.5rem; padding:8px; border:1px solid var(--border); border-radius:var(--radius)">
+    <strong>Macintosh 128K</strong> — click Refresh to morph
+</div>
+</div>
+</div>
+
+</div>
