@@ -68,7 +68,7 @@ _hyperscript.addFeature(RequireFeature.keyword, RequireFeature.parse.bind(Requir
 // ===== Validate mode =====
 
 const DEFAULT_EXTENSIONS = new Set(['.html', '.htm', '._hs']);
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'vendor', '__pycache__']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'vendor', '__pycache__', '_site']);
 
 function validate() {
     // Parse --ext flag
@@ -159,22 +159,31 @@ function validateFile(filePath, extensions, attrPattern, scriptPattern) {
 
     if (ext === '._hs') {
         // Entire file is hyperscript
-        const result = _hyperscript.parse(content);
-        if (result.errors?.length) {
-            for (const err of result.errors) {
-                errors.push(formatError(filePath, content, err, 0));
-            }
-        }
+        parseAndCollect(content, 0, null);
     } else {
         // HTML-like file — extract regions
         const regions = extractRegions(content, attrPattern, scriptPattern);
         for (const region of regions) {
             if (!region.source.trim()) continue;
-            const result = _hyperscript.parse(region.source);
-            if (result.errors?.length) {
-                for (const err of result.errors) {
-                    errors.push(formatError(filePath, content, err, region.offset, region));
-                }
+            parseAndCollect(region.source, region.offset, region);
+        }
+    }
+
+    function parseAndCollect(source, offset, region) {
+        var result;
+        try {
+            result = _hyperscript.parse(source);
+        } catch (e) {
+            // Tokenizer can throw on unterminated strings, etc.
+            errors.push(formatError(filePath, content, {
+                message: e.message,
+                token: { start: 0, value: '', line: 1, column: 0 },
+            }, offset, region));
+            return;
+        }
+        if (result.errors?.length) {
+            for (const err of result.errors) {
+                errors.push(formatError(filePath, content, err, offset, region));
             }
         }
     }

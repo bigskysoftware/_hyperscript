@@ -5090,7 +5090,7 @@
       } else if (parser.matchToken("within")) {
         withinElt = parser.requireElement("unaryExpression");
       } else {
-        withinElt = document.body;
+        withinElt = null;
       }
       var wrapping = false;
       if (parser.matchToken("with")) {
@@ -5169,12 +5169,11 @@
           }
         }
       } else {
-        if (withinElt) {
-          if (this.forwardSearch) {
-            return this.scanForwardQuery(from, withinElt, css, this.wrapping);
-          } else {
-            return this.scanBackwardsQuery(from, withinElt, css, this.wrapping);
-          }
+        var root = withinElt ?? document.body;
+        if (this.forwardSearch) {
+          return this.scanForwardQuery(from, root, css, this.wrapping);
+        } else {
+          return this.scanBackwardsQuery(from, root, css, this.wrapping);
         }
       }
     }

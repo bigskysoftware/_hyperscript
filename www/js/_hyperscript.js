@@ -2056,7 +2056,7 @@
           set(v) {
             navigator.clipboard.writeText(String(v));
           },
-          enumerable: true,
+          enumerable: false,
           configurable: true
         });
       }
@@ -5090,7 +5090,7 @@
       } else if (parser.matchToken("within")) {
         withinElt = parser.requireElement("unaryExpression");
       } else {
-        withinElt = document.body;
+        withinElt = null;
       }
       var wrapping = false;
       if (parser.matchToken("with")) {
@@ -5169,12 +5169,11 @@
           }
         }
       } else {
-        if (withinElt) {
-          if (this.forwardSearch) {
-            return this.scanForwardQuery(from, withinElt, css, this.wrapping);
-          } else {
-            return this.scanBackwardsQuery(from, withinElt, css, this.wrapping);
-          }
+        var root = withinElt ?? document.body;
+        if (this.forwardSearch) {
+          return this.scanForwardQuery(from, root, css, this.wrapping);
+        } else {
+          return this.scanBackwardsQuery(from, root, css, this.wrapping);
         }
       }
     }
@@ -7092,6 +7091,7 @@
     MorphCommand: () => MorphCommand,
     OpenCommand: () => OpenCommand,
     RemoveCommand: () => RemoveCommand,
+    ResetCommand: () => ResetCommand,
     SelectCommand: () => SelectCommand,
     ShowCommand: () => ShowCommand,
     SpeakCommand: () => SpeakCommand,
@@ -7495,7 +7495,7 @@
   };
   var ToggleCommand = class _ToggleCommand extends VisibilityCommand {
     static keyword = "toggle";
-    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
+    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp) {
       super();
       this.classRef = classRef;
       this.classRef2 = classRef2;
@@ -7510,30 +7510,39 @@
       this.betweenClass = betweenClass;
       this.betweenAttr = betweenAttr;
       this.hideShowStrategy = hideShowStrategy;
+      this.betweenValues = betweenValues;
+      this.toggleExpr = toggleExpr;
+      this.styleProp = styleProp;
       this.onExpr = onExpr;
-      this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
+      this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs, betweenValues };
     }
     static parse(parser) {
       if (!parser.matchToken("toggle")) return;
       parser.matchAnyToken("the", "my");
       var visibility = false;
-      var between = false;
       var hideShowStrategy = null;
       var onExpr = null;
       var classRef = null;
       var classRef2 = null;
       var classRefs = null;
       var attributeRef = null;
+      var attributeRef2 = null;
+      var betweenClass = false;
+      var betweenAttr = false;
+      var toggleExpr = null;
+      var styleProp = null;
       if (parser.currentToken().type === "STYLE_REF") {
         let styleRef = parser.consumeToken();
-        var name = styleRef.value.slice(1);
+        styleProp = styleRef.value.slice(1);
         visibility = true;
-        hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
+        hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, styleProp);
         if (parser.matchToken("of")) {
           parser.pushFollow("with");
+          parser.pushFollow("between");
           try {
             onExpr = parser.requireElement("expression");
           } finally {
+            parser.popFollow();
             parser.popFollow();
           }
         } else {
@@ -7542,38 +7551,52 @@
       } else if (parser.matchToken("between")) {
         classRef = parser.parseElement("classRef");
         if (classRef != null) {
-          var betweenClass = true;
+          betweenClass = true;
           parser.requireToken("and");
           classRef2 = parser.requireElement("classRef");
         } else {
-          var betweenAttr = true;
-          var attributeRef = parser.parseElement("attributeRef");
-          if (attributeRef == null) {
-            parser.raiseError("Expected either a class reference or attribute expression");
-          }
-          parser.requireToken("and");
-          var attributeRef2 = parser.requireElement("attributeRef");
-        }
-      } else {
-        classRef = parser.parseElement("classRef");
-        if (classRef == null) {
+          betweenAttr = true;
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
             parser.raiseError("Expected either a class reference or attribute expression");
           }
-        } else {
-          classRefs = [classRef];
-          while (classRef = parser.parseElement("classRef")) {
-            classRefs.push(classRef);
-          }
+          parser.requireToken("and");
+          attributeRef2 = parser.requireElement("attributeRef");
+        }
+      } else if (classRef = parser.parseElement("classRef")) {
+        classRefs = [classRef];
+        while (classRef = parser.parseElement("classRef")) {
+          classRefs.push(classRef);
+        }
+      } else if (attributeRef = parser.parseElement("attributeRef")) {
+      } else {
+        parser.pushFollow("between");
+        toggleExpr = parser.parseElement("assignableExpression");
+        parser.popFollow();
+        if (toggleExpr == null) {
+          parser.raiseError("Expected a class reference, attribute, style property, or settable expression");
         }
       }
-      if (visibility !== true) {
+      if (!visibility && !toggleExpr) {
         if (parser.matchToken("on")) {
           onExpr = parser.requireElement("expression");
         } else {
           onExpr = parser.requireElement("implicitMeTarget");
         }
+      }
+      var betweenValues = null;
+      if (parser.matchToken("between")) {
+        parser.pushFollow("and");
+        betweenValues = [parser.requireElement("expression")];
+        while (parser.matchOpToken(",")) {
+          betweenValues.push(parser.requireElement("expression"));
+        }
+        parser.popFollow();
+        parser.requireToken("and");
+        betweenValues.push(parser.requireElement("expression"));
+      }
+      if (toggleExpr && !betweenValues) {
+        parser.raiseError("toggle <expression> requires 'between' with values");
       }
       var time = null;
       var evt = null;
@@ -7586,9 +7609,29 @@
           from = parser.requireElement("expression");
         }
       }
-      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy);
+      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp);
     }
-    toggle(context, on, classRef, classRef2, classRefs) {
+    toggle(context, on, classRef, classRef2, classRefs, betweenValues) {
+      if (this.betweenValues) {
+        if (this.visibility) {
+          context.meta.runtime.implicitLoop(on, (target) => {
+            var current2 = target.style[this.styleProp] || getComputedStyle(target)[this.styleProp];
+            var idx2 = betweenValues.findIndex((v) => v == current2);
+            target.style[this.styleProp] = betweenValues[(idx2 + 1) % betweenValues.length];
+          });
+        } else {
+          var current = this.toggleExpr.evaluate(context);
+          var idx = betweenValues.findIndex((v) => v == current);
+          var next = betweenValues[(idx + 1) % betweenValues.length];
+          var lhsValues = {};
+          for (var key in this.toggleExpr.lhs) {
+            var val = this.toggleExpr.lhs[key];
+            lhsValues[key] = val && val.evaluate ? val.evaluate(context) : val;
+          }
+          this.toggleExpr.set(context, lhsValues, next);
+        }
+        return;
+      }
       context.meta.runtime.nullCheck(on, this.onExpr);
       if (this.visibility) {
         context.meta.runtime.implicitLoop(on, (target) => {
@@ -7630,12 +7673,12 @@
         });
       }
     }
-    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs }) {
+    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs, betweenValues }) {
       if (time) {
         return new Promise((resolve) => {
-          this.toggle(context, on, classRef, classRef2, classRefs);
+          this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
           setTimeout(() => {
-            this.toggle(context, on, classRef, classRef2, classRefs);
+            this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
             resolve(this.findNext(context));
           }, time);
         });
@@ -7645,15 +7688,15 @@
           target.addEventListener(
             evt,
             () => {
-              this.toggle(context, on, classRef, classRef2, classRefs);
+              this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
               resolve(this.findNext(context));
             },
             { once: true }
           );
-          this.toggle(context, on, classRef, classRef2, classRefs);
+          this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
         });
       } else {
-        this.toggle(context, on, classRef, classRef2, classRefs);
+        this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
         return this.findNext(context);
       }
     }
@@ -7992,13 +8035,13 @@
     }
   };
   var EmptyCommand = class _EmptyCommand extends Command {
-    static keyword = "empty";
+    static keyword = ["empty", "clear"];
     constructor(target) {
       super();
       this.args = { target };
     }
     static parse(parser) {
-      if (!parser.matchToken("empty")) return;
+      if (!parser.matchToken("empty") && !parser.matchToken("clear")) return;
       var target = null;
       if (!parser.commandBoundary(parser.currentToken())) {
         target = parser.requireElement("expression");
@@ -8015,9 +8058,62 @@
         ctx.meta.runtime.notifyMutation(elt);
       } else {
         ctx.meta.runtime.implicitLoop(elt, function(e) {
-          e.replaceChildren();
+          var tag = e.tagName;
+          if (tag === "INPUT") {
+            if (e.type === "checkbox" || e.type === "radio") e.checked = false;
+            else e.value = "";
+          } else if (tag === "TEXTAREA") {
+            e.value = "";
+          } else if (tag === "SELECT") {
+            e.selectedIndex = -1;
+          } else if (tag === "FORM") {
+            e.querySelectorAll("input, textarea, select").forEach(function(inp) {
+              if (inp.tagName === "INPUT") {
+                if (inp.type === "checkbox" || inp.type === "radio") inp.checked = false;
+                else inp.value = "";
+              } else if (inp.tagName === "TEXTAREA") {
+                inp.value = "";
+              } else if (inp.tagName === "SELECT") {
+                inp.selectedIndex = -1;
+              }
+            });
+          } else {
+            e.replaceChildren();
+          }
         });
       }
+      return this.findNext(ctx);
+    }
+  };
+  var ResetCommand = class _ResetCommand extends Command {
+    static keyword = "reset";
+    constructor(target) {
+      super();
+      this.args = { target };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("reset")) return;
+      var target = null;
+      if (!parser.commandBoundary(parser.currentToken())) {
+        target = parser.requireElement("expression");
+      }
+      return new _ResetCommand(target);
+    }
+    resolve(ctx, { target }) {
+      var elt = target || ctx.me;
+      ctx.meta.runtime.implicitLoop(elt, function(e) {
+        var tag = e.tagName;
+        if (tag === "FORM") {
+          e.reset();
+        } else if (tag === "INPUT") {
+          if (e.type === "checkbox" || e.type === "radio") e.checked = e.defaultChecked;
+          else e.value = e.defaultValue;
+        } else if (tag === "TEXTAREA") {
+          e.value = e.defaultValue;
+        } else if (tag === "SELECT") {
+          for (var i = 0; i < e.options.length; i++) e.options[i].selected = e.options[i].defaultSelected;
+        }
+      });
       return this.findNext(ctx);
     }
   };
