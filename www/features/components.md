@@ -8,7 +8,7 @@ Components let you define reusable custom elements using a `<template>` tag. You
 
 ### Installing
 
-Hyper-components is an extension and must be included separately, *after* hyperscript itself:
+Components is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
@@ -19,7 +19,7 @@ Or if you're using npm: `import 'hyperscript.org/dist/ext/component.js'` after i
 
 ### Defining a Component
 
-To define a component, create a `<template>` with a `hyper-component` attribute set to your tag name (which must contain a dash, per the custom elements spec). Then use the component anywhere in your page like a normal HTML element.
+To define a component, create a `<template>` with a `component` attribute set to your tag name (which must contain a dash, per the custom elements spec). Then use the component anywhere in your page like a normal HTML element.
 
 Component-scoped variables use the `^` prefix (e.g. `^count`). These are local to each component instance -- multiple instances of the same component each get their own scope. The component's `_` attribute runs when the element connects, so `init` is the natural place to set up initial state.
 
@@ -28,7 +28,7 @@ Component-scoped variables use the `^` prefix (e.g. `^count`). These are local t
 Components support content projection through `<slot>` elements. Any children you put inside a component tag get inserted where `<slot/>` appears in the template. You can also use named slots by adding a `slot="name"` attribute to child elements and a `name="name"` attribute to the corresponding `<slot>` in the template.
 
 ```html
-<template hyper-component="my-card">
+<template component="my-card">
   <div class="card">
     <h2><slot name="title"></slot></h2>
     <slot/>
@@ -46,7 +46,7 @@ Components support content projection through `<slot>` elements. Any children yo
 The `attrs` proxy gives you access to attribute values evaluated as hyperscript expressions in the *parent* scope. This lets a parent pass data into a component through HTML attributes, and the component can read them via `attrs.attributeName`.
 
 ```html
-<template hyper-component="my-display" _="init set ^val to attrs.initial">
+<template component="my-display" _="init set ^val to attrs.initial">
   <span>${^val}</span>
 </template>
 
@@ -60,7 +60,7 @@ The attribute value (`$someGlobalVar`) is parsed and evaluated as a hyperscript 
 Template expressions (`${}`) are re-evaluated automatically whenever the reactive variables they depend on change. When a re-render happens, hyperscript uses DOM morphing to update only what changed, preserving element identity and event handlers.
 
 ```html
-<template hyper-component="my-counter" _="init set ^count to 0">
+<template component="my-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Count: ${^count}</span>
 </template>
@@ -79,7 +79,7 @@ Each component instance gets `dom-scope="isolated"`, which means `^var` lookups 
 A simple greeting component:
 
 ```html
-<template hyper-component="hello-world">
+<template component="hello-world">
   <span>Hello World</span>
 </template>
 
@@ -89,7 +89,7 @@ A simple greeting component:
 A counter with reactive template rendering:
 
 ```html
-<template hyper-component="click-counter" _="init set ^count to 0">
+<template component="click-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Count: ${^count}</span>
 </template>
@@ -107,7 +107,7 @@ Multiple independent instances, each with their own state:
 Reading attributes at initialization:
 
 ```html
-<template hyper-component="start-at" _="init set ^val to @data-start as Int">
+<template component="start-at" _="init set ^val to @data-start as Int">
   <span>${^val}</span>
 </template>
 
@@ -117,7 +117,7 @@ Reading attributes at initialization:
 ### Syntax
 
 ```html
-<template hyper-component="<tag-name>" [_="<hyperscript>"]>
+<template component="<tag-name>" [_="<hyperscript>"]>
   <!-- template body with ${<expression>} interpolation -->
 </template>
 

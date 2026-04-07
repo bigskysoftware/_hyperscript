@@ -31,7 +31,7 @@ Here we go...
 - A new reactivity system by @scriptogre! `live`, `when ... changes`, `bind` features for automatic dependency tracking and UI updates
 - Reworked templates now in core by @iforgotmylogin - `render` command with `<template>` elements, `${}` interpolation, `#for`/`#if`/`#else`/`#end` control flow
 - `morph` command by @Latent22 - DOM morphing (idiomorph-based) that preserves focus, scroll, form state
-- A new components system (`hyper-component`)! - custom elements with reactive templates, slots, and scope isolation via `<template hyper-component="name">`
+- A new components system - custom elements with reactive templates, slots, and scope isolation via `<template component="name">`
 - DOM-scoped variables (`^name`) - scoped to the element, inherited by descendants
 - `open` / `close` commands - dialogs, details, popovers, fullscreen
 - `focus` / `blur` commands - set or remove keyboard focus

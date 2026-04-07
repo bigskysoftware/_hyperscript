@@ -97,7 +97,7 @@ place whenever its dependencies change:
   end
   ~~~
 
-This forms the basis of [hyper-components](/docs/components/).
+This forms the basis of [components](/docs/components/).
 
 ### Live Templates {#live-templates}
 
@@ -116,7 +116,7 @@ using morphing to preserve focus and event handlers.
 The template renders into a `display:contents` wrapper, so it has no effect on layout.
 
 Live templates use the same `${}` interpolation and `#for`/`#if` control flow as
-the `render` command and [hyper-components](/docs/components/).
+the `render` command and [components](/docs/components/).
 
 While live template and components may seem similar (and they share syntaxes), they serve different purposes: Components 
 are for reusing the same template in multiple places.  Live templates are for dynamically rerendering a

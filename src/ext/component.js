@@ -1,11 +1,11 @@
 /**
  * Hyperscript Component Extension
  *
- * Registers custom elements from <template hyper-component="tag-name"> definitions.
+ * Registers custom elements from <template component="tag-name"> definitions.
  * Template bodies are rendered reactively using the existing template engine.
  *
  * Usage:
- *   <template hyper-component="my-counter" _="init set ^count to @initial-count as Integer">
+ *   <template component="my-counter" _="init set ^count to @initial-count as Integer">
  *     <button _="on click increment ^count">Increment</button>
  *     Count: ${^count}
  *   </template>
@@ -67,7 +67,7 @@ export default function componentPlugin(_hyperscript) {
             try {
                 cache[prop] = createParser(tokenizer.tokenize(attrValue)).requireElement("expression");
             } catch (e) {
-                console.error("hyper-component: failed to parse attrs." + prop + ":", e.message);
+                console.error("component: failed to parse attrs." + prop + ":", e.message);
                 return null;
             }
         }
@@ -109,9 +109,9 @@ export default function componentPlugin(_hyperscript) {
     }
 
     function registerComponent(templateEl, componentScript) {
-        const tagName = templateEl.getAttribute('hyper-component');
+        const tagName = templateEl.getAttribute('component');
         if (!tagName.includes('-')) {
-            console.error("hyper-component name must contain a dash: '" + tagName + "'");
+            console.error("component name must contain a dash: '" + tagName + "'");
             return;
         }
         const templateSource = templateEl.innerHTML;
@@ -234,12 +234,12 @@ export default function componentPlugin(_hyperscript) {
 
     _hyperscript.addBeforeProcessHook(function(elt) {
         if (!elt || !elt.querySelectorAll) return;
-        elt.querySelectorAll('template[hyper-component]').forEach(function(tmpl) {
+        elt.querySelectorAll('template[component]').forEach(function(tmpl) {
             // Always strip _ to prevent normal processNode from running it on the template
             var script = tmpl.getAttribute('_') || '';
             tmpl.removeAttribute('_');
 
-            var tagName = tmpl.getAttribute('hyper-component');
+            var tagName = tmpl.getAttribute('component');
             if (!registered.has(tagName) && !customElements.get(tagName)) {
                 registered.add(tagName);
                 registerComponent(tmpl, script);

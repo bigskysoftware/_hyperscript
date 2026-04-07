@@ -238,7 +238,7 @@ morph #container to it                   -- DOM-preserving update
 ### Components (extension)
 
 ```html
-<template hyper-component="my-counter" _="init set ^count to 0">
+<template component="my-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>${^count}</span>
 </template>

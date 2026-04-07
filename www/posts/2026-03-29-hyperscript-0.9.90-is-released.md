@@ -88,11 +88,11 @@ morph me with responseHtml
 
 ### Components
 
-A new components system (`hyper-component`) lets you define custom elements with reactive templates, slots,
+A new components system (`component`) lets you define custom elements with reactive templates, slots,
 and scope isolation — all declared in a single `<template>`:
 
 ```html
-<template hyper-component="my-counter">
+<template component="my-counter">
   <button _="on click increment ^count">+1</button>
   <output _="live put ^count into me"></output>
 </template>

@@ -14,7 +14,7 @@ language, and several useful extensions ship with the project.
 
 These extensions ship in the `dist/ext/` directory and must be loaded separately after hyperscript:
 
-- [Components](/features/components) — Hyper-components: custom elements with reactive templates and slots
+- [Components](/features/components) — Custom elements with reactive templates and slots
 - [EventSource](/features/eventsource) — Server-Sent Events (see [Networking](/docs/networking/#eventsource))
 - [Intercept](/features/intercept) — Service worker DSL for caching and offline support (see [Networking](/docs/networking/#intercept))
 - [Socket](/features/socket) — WebSockets (see [Networking](/docs/networking/#socket))

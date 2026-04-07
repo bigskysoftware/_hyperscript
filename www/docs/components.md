@@ -7,21 +7,21 @@ title: ///_hyperscript
 
 ## Components {#components}
 
-Hyper-components let you define reusable custom elements using a `<template>` tag.
+Components let you define reusable custom elements using a `<template>` tag.
 You write markup with `${}` interpolation, attach hyperscript with `_=`, and the
 runtime handles reactive re-rendering via morphing.
 
-Hyper-components is an extension and must be loaded separately after hyperscript.
+Components is an extension and must be loaded separately after hyperscript.
 
 See the [component feature page](/features/components) for installation details.
 
 ### Defining a Component {#defining}
 
-A component is a `<template>` with a `hyper-component` attribute. The value is the
+A component is a `<template>` with a `component` attribute. The value is the
 tag name you will use (it must contain a dash, per the custom elements spec):
 
 {% example "A component" %}
-<template hyper-component="hello-world">
+<template component="hello-world">
   <span>Hello World</span>
 </template>
 
@@ -38,7 +38,7 @@ Component templates use hyperscript's template syntax. `${expr}` interpolates an
 expression. `#for`, `#if`, `#else`, and `#end` give you loops and conditionals.
 
   ~~~ html
-  <template hyper-component="user-card" _="init set ^user to attrs.data">
+  <template component="user-card" _="init set ^user to attrs.data">
     <h3>${^user.name}</h3>
     #if ^user.admin
       <span class="badge">admin</span>
@@ -60,7 +60,7 @@ Use DOM-scoped variables (`^var`) for component state. Each component instance g
 its own isolated DOM scope, so two instances do not share state.
 
 {% example "Component state" %}
-<template hyper-component="click-counter" _="init set ^count to 0">
+<template component="click-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span style="margin-left: 1em;">Clicks: ${^count}</span>
 </template>
@@ -80,7 +80,7 @@ re-renders. Rendering uses morphing, so focus, scroll position, and event handle
 are preserved across updates.
 
 {% example "Reactive rendering" %}
-<template hyper-component="live-greeter" _="init set ^name to 'World'">
+<template component="live-greeter" _="init set ^name to 'World'">
   <input type="text" _="bind ^name to my value" />
   <p>Hello, ${^name}!</p>
 </template>
@@ -100,7 +100,7 @@ An attribute access is lazily is parsed as a hyperscript expression in the *pare
 This allows you to pass variables and objects as naturally as you would any hyperscript expression:
 
 {% example "Passing data via attrs" %}
-<template hyper-component="user-card" _="init set ^user to attrs.data">
+<template component="user-card" _="init set ^user to attrs.data">
   <h3 style="margin: 0;">${^user.name}</h3>
   <p style="margin: 0;">${^user.email}</p>
 </template>
@@ -126,7 +126,7 @@ internal component state.
 is projected into the template at the slot position:
 
 {% example "Default slot" %}
-<template hyper-component="my-card">
+<template component="my-card">
   <div style="border: 1px solid #ccc; padding: 1em; border-radius: 4px;">
     <slot/>
   </div>
@@ -140,7 +140,7 @@ is projected into the template at the slot position:
 Named slots let you project multiple regions:
 
 {% example "Named slots" %}
-<template hyper-component="my-layout">
+<template component="my-layout">
   <div style="border: 1px solid #ccc; border-radius: 4px;">
     <header style="padding: 0.5em; background: #f0f0f0;"><slot name="title"/></header>
     <main style="padding: 1em;"><slot/></main>
@@ -171,7 +171,7 @@ language docs for all the scoping options.
 A component with reactive state, `attrs` input, and two-way binding:
 
 {% example "Filterable List" %}
-<template hyper-component="filter-list"
+<template component="filter-list"
         _="init set ^items to attrs.items
                    set ^query to ''">
   <input type="text" placeholder="Search..." _="bind ^query to my value" />
@@ -195,7 +195,7 @@ When there are no matches, the `#else` branch shows the "No matches" message.
 
 ### Behaviors {#behaviors}
 
-Hyper-components are one way to package reusable logic. Hyperscript also has a
+Components are one way to package reusable logic. Hyperscript also has a
 lighter-weight sibling: [`behavior`](/features/behavior). A behavior is a block
 of hyperscript that you `install` onto an existing element, rather than a new
 custom element you instantiate.
@@ -242,7 +242,7 @@ Behaviors and components solve two different problems:
 
 Use a behavior when you have a bit of logic you want to compose onto arbitrary elements. 
 
-Use a hyper-component when you want a self-contained piece of UI with its own markup and state.
+Use a component when you want a self-contained piece of UI with its own markup and state.
 
 <div class="docs-page-nav">
 <a href="/docs/reactivity/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Reactivity</strong></a>

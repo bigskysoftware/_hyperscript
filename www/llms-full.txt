@@ -1037,10 +1037,10 @@ For simple cases where you know the exact source of a change, plain `on` event h
 
 ## Components (Extension)
 
-Hyper-components define reusable custom elements. Requires `dist/ext/component.js`.
+Components define reusable custom elements. Requires `dist/ext/component.js`.
 
 ```html
-<template hyper-component="click-counter" _="init set ^count to 0">
+<template component="click-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Clicks: ${^count}</span>
 </template>
@@ -1057,7 +1057,7 @@ when `^var` dependencies change. Rendering uses morphing to preserve focus and e
 Components read parent-scope values through the `attrs` proxy:
 
 ```html
-<template hyper-component="user-card" _="init set ^user to attrs.data">
+<template component="user-card" _="init set ^user to attrs.data">
   <h3>${^user.name}</h3>
 </template>
 
@@ -1071,7 +1071,7 @@ Components read parent-scope values through the `attrs` proxy:
 ### Slots
 
 ```html
-<template hyper-component="my-card">
+<template component="my-card">
   <div class="card">
     <header><slot name="title"/></header>
     <main><slot/></main>
@@ -1088,7 +1088,7 @@ Components read parent-scope values through the `attrs` proxy:
 
 Load after the core script:
 
-- **component.js** — hyper-components: custom elements with reactive templates and slots
+- **component.js** — components: custom elements with reactive templates and slots
 - **template.js** — `render` command for HTML templates with `${}` interpolation
 - **hdb.js** — hyperscript debugger (breakpoint UI)
 - **socket.js** — WebSocket support with RPC
