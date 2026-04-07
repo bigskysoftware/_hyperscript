@@ -75,6 +75,43 @@ Templates use `<template>` elements with `${}` interpolation and `#`-prefixed co
 
 Interpolated expressions are HTML-escaped by default. Use `${unescaped expr}` for raw output.
 
+### Morph
+
+The [`morph`](/commands/morph) command by @Latent22 brings DOM morphing to hyperscript — powered by
+[idiomorph](https://github.com/bigskysoftware/idiomorph), it intelligently patches the DOM while preserving
+focus, scroll position, and form state:
+
+```hyperscript
+morph #container with newHtml
+morph me with responseHtml
+```
+
+### Components
+
+A new components system (`hyper-component`) lets you define custom elements with reactive templates, slots,
+and scope isolation — all declared in a single `<template>`:
+
+```html
+<template hyper-component="my-counter">
+  <button _="on click increment ^count">+1</button>
+  <output _="live put ^count into me"></output>
+</template>
+
+<my-counter></my-counter>
+```
+
+### DOM-Scoped Variables
+
+[Variables](/docs#scoping) with the `^` prefix are scoped to the element and inherited by all descendants,
+ideal for component state without polluting the global scope:
+
+```html
+<div _="init set ^count to 0">
+  <button _="on click increment ^count">+1</button>
+  <output _="live put ^count into me"></output>
+</div>
+```
+
 ### New Commands
 
 #### open / close
@@ -101,12 +138,26 @@ on click focus #name-input
 on submit blur me
 ```
 
-#### empty
+#### empty / clear
 
-[`empty`](/commands/empty) removes all children from an element:
+[`empty`](/commands/empty) (or its alias `clear`) clears an element's content. It's smart about what it
+clears — inputs get their values reset, checkboxes get unchecked, selects get deselected, forms get all
+their fields cleared, and regular elements get their children removed. It also works on arrays, sets,
+and maps:
 
 ```hyperscript
-on click empty #results
+on click empty #results           -- remove children
+on click clear #search-input      -- clear input value
+on click empty myArray            -- splice the array
+```
+
+#### reset
+
+[`reset`](/commands/reset) restores a form or input to its default value (the value it had when the page loaded):
+
+```hyperscript
+on click reset <form/>
+on click reset #name-input
 ```
 
 #### swap
@@ -177,6 +228,24 @@ on click
   breakpoint
   add .active
 ```
+
+#### toggle between values
+
+The [`toggle`](/commands/toggle) command now supports cycling any writable value through a list of values
+with `between`. Each toggle advances to the next value, wrapping around:
+
+```hyperscript
+-- cycle a style property between specific values
+toggle *display of #panel between 'none' and 'flex'
+toggle *opacity of me between '0', '0.5' and '1'
+
+-- cycle a variable through values
+toggle $mode between 'edit' and 'preview'
+toggle $theme between 'light', 'dark' and 'auto'
+```
+
+This works with any [assignable expression](/commands/set) — variables, properties, style refs — and
+supports any number of values, not just two.
 
 ### New Expressions & Syntax
 
@@ -258,17 +327,19 @@ get #myForm as Values | JSONString
 get #myForm as Values | FormEncoded
 ```
 
-#### DOM-scoped variables
+### CLI Validation Tool
 
-[Variables](/docs#scoping) with the `^` prefix are scoped to the element and inherited by all descendants,
-ideal for component state without polluting the global scope:
+A new `--validate` flag lets you check all hyperscript in your project for syntax errors from the command
+line, useful for CI and for catching issues during upgrades:
 
-```html
-<div _="init set ^count to 0">
-  <button _="on click increment ^count">+1</button>
-  <output _="live put ^count into me"></output>
-</div>
+```bash
+npx hyperscript.org --validate
+npx hyperscript.org --validate src/ templates/
 ```
+
+It scans `.html` files for `_="..."` attributes and `<script type="text/hyperscript">` blocks, parses them,
+and reports errors with file, line, and column numbers. See the [documentation](/docs/conclusion/#validate)
+for the full set of options.
 
 ### Parser Improvements
 
