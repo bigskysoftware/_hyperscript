@@ -860,15 +860,14 @@ export class ComparisonOperator extends Expression {
                         hasRightValue = false;
                     } else if (parser.matchToken("between")) {
                         operator = "not between";
+                    } else if (parser.matchToken("really")) {
+                        operator = "!==";
+                        if (parser.matchToken("equal")) parser.matchToken("to");
+                    } else if (parser.matchToken("equal")) {
+                        parser.matchToken("to");
+                        operator = "!=";
                     } else {
-                        if (parser.matchToken("really")) {
-                            operator = "!==";
-                        } else {
-                            operator = "!=";
-                        }
-                        if (parser.matchToken("equal")) {
-                            parser.matchToken("to");
-                        }
+                        operator = "is not";
                     }
                 } else if (parser.matchToken("in")) {
                     operator = "in";
@@ -898,15 +897,14 @@ export class ComparisonOperator extends Expression {
                     } else {
                         operator = ">";
                     }
+                } else if (parser.matchToken("really")) {
+                    operator = "===";
+                    if (parser.matchToken("equal")) parser.matchToken("to");
+                } else if (parser.matchToken("equal")) {
+                    parser.matchToken("to");
+                    operator = "==";
                 } else {
-                    if (parser.matchToken("really")) {
-                        operator = "===";
-                    } else {
-                        operator = "==";
-                    }
-                    if (parser.matchToken("equal")) {
-                        parser.matchToken("to");
-                    }
+                    operator = "is";
                 }
             } else if (parser.matchToken("equals")) {
                 operator = "==";
@@ -998,6 +996,20 @@ export class ComparisonOperator extends Expression {
             if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
         }
 
+        if (operator === "is") {
+            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "default"
+                && rhs.name !== "undefined" && rhs.name !== "null") {
+                return !!context.meta.runtime.resolveProperty(lhsVal, rhs.name);
+            }
+            return lhsVal == rhsVal;
+        }
+        if (operator === "is not") {
+            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "default"
+                && rhs.name !== "undefined" && rhs.name !== "null") {
+                return !context.meta.runtime.resolveProperty(lhsVal, rhs.name);
+            }
+            return lhsVal != rhsVal;
+        }
         if (operator === "==") return lhsVal == rhsVal;
         if (operator === "!=") return lhsVal != rhsVal;
         if (operator === "===") return lhsVal === rhsVal;

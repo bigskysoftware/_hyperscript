@@ -8,7 +8,7 @@ Hyperscript provides a rich set of comparison operators, including the usual sym
 
 In addition to the standard numeric and equality checks, hyperscript includes `match`, `contain`/`include`, `starts with`, `ends with`, `is between`, `precedes`/`follows`, and `exists`. Here's what each does:
 
-- **`is` / `is not`** -- equivalent to `==` and `!=`. The `really` modifier switches to `===` / `!==`.
+- **`is` / `is not`** -- equivalent to `==` and `!=`. The `really` modifier switches to `===` / `!==`. Much like the built-in `is empty` form, if the right-hand side is an undefined identifier, `is` falls back to a boolean property test on the left-hand side. This lets you write natural English like `if the checkbox is checked` or `if the button is not disabled`.
 - **`matches`** -- tests if the left side matches a CSS selector or regular expression.
 - **`contains`** / **`includes`** -- calls `.contains()` or `.includes()` on the left side. These are interchangeable.
 - **`is in`** -- flips the operands of `contains`, so `x is in y` means `y contains x`.
@@ -76,6 +76,14 @@ Because [`I`](/expressions/me) is an alias for `me`, comparisons like `I match .
              if it is a String!
                log 'got a non-null string'">
   Check Type
+</button>
+
+<!-- "is" as a boolean property test -->
+<input type="checkbox" id="agree"/>
+<button _="on click
+             if #agree is not checked
+               alert('Please agree to the terms')">
+  Submit
 </button>
 ```
 

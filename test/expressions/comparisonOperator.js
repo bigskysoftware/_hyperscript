@@ -562,4 +562,71 @@ test.describe("the comparisonOperator expression", () => {
 		await find('#a').dispatchEvent('click')
 		await expect(find('#a')).toHaveText("yes")
 	})
+
+	test("is really works without equal to", async ({run}) => {
+		expect(await run("2 is really 2")).toBe(true)
+		expect(await run("2 is really '2'")).toBe(false)
+	})
+
+	test("is not really works without equal to", async ({run}) => {
+		expect(await run("2 is not really '2'")).toBe(true)
+		expect(await run("2 is not really 2")).toBe(false)
+	})
+
+	test("is equal works without to", async ({run}) => {
+		expect(await run("2 is equal 2")).toBe(true)
+		expect(await run("2 is equal 1")).toBe(false)
+	})
+
+	test("is not equal works without to", async ({run}) => {
+		expect(await run("2 is not equal 2")).toBe(false)
+		expect(await run("2 is not equal 1")).toBe(true)
+	})
+
+	test("am works as alias for is", async ({run}) => {
+		expect(await run("2 am 2")).toBe(true)
+		expect(await run("2 am 1")).toBe(false)
+	})
+
+	test("is not undefined still works as equality", async ({run}) => {
+		expect(await run("5 is not undefined")).toBe(true)
+		expect(await run("null is not undefined")).toBe(false)  // null == undefined in JS
+	})
+
+	test("is not null still works as equality", async ({run}) => {
+		expect(await run("5 is not null")).toBe(true)
+		expect(await run("null is not null")).toBe(false)
+	})
+
+	test("is falls back to boolean property when rhs is undefined", async ({html, run}) => {
+		await html("<input id='c1' type='checkbox' checked='checked'/><input id='c2' type='checkbox'/>")
+		expect(await run("#c1 is checked")).toBe(true)
+		expect(await run("#c2 is checked")).toBe(false)
+	})
+
+	test("is not falls back to boolean property when rhs is undefined", async ({html, run}) => {
+		await html("<input id='c1' type='checkbox' checked='checked'/><input id='c2' type='checkbox'/>")
+		expect(await run("#c1 is not checked")).toBe(false)
+		expect(await run("#c2 is not checked")).toBe(true)
+	})
+
+	test("is boolean property works with disabled", async ({html, run}) => {
+		await html("<button id='b1' disabled>Disabled</button><button id='b2'>Enabled</button>")
+		expect(await run("#b1 is disabled")).toBe(true)
+		expect(await run("#b2 is disabled")).toBe(false)
+		expect(await run("#b2 is not disabled")).toBe(true)
+	})
+
+	test("is still does equality when rhs variable exists", async ({run}) => {
+		expect(await run("x is y", { locals: { x: 5, y: 5 } })).toBe(true)
+		expect(await run("x is y", { locals: { x: 5, y: 6 } })).toBe(false)
+	})
+
+	test("is boolean property works in where clause", async ({html, run}) => {
+		await html("<input class='cb' type='checkbox' checked='checked'/>" +
+			"<input class='cb' type='checkbox'/>" +
+			"<input class='cb' type='checkbox' checked='checked'/>")
+		var result = await run(".cb where it is checked")
+		expect(result.length).toBe(2)
+	})
 })
