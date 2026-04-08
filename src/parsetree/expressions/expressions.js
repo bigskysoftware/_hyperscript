@@ -1159,7 +1159,7 @@ function _parseCollectionOperand(parser, keyword) {
 
 export class CollectionOp extends Expression {
     static grammarName = "collectionOp";
-    static expressionType = "indirect";
+    static expressionType = "weakIndirect";
 
     static parse(parser, root) {
         if (parser.matchToken("where")) {
