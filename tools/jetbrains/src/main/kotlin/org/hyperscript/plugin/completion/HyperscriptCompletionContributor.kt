@@ -52,9 +52,9 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
 
     private fun getHostFile(parameters: CompletionParameters): PsiFile? {
         val injectedFile = parameters.position.containingFile ?: return null
-        val injectionHost = com.intellij.psi.impl.source.tree.injected.InjectedLanguageUtil
-            .getTopLevelFile(injectedFile)
-        return if (injectionHost !== injectedFile) injectionHost else null
+        val manager = com.intellij.lang.injection.InjectedLanguageManager.getInstance(injectedFile.project)
+        val hostFile = manager.getTopLevelFile(injectedFile)
+        return if (hostFile !== injectedFile) hostFile else null
     }
 
     override fun addCompletions(

@@ -1,5 +1,6 @@
 package org.hyperscript.plugin.graalvm
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
@@ -35,7 +36,7 @@ data class ParseResult(
  * Call parse() to check hyperscript source for syntax errors and get parse tree info.
  */
 @Service(Service.Level.PROJECT)
-class GraalParserService(private val project: Project) {
+class GraalParserService(private val project: Project) : Disposable {
 
     private val log = Logger.getInstance(GraalParserService::class.java)
 
@@ -246,7 +247,7 @@ class GraalParserService(private val project: Project) {
         }
     }
 
-    fun dispose() {
+    override fun dispose() {
         context?.close()
         context = null
         initialized = false

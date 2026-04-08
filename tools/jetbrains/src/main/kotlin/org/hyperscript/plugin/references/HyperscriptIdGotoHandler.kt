@@ -4,7 +4,7 @@ import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.impl.source.tree.injected.InjectedLanguageUtil
+import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlTag
@@ -50,7 +50,8 @@ class HyperscriptIdGotoHandler : GotoDeclarationHandler {
 
     private fun getHostFile(element: PsiElement): PsiFile? {
         val injectedFile = element.containingFile ?: return null
-        val hostFile = InjectedLanguageUtil.getTopLevelFile(injectedFile)
+        val manager = InjectedLanguageManager.getInstance(injectedFile.project)
+        val hostFile = manager.getTopLevelFile(injectedFile)
         return if (hostFile !== injectedFile) hostFile else null
     }
 }
