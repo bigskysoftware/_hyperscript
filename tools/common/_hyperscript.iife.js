@@ -145,6 +145,13 @@
     popFollow() {
       this.#follows.pop();
     }
+    pushFollows(...strs) {
+      for (var i = 0; i < strs.length; i++) this.#follows.push(strs[i]);
+      return strs.length;
+    }
+    popFollows(count) {
+      for (var i = 0; i < count; i++) this.#follows.pop();
+    }
     clearFollows() {
       var tmp = this.#follows;
       this.#follows = [];
@@ -263,6 +270,9 @@
     #inTemplate() {
       return this.#template && this.#templateBraceCount === 0;
     }
+    #inCommandMode() {
+      return !this.#inTemplate() || this.#templateMode === "command";
+    }
     #possiblePrecedingSymbol() {
       return this.#isAlpha(this.#lastToken) || this.#isNumeric(this.#lastToken) || this.#lastToken === ")" || this.#lastToken === '"' || this.#lastToken === "'" || this.#lastToken === "`" || this.#lastToken === "}" || this.#lastToken === "]";
     }
@@ -299,13 +309,6 @@
       while (this.#currentChar() && !this.#isNewline(this.#currentChar())) {
         this.#consumeChar();
       }
-      this.#consumeChar();
-    }
-    #consumeMultilineComment() {
-      while (this.#currentChar() && !(this.#currentChar() === "*" && this.#nextChar() === "/")) {
-        this.#consumeChar();
-      }
-      this.#consumeChar();
       this.#consumeChar();
     }
     #consumeWhitespace() {
@@ -558,16 +561,10 @@
       var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
       return c === "-" && n === "-" && (this.#isWhitespace(n2) || n2 === "" || n2 === "-") || c === "/" && n === "/" && (this.#isWhitespace(n2) || n2 === "" || n2 === "/");
     }
-    #isBlockComment() {
-      var c = this.#currentChar(), n = this.#nextChar(), n2 = this.#charAt(2);
-      return c === "/" && n === "*" && (this.#isWhitespace(n2) || n2 === "" || n2 === "*");
-    }
     #tokenize() {
       while (this.#position < this.#source.length) {
         if (this.#isLineComment()) {
           this.#consumeComment();
-        } else if (this.#isBlockComment()) {
-          this.#consumeMultilineComment();
         } else if (this.#isWhitespace(this.#currentChar())) {
           this.#tokens.push(this.#consumeWhitespace());
         } else if (!this.#possiblePrecedingSymbol() && this.#currentChar() === "." && (this.#isAlpha(this.#nextChar()) || this.#nextChar() === "{" || this.#nextChar() === "-")) {
@@ -590,13 +587,13 @@
           this.#tokens.push(this.#consumeStyleReference());
         } else if (this.#inTemplate() && (this.#isAlpha(this.#currentChar()) || this.#currentChar() === "\\") && this.#templateMode !== "command") {
           this.#tokens.push(this.#consumeTemplateIdentifier());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
+        } else if (this.#inCommandMode() && (this.#isAlpha(this.#currentChar()) || this.#isIdentifierChar(this.#currentChar()))) {
           this.#tokens.push(this.#consumeIdentifier());
         } else if (this.#isNumeric(this.#currentChar())) {
           this.#tokens.push(this.#consumeNumber());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
+        } else if (this.#inCommandMode() && (this.#currentChar() === '"' || this.#currentChar() === "`")) {
           this.#tokens.push(this.#consumeString());
-        } else if ((!this.#inTemplate() || this.#templateMode === "command") && this.#currentChar() === "'") {
+        } else if (this.#inCommandMode() && this.#currentChar() === "'") {
           if (this.#isValidSingleQuoteStringStart()) {
             this.#tokens.push(this.#consumeString());
           } else {
@@ -1087,52 +1084,52 @@
       this.parseError = parseError;
     }
   };
-  function formatErrors(errors) {
-    if (!errors.length) return "";
-    var source = errors[0].source;
-    var lines = source.split("\n");
-    var byLine = /* @__PURE__ */ new Map();
-    for (var e of errors) {
-      var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
-      if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
-      byLine.get(lineIdx).push(e);
-    }
-    var maxLine = Math.max(...byLine.keys()) + 1;
-    var gutter = String(maxLine).length;
-    var pad = " ".repeat(gutter + 5);
-    var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
-    var prevLineIdx = -1;
-    var out = "";
-    for (var [lineIdx, lineErrors] of sortedLines) {
-      if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      } else if (prevLineIdx === -1 && lineIdx > 0) {
-        out += " ".repeat(gutter + 1) + "...\n";
-      }
-      prevLineIdx = lineIdx;
-      var lineNum = String(lineIdx + 1).padStart(gutter);
-      var contextLine = lines[lineIdx] || "";
-      out += "  " + lineNum + " | " + contextLine + "\n";
-      lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
-      var underlineChars = Array(contextLine.length + 10).fill(" ");
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
-        var len = Math.max(1, e.token?.value?.length || 1);
-        for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
-      }
-      out += pad + underlineChars.join("").trimEnd() + "\n";
-      for (var e of lineErrors) {
-        var col = e.token?.line ? e.token.column : 0;
-        out += pad + " ".repeat(col) + e.message + "\n";
-      }
-    }
-    return out;
-  }
   var Parser = class _Parser {
     #kernel;
     constructor(kernel2, tokens) {
       this.#kernel = kernel2;
       this.tokens = tokens;
+    }
+    static formatErrors(errors) {
+      if (!errors.length) return "";
+      var source = errors[0].source;
+      var lines = source.split("\n");
+      var byLine = /* @__PURE__ */ new Map();
+      for (var e of errors) {
+        var lineIdx = e.token?.line ? e.token.line - 1 : lines.length - 1;
+        if (!byLine.has(lineIdx)) byLine.set(lineIdx, []);
+        byLine.get(lineIdx).push(e);
+      }
+      var maxLine = Math.max(...byLine.keys()) + 1;
+      var gutter = String(maxLine).length;
+      var pad = " ".repeat(gutter + 5);
+      var sortedLines = [...byLine.entries()].sort((a, b) => a[0] - b[0]);
+      var prevLineIdx = -1;
+      var out = "";
+      for (var [lineIdx, lineErrors] of sortedLines) {
+        if (prevLineIdx !== -1 && lineIdx > prevLineIdx + 1) {
+          out += " ".repeat(gutter + 1) + "...\n";
+        } else if (prevLineIdx === -1 && lineIdx > 0) {
+          out += " ".repeat(gutter + 1) + "...\n";
+        }
+        prevLineIdx = lineIdx;
+        var lineNum = String(lineIdx + 1).padStart(gutter);
+        var contextLine = lines[lineIdx] || "";
+        out += "  " + lineNum + " | " + contextLine + "\n";
+        lineErrors.sort((a, b) => (a.column || 0) - (b.column || 0));
+        var underlineChars = Array(contextLine.length + 10).fill(" ");
+        for (var e of lineErrors) {
+          var col = e.token?.line ? e.token.column : Math.max(0, contextLine.length - 1);
+          var len = Math.max(1, e.token?.value?.length || 1);
+          for (var i = 0; i < len; i++) underlineChars[col + i] = "^";
+        }
+        out += pad + underlineChars.join("").trimEnd() + "\n";
+        for (var e of lineErrors) {
+          var col = e.token?.line ? e.token.column : 0;
+          out += pad + " ".repeat(col) + e.message + "\n";
+        }
+      }
+      return out;
     }
     // ===========================
     // Token delegation methods
@@ -1202,6 +1199,12 @@
     }
     popFollow() {
       return this.tokens.popFollow();
+    }
+    pushFollows(...strs) {
+      return this.tokens.pushFollows(...strs);
+    }
+    popFollows(count) {
+      return this.tokens.popFollows(count);
     }
     clearFollows() {
       return this.tokens.clearFollows();
@@ -1422,7 +1425,9 @@
     }
     parseUnaryExpression(parser) {
       parser.matchToken("the");
-      return parser.parseAnyOf(this.#unaryExpressions) || parser.parseElement("postfixExpression");
+      var result = parser.parseAnyOf(this.#unaryExpressions);
+      if (result) return this.parseElement("indirectExpression", parser, result);
+      return parser.parseElement("postfixExpression");
     }
     parseExpression(parser) {
       parser.matchToken("the");
@@ -1722,6 +1727,7 @@
     attributes: "_, script, data-script",
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
+    fetchThrowsOn: [/4.*/, /5.*/],
     hideShowStrategies: {},
     logAll: false,
     mutatingMethods: {
@@ -1764,6 +1770,27 @@
       }
     }
   };
+  function _toHTML(value) {
+    if (value instanceof Array) {
+      return value.map((item) => _toHTML(item)).join("");
+    }
+    if (value instanceof HTMLElement) {
+      return value.outerHTML;
+    }
+    if (value instanceof NodeList) {
+      var result = "";
+      for (var i = 0; i < value.length; i++) {
+        if (value[i] instanceof HTMLElement) {
+          result += value[i].outerHTML;
+        }
+      }
+      return result;
+    }
+    if (value.toString) {
+      return value.toString();
+    }
+    return "";
+  }
   var conversions = {
     dynamicResolvers: [
       // Fixed-point number conversion
@@ -1809,6 +1836,7 @@
       return Array.from(val);
     },
     JSON: function(val) {
+      if (typeof Response !== "undefined" && val instanceof Response) return val.json();
       return JSON.parse(val);
     },
     JSONString: function(val) {
@@ -1827,31 +1855,30 @@
     FormEncoded: function(val) {
       return new URLSearchParams(val).toString();
     },
-    HTML: function(value) {
-      var toHTML = (value2) => {
-        if (value2 instanceof Array) {
-          return value2.map((item) => toHTML(item)).join("");
-        }
-        if (value2 instanceof HTMLElement) {
-          return value2.outerHTML;
-        }
-        if (value2 instanceof NodeList) {
-          var result = "";
-          for (var i = 0; i < value2.length; i++) {
-            var node = value2[i];
-            if (node instanceof HTMLElement) {
-              result += node.outerHTML;
-            }
-          }
-          return result;
-        }
-        if (value2.toString) {
-          return value2.toString();
-        }
-        return "";
-      };
-      return toHTML(value);
+    Set: function(val) {
+      return new Set(val);
     },
+    Map: function(val) {
+      return new Map(Object.entries(val));
+    },
+    Keys: function(val) {
+      if (val instanceof Map) return Array.from(val.keys());
+      return Object.keys(val);
+    },
+    Entries: function(val) {
+      if (val instanceof Map) return Array.from(val.entries());
+      return Object.entries(val);
+    },
+    Reversed: function(val) {
+      return Array.from(val).reverse();
+    },
+    Unique: function(val) {
+      return [...new Set(val)];
+    },
+    Flat: function(val) {
+      return Array.from(val).flat();
+    },
+    HTML: _toHTML,
     Fragment: function(val, runtime2) {
       var frag = document.createDocumentFragment();
       runtime2.implicitLoop(val, (val2) => {
@@ -2022,16 +2049,6 @@
 
   // src/core/runtime/runtime.js
   var cookies = new CookieJar().proxy();
-  function _applyWhenResults(elements, results, forwardFn, reverseFn) {
-    var matched = [];
-    for (var i = 0; i < elements.length; i++) {
-      if (results[i]) {
-        forwardFn(elements[i]);
-        matched.push(elements[i]);
-      } else reverseFn(elements[i]);
-    }
-    return matched;
-  }
   var Context = class {
     constructor(owner, feature, hyperscriptTarget, event, runtime2, globalScope2, kernel2, tokenizer2) {
       this.meta = {
@@ -2054,7 +2071,7 @@
           set(v) {
             navigator.clipboard.writeText(String(v));
           },
-          enumerable: true,
+          enumerable: false,
           configurable: true
         });
       }
@@ -2162,7 +2179,7 @@
         }
       }
     }
-    unifiedEval(parseElement, ctx, shortCircuitOnValue) {
+    unifiedEval(parseElement, ctx) {
       var async = false;
       var evaluatedArgs = {};
       if (parseElement.args) {
@@ -2192,15 +2209,6 @@
               async = true;
             }
             evaluatedArgs[name] = value;
-            if (value) {
-              if (shortCircuitOnValue === true) {
-                break;
-              }
-            } else {
-              if (shortCircuitOnValue === false) {
-                break;
-              }
-            }
           } else {
             evaluatedArgs[name] = argument;
           }
@@ -2574,12 +2582,22 @@
         return c && typeof c.then === "function";
       });
       if (hasPromise) {
-        return Promise.all(conditions).then(function(results) {
-          context.result = _applyWhenResults(elements, results, forwardFn, reverseFn);
+        return Promise.all(conditions).then((results) => {
+          context.result = this.#applyWhenResults(elements, results, forwardFn, reverseFn);
         });
       } else {
-        context.result = _applyWhenResults(elements, conditions, forwardFn, reverseFn);
+        context.result = this.#applyWhenResults(elements, conditions, forwardFn, reverseFn);
       }
+    }
+    #applyWhenResults(elements, results, forwardFn, reverseFn) {
+      var matched = [];
+      for (var i = 0; i < elements.length; i++) {
+        if (results[i]) {
+          forwardFn(elements[i]);
+          matched.push(elements[i]);
+        } else reverseFn(elements[i]);
+      }
+      return matched;
     }
     // =================================================================
     // Type system
@@ -2777,7 +2795,7 @@
           console.error(
             "hyperscript: " + hyperScript.errors.length + " parse error(s) on:",
             elt,
-            "\n\n" + formatErrors(hyperScript.errors)
+            "\n\n" + Parser.formatErrors(hyperScript.errors)
           );
           return;
         }
@@ -3735,19 +3753,11 @@
         }
         var targetExpr = null;
         if (scope === "inherited" && parser.matchToken("on")) {
-          parser.pushFollow("to");
-          parser.pushFollow("into");
-          parser.pushFollow("before");
-          parser.pushFollow("after");
-          parser.pushFollow("then");
+          var follows = parser.pushFollows("to", "into", "before", "after", "then");
           try {
             targetExpr = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         }
         return new _SymbolRef(identifier, scope, name, targetExpr);
@@ -3851,7 +3861,8 @@
         childOfUrRoot = urRoot;
         urRoot = urRoot.root;
       }
-      if (urRoot.type !== "symbol" && urRoot.type !== "attributeRef" && urRoot.type !== "styleRef" && urRoot.type !== "computedStyleRef") {
+      var validOfRoots = ["symbol", "attributeRef", "styleRef", "computedStyleRef"];
+      if (!validOfRoots.includes(urRoot.type)) {
         parser.raiseError("Cannot take a property of a non-symbol: " + urRoot.type);
       }
       var attribute = urRoot.type === "attributeRef";
@@ -4492,8 +4503,25 @@
         return lhsVal || rhsVal;
       }
     }
+    // override to handle promise-compatible and/or short-circuiting
     evaluate(context) {
-      return context.meta.runtime.unifiedEval(this, context, this.operator === "or");
+      var self2 = this;
+      var shortCircuitValue = this.operator === "or";
+      var lhsVal = this.lhs.evaluate(context);
+      var continueWith = function(resolvedLhs) {
+        if (!!resolvedLhs === shortCircuitValue) {
+          return resolvedLhs;
+        }
+        var rhsVal = self2.rhs.evaluate(context);
+        if (rhsVal && rhsVal.then) {
+          return rhsVal.then((r) => self2.resolve(context, { lhs: resolvedLhs, rhs: r }));
+        }
+        return self2.resolve(context, { lhs: resolvedLhs, rhs: rhsVal });
+      };
+      if (lhsVal && lhsVal.then) {
+        return lhsVal.then(continueWith);
+      }
+      return continueWith(lhsVal);
     }
   };
   var DotOrColonPathNode = class extends Expression {
@@ -4512,12 +4540,12 @@
   };
   var COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
   function _parseCollectionOperand(parser, keyword) {
-    var follows = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
-    follows.forEach((f) => parser.pushFollow(f));
+    var others = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
+    var count = parser.pushFollows(...others);
     try {
       return parser.requireElement("expression");
     } finally {
-      follows.forEach(() => parser.popFollow());
+      parser.popFollows(count);
     }
   }
   var CollectionOp = class extends Expression {
@@ -5050,7 +5078,7 @@
       var op = parser.matchAnyToken("next", "previous");
       if (!op) return;
       var forwardSearch = op.value === "next";
-      var thingElt = parser.parseElement("expression");
+      var thingElt = parser.parseElement("leaf");
       if (parser.matchToken("from")) {
         parser.pushFollow("in");
         try {
@@ -5069,7 +5097,7 @@
       } else if (parser.matchToken("within")) {
         withinElt = parser.requireElement("unaryExpression");
       } else {
-        withinElt = document.body;
+        withinElt = null;
       }
       var wrapping = false;
       if (parser.matchToken("with")) {
@@ -5148,12 +5176,11 @@
           }
         }
       } else {
-        if (withinElt) {
-          if (this.forwardSearch) {
-            return this.scanForwardQuery(from, withinElt, css, this.wrapping);
-          } else {
-            return this.scanBackwardsQuery(from, withinElt, css, this.wrapping);
-          }
+        var root = withinElt ?? document.body;
+        if (this.forwardSearch) {
+          return this.scanForwardQuery(from, root, css, this.wrapping);
+        } else {
+          return this.scanBackwardsQuery(from, root, css, this.wrapping);
         }
       }
     }
@@ -5588,6 +5615,9 @@
       if (Array.isArray(target)) {
         target.push(value);
         context.meta.runtime.notifyMutation(target);
+      } else if (target instanceof Set) {
+        target.add(value);
+        context.meta.runtime.notifyMutation(target);
       } else if (target instanceof Element) {
         if (value instanceof Element) {
           target.insertAdjacentElement("beforeend", value);
@@ -5643,25 +5673,21 @@
       if (!parser.matchToken("pick")) return;
       parser.matchToken("the");
       if (parser.matchToken("first")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var count = parser.requireElement("expression");
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("first", root, null, null, null, count);
       }
       if (parser.matchToken("last")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var count = parser.requireElement("expression");
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("last", root, null, null, null, count);
@@ -5669,34 +5695,29 @@
       if (parser.matchToken("random")) {
         var count = null;
         if (parser.currentToken().type === "NUMBER") {
-          parser.pushFollow("of");
-          parser.pushFollow("from");
+          var follows = parser.pushFollows("of", "from");
           try {
             count = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("random", root, null, null, null, count);
       }
       if (parser.matchToken("item") || parser.matchToken("items") || parser.matchToken("character") || parser.matchToken("characters")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var range = _PickCommand.parsePickRange(parser);
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("range", root, range, null, null);
       }
       if (parser.matchToken("match")) {
         parser.matchToken("of");
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var re = parser.parseElement("expression");
           var flags = "";
@@ -5704,16 +5725,14 @@
             flags = parser.requireTokenType("IDENTIFIER").value;
           }
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("match", root, null, re, flags);
       }
       if (parser.matchToken("matches")) {
         parser.matchToken("of");
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var re = parser.parseElement("expression");
           var flags = "gu";
@@ -5721,8 +5740,7 @@
             flags = "g" + parser.requireTokenType("IDENTIFIER").value.replace("g", "");
           }
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("matches", root, null, re, flags);
@@ -5761,13 +5779,14 @@
   };
   var FetchCommand = class _FetchCommand extends Command {
     static keyword = "fetch";
-    constructor(url, argExprs, conversionType, conversion) {
+    constructor(url, argExprs, conversionType, conversion, dontThrow) {
       super();
       this.url = url;
       this.argExpressions = argExprs;
       this.args = { url, options: argExprs };
       this.conversionType = conversionType;
       this.conversion = conversion;
+      this.dontThrow = dontThrow;
     }
     static parseConversionInfo(parser) {
       var type = "text";
@@ -5775,11 +5794,11 @@
       parser.matchToken("a") || parser.matchToken("an");
       if (parser.matchToken("json") || parser.matchToken("JSON") || parser.matchToken("Object")) {
         type = "json";
-      } else if (parser.matchToken("response")) {
+      } else if (parser.matchToken("response") || parser.matchToken("Response")) {
         type = "response";
       } else if (parser.matchToken("html") || parser.matchToken("HTML")) {
         type = "html";
-      } else if (parser.matchToken("text") || parser.matchToken("String")) {
+      } else if (parser.matchToken("text") || parser.matchToken("Text") || parser.matchToken("String")) {
       } else {
         conversion = parser.requireElement("dotOrColonPath").evalStatically();
       }
@@ -5799,9 +5818,21 @@
       if (conversionInfo == null && parser.matchToken("as")) {
         conversionInfo = _FetchCommand.parseConversionInfo(parser);
       }
+      var dontThrow = false;
+      if (parser.matchToken("do")) {
+        parser.requireToken("not");
+        parser.requireToken("throw");
+        dontThrow = true;
+      } else if (parser.currentToken().value === "don" && parser.token(1).value === "'" && parser.token(2).value === "t" && parser.token(1).start === parser.currentToken().end && parser.token(2).start === parser.token(1).end) {
+        parser.consumeToken();
+        parser.consumeToken();
+        parser.consumeToken();
+        parser.requireToken("throw");
+        dontThrow = true;
+      }
       var type = conversionInfo ? conversionInfo.type : "text";
       var conversion = conversionInfo ? conversionInfo.conversion : null;
-      return new _FetchCommand(url, argExprs, type, conversion);
+      return new _FetchCommand(url, argExprs, type, conversion, dontThrow);
     }
     resolve(context, { url, options }) {
       var detail = options || {};
@@ -5825,10 +5856,23 @@
         finished = true;
         return this.findNext(context);
       };
+      var checkThrow = !this.dontThrow && this.conversionType !== "response";
       return fetch(url, detail).then((resp) => {
         var resultDetails = { response: resp };
         context.meta.runtime.triggerEvent(context.me, "fetch:afterResponse", resultDetails);
         resp = resultDetails.response;
+        if (checkThrow) {
+          var statusStr = String(resp.status);
+          var patterns = config.fetchThrowsOn || [];
+          for (var i = 0; i < patterns.length; i++) {
+            if (patterns[i].test(statusStr)) {
+              var err = new Error("fetch failed: " + resp.status + " " + resp.statusText + " (" + url + ")");
+              err.response = resp;
+              err.status = resp.status;
+              throw err;
+            }
+          }
+        }
         if (this.conversionType === "response") return complete(resp);
         if (this.conversionType === "json") return resp.json().then(complete);
         return resp.text().then((result) => {
@@ -5959,8 +6003,11 @@
       if (this.byMode) {
         var el = target || document.documentElement;
         var dir = this.byMode.direction;
-        var top = dir === "up" || dir === "down" ? dir === "up" ? -offset : offset : 0;
-        var left = dir === "left" || dir === "right" ? dir === "left" ? -offset : offset : 0;
+        var top = 0, left = 0;
+        if (dir === "up") top = -offset;
+        else if (dir === "down") top = offset;
+        else if (dir === "left") left = -offset;
+        else if (dir === "right") left = offset;
         var opts = { top, left };
         if (this.scrollOptions.behavior) opts.behavior = this.scrollOptions.behavior;
         el.scrollBy(opts);
@@ -6325,6 +6372,13 @@
               cmd.putInto(context, elt, prop, valueToPut);
             });
           }
+        } else if (Array.isArray(root)) {
+          if (this.operation === "start") {
+            root.unshift(valueToPut);
+          } else {
+            root.push(valueToPut);
+          }
+          context.meta.runtime.notifyMutation(root);
         } else {
           var ops = {
             before: Element.prototype.before,
@@ -6508,7 +6562,7 @@
     }
   };
   var RepeatLoopCommand = class extends Command {
-    constructor(config2, loop) {
+    constructor(config2, loop, elseBranch) {
       super();
       this.identifier = config2.identifier;
       this.indexIdentifier = config2.indexIdentifier;
@@ -6522,6 +6576,7 @@
       this.whileExpr = config2.whileExpr;
       this.bottomTested = config2.bottomTested;
       this.loop = loop;
+      this.elseBranch = elseBranch;
       this.args = { whileValue: config2.whileExpr, times: config2.times };
     }
     resolveNext() {
@@ -6545,7 +6600,7 @@
         keepLooping = whileValue;
       } else if (times) {
         keepLooping = iteratorInfo.index < times;
-      } else {
+      } else if (iteratorInfo.iterator) {
         var nextValFromIterator = iteratorInfo.iterator.next();
         keepLooping = !nextValFromIterator.done;
         loopVal = nextValFromIterator.value;
@@ -6559,10 +6614,15 @@
         if (this.indexIdentifier) {
           context.locals[this.indexIdentifier] = iteratorInfo.index;
         }
+        iteratorInfo.didIterate = true;
         iteratorInfo.index++;
         return this.loop;
       } else {
+        var didIterate = iteratorInfo.didIterate;
         context.meta.iterators[this.slot] = null;
+        if (!didIterate && this.elseBranch) {
+          return this.elseBranch;
+        }
         return context.meta.runtime.findNext(this.parent, context);
       }
     }
@@ -6683,6 +6743,10 @@
           whileExpr = parser.requireElement("expression");
         }
       }
+      var elseBranch = null;
+      if (parser.matchToken("else")) {
+        elseBranch = parser.parseElement("commandList");
+      }
       if (parser.hasMore()) {
         parser.requireToken("end");
       }
@@ -6705,9 +6769,12 @@
         whileExpr,
         bottomTested
       };
-      const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop);
+      const repeatLoopCommand = new RepeatLoopCommand(loopConfig, loop, elseBranch);
       const repeatCommand = new _RepeatCommand(expression, evt, on, slot, repeatLoopCommand);
       parser.setParent(loop, repeatLoopCommand);
+      if (elseBranch) {
+        parser.setParent(elseBranch, repeatCommand);
+      }
       parser.setParent(repeatLoopCommand, repeatCommand);
       return repeatCommand;
     }
@@ -6732,6 +6799,8 @@
         } else {
           iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
         }
+      } else if (this.repeatLoopCommand.elseBranch) {
+        iteratorInfo.iterator = [][Symbol.iterator]();
       }
       if (this.evt) {
         var target = on || context.me;
@@ -7017,6 +7086,7 @@
     MorphCommand: () => MorphCommand,
     OpenCommand: () => OpenCommand,
     RemoveCommand: () => RemoveCommand,
+    ResetCommand: () => ResetCommand,
     SelectCommand: () => SelectCommand,
     ShowCommand: () => ShowCommand,
     SpeakCommand: () => SpeakCommand,
@@ -7122,7 +7192,7 @@
   };
   var AddCommand = class _AddCommand extends Command {
     static keyword = "add";
-    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when) {
+    constructor(variant, classRefs, attributeRef, cssDeclaration, toExpr, when, valueExpr) {
       super();
       this.variant = variant;
       this.classRefs = classRefs;
@@ -7131,10 +7201,13 @@
       this.to = toExpr;
       this.toExpr = toExpr;
       this.when = when;
+      this.valueExpr = valueExpr;
       if (variant === "class") {
         this.args = { to: toExpr, classRefs };
       } else if (variant === "attribute") {
         this.args = { to: toExpr };
+      } else if (variant === "collection") {
+        this.args = { to: toExpr, value: valueExpr };
       } else {
         this.args = { to: toExpr, css: cssDeclaration };
       }
@@ -7144,12 +7217,21 @@
       var classRef = parser.parseElement("classRef");
       var attributeRef = null;
       var cssDeclaration = null;
+      var valueExpr = null;
       if (classRef == null) {
         attributeRef = parser.parseElement("attributeRef");
         if (attributeRef == null) {
           cssDeclaration = parser.parseElement("styleLiteral");
           if (cssDeclaration == null) {
-            parser.raiseError("Expected either a class reference or attribute expression");
+            parser.pushFollow("to");
+            try {
+              valueExpr = parser.parseElement("expression");
+            } finally {
+              parser.popFollow();
+            }
+            if (valueExpr == null || !parser.currentToken() || parser.currentToken().value !== "to") {
+              parser.raiseError("Expected either a class reference or attribute expression");
+            }
           }
         }
       } else {
@@ -7170,16 +7252,30 @@
         return new _AddCommand("class", classRefs, null, null, toExpr, when);
       } else if (attributeRef) {
         return new _AddCommand("attribute", null, attributeRef, null, toExpr, when);
-      } else {
+      } else if (cssDeclaration) {
         return new _AddCommand("css", null, null, cssDeclaration, toExpr, null);
+      } else {
+        return new _AddCommand("collection", null, null, null, toExpr, null, valueExpr);
       }
     }
-    resolve(context, { to, classRefs, css }) {
+    resolve(context, { to, classRefs, css, value }) {
       var runtime2 = context.meta.runtime;
       var cmd = this;
       runtime2.nullCheck(to, this.toExpr);
       var result;
-      if (this.variant === "class") {
+      if (this.variant === "collection") {
+        if (Array.isArray(to)) {
+          to.push(value);
+        } else if (to instanceof Set) {
+          to.add(value);
+        } else if (to instanceof Map) {
+          throw new Error("Use 'set myMap[key] to value' for Maps");
+        } else {
+          throw new Error("Cannot add to " + typeof to);
+        }
+        runtime2.notifyMutation(to);
+        return runtime2.findNext(this, context);
+      } else if (this.variant === "class") {
         runtime2.forEach(classRefs, function(classRef) {
           if (cmd.when) {
             result = runtime2.implicitLoopWhen(
@@ -7318,11 +7414,23 @@
       var result;
       if (this.variant === "element") {
         runtime2.nullCheck(element, this.elementExpr);
-        runtime2.implicitLoop(element, function(target) {
-          if (target.parentElement && (from == null || from.contains(target))) {
-            target.parentElement.removeChild(target);
-          }
-        });
+        if (from != null && Array.isArray(from)) {
+          var idx = from.indexOf(element);
+          if (idx > -1) from.splice(idx, 1);
+          runtime2.notifyMutation(from);
+        } else if (from instanceof Set) {
+          from.delete(element);
+          runtime2.notifyMutation(from);
+        } else if (from instanceof Map) {
+          from.delete(element);
+          runtime2.notifyMutation(from);
+        } else {
+          runtime2.implicitLoop(element, function(target) {
+            if (target.parentElement && (from == null || from.contains(target))) {
+              target.parentElement.removeChild(target);
+            }
+          });
+        }
       } else if (this.variant === "css") {
         runtime2.nullCheck(from, this.fromExpr);
         var propNames = _cssPropertyNames(css);
@@ -7382,7 +7490,7 @@
   };
   var ToggleCommand = class _ToggleCommand extends VisibilityCommand {
     static keyword = "toggle";
-    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy) {
+    constructor(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp) {
       super();
       this.classRef = classRef;
       this.classRef2 = classRef2;
@@ -7397,31 +7505,38 @@
       this.betweenClass = betweenClass;
       this.betweenAttr = betweenAttr;
       this.hideShowStrategy = hideShowStrategy;
+      this.betweenValues = betweenValues;
+      this.toggleExpr = toggleExpr;
+      this.styleProp = styleProp;
       this.onExpr = onExpr;
-      this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs };
+      this.args = { on: onExpr, time, evt, from, classRef, classRef2, classRefs, betweenValues };
     }
     static parse(parser) {
       if (!parser.matchToken("toggle")) return;
       parser.matchAnyToken("the", "my");
       var visibility = false;
-      var between = false;
       var hideShowStrategy = null;
       var onExpr = null;
       var classRef = null;
       var classRef2 = null;
       var classRefs = null;
       var attributeRef = null;
+      var attributeRef2 = null;
+      var betweenClass = false;
+      var betweenAttr = false;
+      var toggleExpr = null;
+      var styleProp = null;
       if (parser.currentToken().type === "STYLE_REF") {
         let styleRef = parser.consumeToken();
-        var name = styleRef.value.slice(1);
+        styleProp = styleRef.value.slice(1);
         visibility = true;
-        hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, name);
+        hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, styleProp);
         if (parser.matchToken("of")) {
-          parser.pushFollow("with");
+          var follows = parser.pushFollows("with", "between");
           try {
             onExpr = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         } else {
           onExpr = parser.requireElement("implicitMeTarget");
@@ -7429,38 +7544,52 @@
       } else if (parser.matchToken("between")) {
         classRef = parser.parseElement("classRef");
         if (classRef != null) {
-          var betweenClass = true;
+          betweenClass = true;
           parser.requireToken("and");
           classRef2 = parser.requireElement("classRef");
         } else {
-          var betweenAttr = true;
-          var attributeRef = parser.parseElement("attributeRef");
-          if (attributeRef == null) {
-            parser.raiseError("Expected either a class reference or attribute expression");
-          }
-          parser.requireToken("and");
-          var attributeRef2 = parser.requireElement("attributeRef");
-        }
-      } else {
-        classRef = parser.parseElement("classRef");
-        if (classRef == null) {
+          betweenAttr = true;
           attributeRef = parser.parseElement("attributeRef");
           if (attributeRef == null) {
             parser.raiseError("Expected either a class reference or attribute expression");
           }
-        } else {
-          classRefs = [classRef];
-          while (classRef = parser.parseElement("classRef")) {
-            classRefs.push(classRef);
-          }
+          parser.requireToken("and");
+          attributeRef2 = parser.requireElement("attributeRef");
+        }
+      } else if (classRef = parser.parseElement("classRef")) {
+        classRefs = [classRef];
+        while (classRef = parser.parseElement("classRef")) {
+          classRefs.push(classRef);
+        }
+      } else if (attributeRef = parser.parseElement("attributeRef")) {
+      } else {
+        parser.pushFollow("between");
+        toggleExpr = parser.parseElement("assignableExpression");
+        parser.popFollow();
+        if (toggleExpr == null) {
+          parser.raiseError("Expected a class reference, attribute, style property, or settable expression");
         }
       }
-      if (visibility !== true) {
+      if (!visibility && !toggleExpr) {
         if (parser.matchToken("on")) {
           onExpr = parser.requireElement("expression");
         } else {
           onExpr = parser.requireElement("implicitMeTarget");
         }
+      }
+      var betweenValues = null;
+      if (parser.matchToken("between")) {
+        parser.pushFollow("and");
+        betweenValues = [parser.requireElement("expression")];
+        while (parser.matchOpToken(",")) {
+          betweenValues.push(parser.requireElement("expression"));
+        }
+        parser.popFollow();
+        parser.requireToken("and");
+        betweenValues.push(parser.requireElement("expression"));
+      }
+      if (toggleExpr && !betweenValues) {
+        parser.raiseError("toggle <expression> requires 'between' with values");
       }
       var time = null;
       var evt = null;
@@ -7473,9 +7602,29 @@
           from = parser.requireElement("expression");
         }
       }
-      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy);
+      return new _ToggleCommand(classRef, classRef2, classRefs, attributeRef, attributeRef2, onExpr, time, evt, from, visibility, betweenClass, betweenAttr, hideShowStrategy, betweenValues, toggleExpr, styleProp);
     }
-    toggle(context, on, classRef, classRef2, classRefs) {
+    toggle(context, on, classRef, classRef2, classRefs, betweenValues) {
+      if (this.betweenValues) {
+        if (this.visibility) {
+          context.meta.runtime.implicitLoop(on, (target) => {
+            var current2 = target.style[this.styleProp] || getComputedStyle(target)[this.styleProp];
+            var idx2 = betweenValues.findIndex((v) => v == current2);
+            target.style[this.styleProp] = betweenValues[(idx2 + 1) % betweenValues.length];
+          });
+        } else {
+          var current = this.toggleExpr.evaluate(context);
+          var idx = betweenValues.findIndex((v) => v == current);
+          var next = betweenValues[(idx + 1) % betweenValues.length];
+          var lhsValues = {};
+          for (var key in this.toggleExpr.lhs) {
+            var val = this.toggleExpr.lhs[key];
+            lhsValues[key] = val && val.evaluate ? val.evaluate(context) : val;
+          }
+          this.toggleExpr.set(context, lhsValues, next);
+        }
+        return;
+      }
       context.meta.runtime.nullCheck(on, this.onExpr);
       if (this.visibility) {
         context.meta.runtime.implicitLoop(on, (target) => {
@@ -7517,12 +7666,12 @@
         });
       }
     }
-    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs }) {
+    resolve(context, { on, time, evt, from, classRef, classRef2, classRefs, betweenValues }) {
       if (time) {
         return new Promise((resolve) => {
-          this.toggle(context, on, classRef, classRef2, classRefs);
+          this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
           setTimeout(() => {
-            this.toggle(context, on, classRef, classRef2, classRefs);
+            this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
             resolve(this.findNext(context));
           }, time);
         });
@@ -7532,15 +7681,15 @@
           target.addEventListener(
             evt,
             () => {
-              this.toggle(context, on, classRef, classRef2, classRefs);
+              this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
               resolve(this.findNext(context));
             },
             { once: true }
           );
-          this.toggle(context, on, classRef, classRef2, classRefs);
+          this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
         });
       } else {
-        this.toggle(context, on, classRef, classRef2, classRefs);
+        this.toggle(context, on, classRef, classRef2, classRefs, betweenValues);
         return this.findNext(context);
       }
     }
@@ -7879,13 +8028,13 @@
     }
   };
   var EmptyCommand = class _EmptyCommand extends Command {
-    static keyword = "empty";
+    static keyword = ["empty", "clear"];
     constructor(target) {
       super();
       this.args = { target };
     }
     static parse(parser) {
-      if (!parser.matchToken("empty")) return;
+      if (!parser.matchToken("empty") && !parser.matchToken("clear")) return;
       var target = null;
       if (!parser.commandBoundary(parser.currentToken())) {
         target = parser.requireElement("expression");
@@ -7894,8 +8043,69 @@
     }
     resolve(ctx, { target }) {
       var elt = target || ctx.me;
+      if (Array.isArray(elt)) {
+        elt.splice(0);
+        ctx.meta.runtime.notifyMutation(elt);
+      } else if (elt instanceof Set || elt instanceof Map) {
+        elt.clear();
+        ctx.meta.runtime.notifyMutation(elt);
+      } else {
+        ctx.meta.runtime.implicitLoop(elt, function(e) {
+          var tag = e.tagName;
+          if (tag === "INPUT") {
+            if (e.type === "checkbox" || e.type === "radio") e.checked = false;
+            else e.value = "";
+          } else if (tag === "TEXTAREA") {
+            e.value = "";
+          } else if (tag === "SELECT") {
+            e.selectedIndex = -1;
+          } else if (tag === "FORM") {
+            e.querySelectorAll("input, textarea, select").forEach(function(inp) {
+              if (inp.tagName === "INPUT") {
+                if (inp.type === "checkbox" || inp.type === "radio") inp.checked = false;
+                else inp.value = "";
+              } else if (inp.tagName === "TEXTAREA") {
+                inp.value = "";
+              } else if (inp.tagName === "SELECT") {
+                inp.selectedIndex = -1;
+              }
+            });
+          } else {
+            e.replaceChildren();
+          }
+        });
+      }
+      return this.findNext(ctx);
+    }
+  };
+  var ResetCommand = class _ResetCommand extends Command {
+    static keyword = "reset";
+    constructor(target) {
+      super();
+      this.args = { target };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("reset")) return;
+      var target = null;
+      if (!parser.commandBoundary(parser.currentToken())) {
+        target = parser.requireElement("expression");
+      }
+      return new _ResetCommand(target);
+    }
+    resolve(ctx, { target }) {
+      var elt = target || ctx.me;
       ctx.meta.runtime.implicitLoop(elt, function(e) {
-        e.replaceChildren();
+        var tag = e.tagName;
+        if (tag === "FORM") {
+          e.reset();
+        } else if (tag === "INPUT") {
+          if (e.type === "checkbox" || e.type === "radio") e.checked = e.defaultChecked;
+          else e.value = e.defaultValue;
+        } else if (tag === "TEXTAREA") {
+          e.value = e.defaultValue;
+        } else if (tag === "SELECT") {
+          for (var i = 0; i < e.options.length; i++) e.options[i].selected = e.options[i].defaultSelected;
+        }
       });
       return this.findNext(ctx);
     }
@@ -8118,39 +8328,9 @@
   var animations_exports = {};
   __export(animations_exports, {
     SettleCommand: () => SettleCommand,
-    TransitionCommand: () => TransitionCommand
+    TransitionCommand: () => TransitionCommand,
+    ViewTransitionCommand: () => ViewTransitionCommand
   });
-  function _extractStyleProp(expr) {
-    if (expr.type === "styleRef") {
-      return { name: expr.name, target: null };
-    }
-    if (expr.type === "possessive" && expr.attribute && (expr.attribute.type === "styleRef" || expr.attribute.type === "computedStyleRef")) {
-      return { name: expr.attribute.name, target: expr.root };
-    }
-    if (expr.type === "ofExpression" && expr._urRoot && (expr._urRoot.type === "styleRef" || expr._urRoot.type === "computedStyleRef")) {
-      return { name: expr._urRoot.name, target: expr.root };
-    }
-    return null;
-  }
-  var StyleRefValue = class extends Expression {
-    constructor(styleProp) {
-      super();
-      this.type = "styleRefValue";
-      this.styleProp = styleProp;
-    }
-    evaluate(context) {
-      return this.styleProp;
-    }
-  };
-  var InitialLiteral = class extends Expression {
-    constructor() {
-      super();
-      this.type = "initial_literal";
-    }
-    evaluate(context) {
-      return "initial";
-    }
-  };
   var SettleCommand = class _SettleCommand extends Command {
     static keyword = "settle";
     constructor(onExpr) {
@@ -8200,149 +8380,239 @@
   }
   var TransitionCommand = class _TransitionCommand extends Command {
     static keyword = "transition";
-    constructor(targetsExpr, to, properties, from, usingExpr, over) {
+    constructor(propExprs, from, to, usingExpr, over) {
       super();
-      this.to = to;
-      this.targetsExpr = targetsExpr;
-      this.properties = properties;
+      this.propExprs = propExprs;
       this.from = from;
+      this.to = to;
       this.usingExpr = usingExpr;
       this.over = over;
-      this.args = { targets: targetsExpr, properties, from, to, using: usingExpr, over };
+      this.args = { from, to, using: usingExpr, over };
     }
     static parse(parser) {
-      if (parser.matchToken("transition")) {
-        var targetsExpr;
-        var properties = [];
-        var from = [];
-        var to = [];
-        var firstExpr = parser.requireElement("expression");
-        var firstProp = _extractStyleProp(firstExpr);
-        if (firstProp) {
-          targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
-          properties.push(new StyleRefValue(firstProp.name));
-        } else {
-          parser.raiseError("Expected a style reference (e.g. *opacity) for transition");
+      if (!parser.matchToken("transition")) return;
+      var propExprs = [];
+      var from = [];
+      var to = [];
+      do {
+        var follows = parser.pushFollows("from", "to");
+        try {
+          propExprs.push(parser.requireElement("expression"));
+        } finally {
+          parser.popFollows(follows);
         }
-        if (parser.matchToken("from")) {
-          from.push(parser.requireElement("expression"));
-        } else {
-          from.push(null);
-        }
+        from.push(parser.matchToken("from") ? parser.requireElement("expression") : null);
         parser.requireToken("to");
-        if (parser.matchToken("initial")) {
-          to.push(new InitialLiteral());
-        } else {
-          to.push(parser.requireElement("expression"));
-        }
-        var currentToken = parser.currentToken();
-        while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
-          if (parser.currentToken().type === "STYLE_REF") {
-            var styleRef = parser.consumeToken();
-            properties.push(new StyleRefValue(styleRef.value.slice(1)));
-          } else {
-            break;
-          }
-          if (parser.matchToken("from")) {
-            from.push(parser.requireElement("expression"));
-          } else {
-            from.push(null);
-          }
-          parser.requireToken("to");
-          if (parser.matchToken("initial")) {
-            to.push(new InitialLiteral());
-          } else {
-            to.push(parser.requireElement("expression"));
-          }
-          currentToken = parser.currentToken();
-        }
-        if (parser.matchToken("over")) {
-          var over = parser.requireElement("expression");
-        } else if (parser.matchToken("using")) {
-          var usingExpr = parser.requireElement("expression");
-        }
-        return new _TransitionCommand(targetsExpr, to, properties, from, usingExpr, over);
+        to.push(parser.matchToken("initial") ? "initial" : parser.requireElement("expression"));
+      } while (!parser.commandBoundary(parser.currentToken()) && parser.currentToken().value !== "over" && parser.currentToken().value !== "using");
+      var over, usingExpr;
+      if (parser.matchToken("over")) {
+        over = parser.requireElement("expression");
+      } else if (parser.matchToken("using")) {
+        usingExpr = parser.requireElement("expression");
       }
+      return new _TransitionCommand(propExprs, from, to, usingExpr, over);
     }
-    resolve(context, { targets, properties, from, to, using, over }) {
-      context.meta.runtime.nullCheck(targets, this.targetsExpr);
+    resolve(context, { from, to, using, over }) {
+      var cmd = this;
+      var runtime2 = context.meta.runtime;
+      var target;
+      if (this.propExprs[0].root) {
+        target = this.propExprs[0].root.evaluate(context);
+        runtime2.nullCheck(target, this.propExprs[0].root);
+      } else {
+        target = context.me;
+      }
       var promises = [];
-      context.meta.runtime.implicitLoop(targets, (target) => {
-        var promise = new Promise((resolve, reject) => {
-          var initialTransition = target.style.transition;
+      runtime2.implicitLoop(target, function(target2) {
+        promises.push(new Promise(function(resolve) {
+          var initialTransition = target2.style.transition;
           if (over) {
-            target.style.transition = "all " + over + "ms ease-in";
+            target2.style.transition = "all " + over + "ms ease-in";
           } else if (using) {
-            target.style.transition = using;
+            target2.style.transition = using;
           } else {
-            target.style.transition = config.defaultTransition;
+            target2.style.transition = config.defaultTransition;
           }
-          var internalData = context.meta.runtime.getInternalData(target);
-          var computedStyles = getComputedStyle(target);
-          var initialStyles = {};
-          for (var i = 0; i < computedStyles.length; i++) {
-            var name = computedStyles[i];
-            var initialValue = computedStyles[name];
-            initialStyles[name] = initialValue;
+          var internalData = runtime2.getInternalData(target2);
+          if (!internalData.transitionInitials) internalData.transitionInitials = {};
+          var initialValues = internalData.transitionInitials;
+          for (var j = 0; j < cmd.propExprs.length; j++) {
+            if (!(j in initialValues)) {
+              initialValues[j] = cmd.propExprs[j].evaluate(context);
+            }
           }
-          if (!internalData.initialStyles) {
-            internalData.initialStyles = initialStyles;
-          }
-          for (var i = 0; i < properties.length; i++) {
-            var property = properties[i];
-            var fromVal = from[i];
-            if (fromVal === "computed" || fromVal == null) {
-              target.style[property] = initialStyles[property];
-            } else {
-              target.style[property] = fromVal;
+          for (var j = 0; j < cmd.propExprs.length; j++) {
+            if (from[j] != null) {
+              var lhs = {};
+              for (var key in cmd.propExprs[j].lhs) {
+                var e = cmd.propExprs[j].lhs[key];
+                lhs[key] = e && e.evaluate ? e.evaluate(context) : e;
+              }
+              cmd.propExprs[j].set(context, lhs, from[j]);
             }
           }
           var transitionStarted = false;
           var resolved = false;
-          target.addEventListener(
-            "transitionend",
-            () => {
-              if (!resolved) {
-                target.style.transition = initialTransition;
-                resolved = true;
-                resolve();
-              }
-            },
-            { once: true }
-          );
-          target.addEventListener(
-            "transitionstart",
-            () => {
-              transitionStarted = true;
-            },
-            { once: true }
-          );
-          setTimeout(() => {
+          target2.addEventListener("transitionend", function() {
+            if (!resolved) {
+              target2.style.transition = initialTransition;
+              resolved = true;
+              resolve();
+            }
+          }, { once: true });
+          target2.addEventListener("transitionstart", function() {
+            transitionStarted = true;
+          }, { once: true });
+          setTimeout(function() {
             if (!resolved && !transitionStarted) {
-              target.style.transition = initialTransition;
+              target2.style.transition = initialTransition;
               resolved = true;
               resolve();
             }
           }, 100);
-          setTimeout(() => {
-            var autoProps = [];
-            for (var i2 = 0; i2 < properties.length; i2++) {
-              var property2 = properties[i2];
-              var toVal = to[i2];
-              if (toVal === "initial") {
-                var propertyValue = internalData.initialStyles[property2];
-                target.style[property2] = propertyValue;
-              } else {
-                target.style[property2] = toVal;
+          setTimeout(function() {
+            for (var j2 = 0; j2 < cmd.propExprs.length; j2++) {
+              var lhs2 = {};
+              for (var key2 in cmd.propExprs[j2].lhs) {
+                var e2 = cmd.propExprs[j2].lhs[key2];
+                lhs2[key2] = e2 && e2.evaluate ? e2.evaluate(context) : e2;
               }
+              var val = to[j2] === "initial" ? initialValues[j2] : to[j2];
+              cmd.propExprs[j2].set(context, lhs2, val);
             }
           }, 0);
+        }));
+      });
+      return Promise.all(promises).then(function() {
+        return cmd.findNext(context);
+      });
+    }
+  };
+  var AbortViewTransition = class extends Command {
+    constructor() {
+      super();
+      this.type = "abortViewTransition";
+    }
+    resolve(context) {
+      var vt = context.meta.viewTransition;
+      if (vt) {
+        console.warn("hyperscript: view transition skipped due to early exit (return, halt, or break)");
+        context.meta.viewTransition = null;
+        vt.finished.catch(function() {
         });
-        promises.push(promise);
+        vt.transition.skipTransition();
+        vt.bodyDone();
+      }
+      return context.meta.runtime.findNext(this);
+    }
+  };
+  var ESCAPE_TYPES = /* @__PURE__ */ new Set(["returnCommand", "exitCommand", "haltCommand", "breakCommand", "continueCommand"]);
+  var LOOP_TYPES = /* @__PURE__ */ new Set(["breakCommand", "continueCommand"]);
+  function insertAborts(cmd, inLoop, visited) {
+    if (!visited) visited = /* @__PURE__ */ new Set();
+    if (!cmd || visited.has(cmd)) return;
+    visited.add(cmd);
+    var childInLoop = inLoop || cmd.loop !== void 0;
+    for (var key of Object.keys(cmd)) {
+      if (key === "parent") continue;
+      var val = cmd[key];
+      if (val instanceof ParseElement && ESCAPE_TYPES.has(val.type)) {
+        if (!LOOP_TYPES.has(val.type) || !inLoop) {
+          var abort = new AbortViewTransition();
+          abort.next = val;
+          cmd[key] = abort;
+          visited.add(abort);
+        }
+      }
+      for (var item of [val].flat()) {
+        if (item instanceof ParseElement) {
+          insertAborts(item, childInLoop, visited);
+        }
+      }
+    }
+  }
+  var ViewTransitionTick = class extends Command {
+    constructor() {
+      super();
+      this.type = "viewTransitionTick";
+    }
+    resolve(context) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(context.meta.runtime.findNext(this)), 0);
       });
-      return Promise.all(promises).then(() => {
-        return this.findNext(context);
+    }
+  };
+  var ViewTransitionEnd = class extends Command {
+    constructor() {
+      super();
+      this.type = "viewTransitionEnd";
+    }
+    resolve(context) {
+      var vt = context.meta.viewTransition;
+      if (!vt) return context.meta.runtime.findNext(this.parent, context);
+      vt.bodyDone();
+      return vt.finished.then(() => {
+        context.meta.viewTransition = null;
+        return context.meta.runtime.findNext(this.parent, context);
       });
+    }
+  };
+  var ViewTransitionCommand = class _ViewTransitionCommand extends Command {
+    static keyword = "start";
+    constructor(body, transitionType) {
+      super();
+      this.body = body;
+      this.transitionType = transitionType;
+      this.args = { type: transitionType };
+    }
+    static parse(parser) {
+      if (!parser.matchToken("start")) return;
+      parser.matchToken("a");
+      parser.requireToken("view");
+      parser.requireToken("transition");
+      parser.matchToken("using");
+      var typeToken = parser.matchTokenType("STRING");
+      var transitionType = typeToken ? typeToken.value : null;
+      var body = parser.requireElement("commandList");
+      var tick = new ViewTransitionTick();
+      tick.next = body;
+      var endCmd = new ViewTransitionEnd();
+      var last = body;
+      while (last.next) last = last.next;
+      last.next = endCmd;
+      if (parser.hasMore()) {
+        parser.requireToken("end");
+      }
+      insertAborts(body, false);
+      var cmd = new _ViewTransitionCommand(tick, transitionType);
+      parser.setParent(tick, cmd);
+      parser.setParent(body, cmd);
+      endCmd.parent = cmd;
+      return cmd;
+    }
+    resolve(context, { type }) {
+      if (!document.startViewTransition) {
+        return this.body;
+      }
+      if (context.meta.viewTransition) {
+        throw new Error("A view transition is already in progress");
+      }
+      var bodyDone;
+      var bodyPromise = new Promise(function(r) {
+        bodyDone = r;
+      });
+      var options = function() {
+        return bodyPromise;
+      };
+      if (type) {
+        options = { update: function() {
+          return bodyPromise;
+        }, types: [type] };
+      }
+      var transition = document.startViewTransition(options);
+      context.meta.viewTransition = { bodyDone, finished: transition.finished, transition };
+      return this.body;
     }
   };
 
@@ -8898,9 +9168,8 @@
       this.immediately = immediately;
     }
     install(target, source, args, runtime2) {
-      var feature = this;
-      var handler = function() {
-        feature.start && feature.start.execute(runtime2.makeContext(target, feature, target, null));
+      var handler = () => {
+        this.start?.execute(runtime2.makeContext(target, this, target, null));
       };
       if (this.immediately) {
         handler();
@@ -9143,16 +9412,12 @@
      */
     static parse(parser) {
       if (!parser.matchToken("bind")) return;
-      parser.pushFollow("and");
-      parser.pushFollow("with");
-      parser.pushFollow("to");
+      var follows = parser.pushFollows("and", "with", "to");
       var left;
       try {
         left = parser.requireElement("expression");
       } finally {
-        parser.popFollow();
-        parser.popFollow();
-        parser.popFollow();
+        parser.popFollows(follows);
       }
       if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
         parser.raiseExpected("and", "with", "to");
@@ -9191,30 +9456,33 @@
     var ctx = runtime2.makeContext(target, feature, target, null);
     var leftSide = _resolveSide(left, target, feature, runtime2, ctx);
     var rightSide = _resolveSide(right, target, feature, runtime2, ctx);
-    if (!leftSide.element && !_isAssignable(left)) {
-      throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+    var leftWritable = leftSide.element || _isAssignable(left);
+    var rightWritable = rightSide.element || _isAssignable(right);
+    if (!leftWritable && !rightWritable) {
+      throw new Error("bind requires at least one writable side");
     }
-    if (!rightSide.element && !_isAssignable(right)) {
-      throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
+    if (leftWritable) {
+      runtime2.reactivity.createEffect(
+        function() {
+          return rightSide.read();
+        },
+        function(newValue) {
+          leftSide.write(newValue);
+        },
+        { element: target }
+      );
     }
-    runtime2.reactivity.createEffect(
-      function() {
-        return leftSide.read();
-      },
-      function(newValue) {
-        rightSide.write(newValue);
-      },
-      { element: target }
-    );
-    runtime2.reactivity.createEffect(
-      function() {
-        return rightSide.read();
-      },
-      function(newValue) {
-        leftSide.write(newValue);
-      },
-      { element: target }
-    );
+    if (rightWritable) {
+      runtime2.reactivity.createEffect(
+        function() {
+          return leftSide.read();
+        },
+        function(newValue) {
+          rightSide.write(newValue);
+        },
+        { element: target }
+      );
+    }
     _setupFormReset(leftSide, rightSide, target, runtime2);
   }
   function _resolveSide(expr, target, feature, runtime2, ctx) {
@@ -9306,11 +9574,10 @@
     if (!source.element) return;
     var form = source.element.closest("form");
     if (!form) return;
-    var resetHandler = function() {
-      setTimeout(function() {
+    var resetHandler = () => {
+      setTimeout(() => {
         if (!target.isConnected) return;
-        var val = source.read();
-        dest.write(val);
+        dest.write(source.read());
       }, 0);
     };
     form.addEventListener("reset", resetHandler);
@@ -9394,6 +9661,12 @@
     RenderCommand: () => RenderCommand,
     TemplateTextCommand: () => TemplateTextCommand
   });
+  function _stringifyTemplatePart(val, part) {
+    if (part.type === "literal") return val;
+    if (val === void 0 || val === null) return "";
+    if (part.escape) return escapeHTML(String(val));
+    return String(val);
+  }
   function escapeHTML(html) {
     return String(html).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
@@ -9435,16 +9708,18 @@
         }
         var exprStr = raw.slice(nextDollar + 2, j - 1);
         var escape = true;
-        var trimmed = exprStr.trimStart();
-        if (trimmed.startsWith("unescaped ")) {
-          escape = false;
-          exprStr = trimmed.slice("unescaped ".length);
-        }
         try {
           var exprTokens = new Tokenizer().tokenize(exprStr);
           var exprParser = parser.createChildParser(exprTokens);
-          var node = exprParser.requireElement("expression");
-          parts.push({ type: "expr", node, escape });
+          if (exprParser.matchToken("unescaped")) escape = false;
+          var valueNode = exprParser.requireElement("expression");
+          if (exprParser.matchToken("if")) {
+            var conditionNode = exprParser.requireElement("expression");
+            var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
+            parts.push({ type: "conditional", valueNode, conditionNode, elseNode, escape });
+          } else {
+            parts.push({ type: "expr", node: valueNode, escape });
+          }
         } catch (e) {
           errors.push({
             line: tok.line,
@@ -9459,26 +9734,31 @@
       return new _TemplateTextCommand(parts, errors);
     }
     resolve(ctx) {
-      var vals = this.parts.map((part) => {
+      var parts = this.parts;
+      var vals = parts.map((part) => {
         if (part.type === "literal") return part.value;
+        if (part.type === "conditional") {
+          var condition = part.conditionNode.evaluate(ctx);
+          if (condition) {
+            return part.valueNode.evaluate(ctx);
+          } else if (part.elseNode) {
+            return part.elseNode.evaluate(ctx);
+          } else {
+            return void 0;
+          }
+        }
         return part.node.evaluate(ctx);
       });
-      var stringify = (val, part) => {
-        if (part.type === "literal") return val;
-        if (val === void 0 || val === null) return "";
-        if (part.escape) return escapeHTML(String(val));
-        return String(val);
-      };
       if (vals.some((v) => v && v.then)) {
         return Promise.all(vals).then((resolved) => {
           ctx.meta.__ht_template_result.push(
-            resolved.map((val, i) => stringify(val, this.parts[i])).join("")
+            resolved.map((val, i) => _stringifyTemplatePart(val, parts[i])).join("")
           );
           return this.findNext(ctx);
         });
       }
       ctx.meta.__ht_template_result.push(
-        vals.map((val, i) => stringify(val, this.parts[i])).join("")
+        vals.map((val, i) => _stringifyTemplatePart(val, parts[i])).join("")
       );
       return this.findNext(ctx);
     }
@@ -9515,16 +9795,11 @@
         commandList = parser.parseElement("commandList");
         parser.ensureTerminated(commandList);
       } catch (e) {
-        console.error("hyperscript template parse error:", e.message || e);
+        console.error("hyperscript template parse error:", e.parseError?.message || e.message || e);
         ctx.result = "";
         return runtime2.findNext(this, ctx);
       }
-      var errors = [];
-      var cmd = commandList;
-      while (cmd) {
-        if (cmd.errors && cmd.errors.length) errors.push(...cmd.errors);
-        cmd = cmd.next;
-      }
+      var errors = commandList.collectErrors();
       if (errors.length) {
         for (var err of errors) {
           console.error("hyperscript template error (line " + err.line + "): " + err.message + (err.expr ? " in ${" + err.expr + "}" : ""));
@@ -9612,6 +9887,76 @@
   kernel.registerModule(bind_exports);
   kernel.registerModule(live_exports);
   kernel.registerModule(template_exports);
+  var liveTemplatesProcessed = /* @__PURE__ */ new WeakSet();
+  runtime.addBeforeProcessHook(function(elt) {
+    if (!elt || !elt.querySelectorAll) return;
+    elt.querySelectorAll("template[live]").forEach(function(tmpl) {
+      if (liveTemplatesProcessed.has(tmpl)) return;
+      liveTemplatesProcessed.add(tmpl);
+      var source = tmpl.innerHTML;
+      var script = tmpl.getAttribute("_") || tmpl.getAttribute("data-script") || "";
+      tmpl.removeAttribute("_");
+      tmpl.removeAttribute("data-script");
+      var wrapper = document.createElement("div");
+      wrapper.style.display = "contents";
+      wrapper.setAttribute("data-live-template", "");
+      tmpl.after(wrapper);
+      if (script) {
+        wrapper.setAttribute("_", script);
+        runtime.processNode(wrapper);
+      }
+      var stamped = false;
+      function stamp(html) {
+        if (!stamped) {
+          wrapper.innerHTML = html;
+          runtime.processNode(wrapper);
+          stamped = true;
+        } else {
+          runtime.morph(wrapper, html);
+        }
+      }
+      function render() {
+        var ctx = runtime.makeContext(wrapper, null, wrapper, null);
+        var buf = [];
+        ctx.meta.__ht_template_result = buf;
+        var tokens = tokenizer.tokenize(source, "lines");
+        var parser = new Parser(kernel, tokens);
+        var cmds;
+        try {
+          cmds = parser.parseElement("commandList");
+          parser.ensureTerminated(cmds);
+        } catch (e) {
+          console.error("live-template parse error:", e.message || e);
+          return "";
+        }
+        cmds.execute(ctx);
+        if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
+        var resolve;
+        var promise = new Promise(function(r) {
+          resolve = r;
+        });
+        ctx.meta.resolve = resolve;
+        return promise.then(function() {
+          return buf.join("");
+        });
+      }
+      queueMicrotask(function() {
+        var result = render();
+        if (result && result.then) {
+          result.then(function(html) {
+            stamp(html);
+            setupEffect();
+          });
+        } else {
+          stamp(result);
+          setupEffect();
+        }
+      });
+      function setupEffect() {
+        reactivity.createEffect(render, stamp, { element: wrapper });
+      }
+    });
+  });
   function evaluate(src, ctx, args) {
     let body;
     if ("document" in globalScope) {
@@ -9622,7 +9967,7 @@
     ctx = Object.assign(runtime.makeContext(body, null, body, null), ctx || {});
     let element = kernel.parse(tokenizer, src);
     if (element && element.errors && element.errors.length > 0) {
-      throw new Error(element.errors[0].message + "\n\n" + formatErrors(element.errors));
+      throw new Error(element.errors[0].message + "\n\n" + Parser.formatErrors(element.errors));
     }
     if (element.execute) {
       element.execute(ctx);
