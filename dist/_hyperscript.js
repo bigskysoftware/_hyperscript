@@ -145,6 +145,13 @@
     popFollow() {
       this.#follows.pop();
     }
+    pushFollows(...strs) {
+      for (var i = 0; i < strs.length; i++) this.#follows.push(strs[i]);
+      return strs.length;
+    }
+    popFollows(count) {
+      for (var i = 0; i < count; i++) this.#follows.pop();
+    }
     clearFollows() {
       var tmp = this.#follows;
       this.#follows = [];
@@ -1193,6 +1200,12 @@
     popFollow() {
       return this.tokens.popFollow();
     }
+    pushFollows(...strs) {
+      return this.tokens.pushFollows(...strs);
+    }
+    popFollows(count) {
+      return this.tokens.popFollows(count);
+    }
     clearFollows() {
       return this.tokens.clearFollows();
     }
@@ -1412,7 +1425,9 @@
     }
     parseUnaryExpression(parser) {
       parser.matchToken("the");
-      return parser.parseAnyOf(this.#unaryExpressions) || parser.parseElement("postfixExpression");
+      var result = parser.parseAnyOf(this.#unaryExpressions);
+      if (result) return this.parseElement("indirectExpression", parser, result);
+      return parser.parseElement("postfixExpression");
     }
     parseExpression(parser) {
       parser.matchToken("the");
@@ -3738,19 +3753,11 @@
         }
         var targetExpr = null;
         if (scope === "inherited" && parser.matchToken("on")) {
-          parser.pushFollow("to");
-          parser.pushFollow("into");
-          parser.pushFollow("before");
-          parser.pushFollow("after");
-          parser.pushFollow("then");
+          var follows = parser.pushFollows("to", "into", "before", "after", "then");
           try {
             targetExpr = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         }
         return new _SymbolRef(identifier, scope, name, targetExpr);
@@ -4296,15 +4303,14 @@
               hasRightValue = false;
             } else if (parser.matchToken("between")) {
               operator = "not between";
+            } else if (parser.matchToken("really")) {
+              operator = "!==";
+              if (parser.matchToken("equal")) parser.matchToken("to");
+            } else if (parser.matchToken("equal")) {
+              parser.matchToken("to");
+              operator = "!=";
             } else {
-              if (parser.matchToken("really")) {
-                operator = "!==";
-              } else {
-                operator = "!=";
-              }
-              if (parser.matchToken("equal")) {
-                parser.matchToken("to");
-              }
+              operator = "is not";
             }
           } else if (parser.matchToken("in")) {
             operator = "in";
@@ -4334,15 +4340,14 @@
             } else {
               operator = ">";
             }
+          } else if (parser.matchToken("really")) {
+            operator = "===";
+            if (parser.matchToken("equal")) parser.matchToken("to");
+          } else if (parser.matchToken("equal")) {
+            parser.matchToken("to");
+            operator = "==";
           } else {
-            if (parser.matchToken("really")) {
-              operator = "===";
-            } else {
-              operator = "==";
-            }
-            if (parser.matchToken("equal")) {
-              parser.matchToken("to");
-            }
+            operator = "is";
           }
         } else if (parser.matchToken("equals")) {
           operator = "==";
@@ -4429,6 +4434,18 @@
       if (this.ignoringCase) {
         if (typeof lhsVal === "string") lhsVal = lhsVal.toLowerCase();
         if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
+      }
+      if (operator === "is") {
+        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+          return !!context.meta.runtime.resolveProperty(lhsVal, rhs.name);
+        }
+        return lhsVal == rhsVal;
+      }
+      if (operator === "is not") {
+        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+          return !context.meta.runtime.resolveProperty(lhsVal, rhs.name);
+        }
+        return lhsVal != rhsVal;
       }
       if (operator === "==") return lhsVal == rhsVal;
       if (operator === "!=") return lhsVal != rhsVal;
@@ -4533,12 +4550,12 @@
   };
   var COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
   function _parseCollectionOperand(parser, keyword) {
-    var follows = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
-    follows.forEach((f) => parser.pushFollow(f));
+    var others = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
+    var count = parser.pushFollows(...others);
     try {
       return parser.requireElement("expression");
     } finally {
-      follows.forEach(() => parser.popFollow());
+      parser.popFollows(count);
     }
   }
   var CollectionOp = class extends Expression {
@@ -5071,7 +5088,7 @@
       var op = parser.matchAnyToken("next", "previous");
       if (!op) return;
       var forwardSearch = op.value === "next";
-      var thingElt = parser.parseElement("expression");
+      var thingElt = parser.parseElement("leaf");
       if (parser.matchToken("from")) {
         parser.pushFollow("in");
         try {
@@ -5666,25 +5683,21 @@
       if (!parser.matchToken("pick")) return;
       parser.matchToken("the");
       if (parser.matchToken("first")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var count = parser.requireElement("expression");
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("first", root, null, null, null, count);
       }
       if (parser.matchToken("last")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var count = parser.requireElement("expression");
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("last", root, null, null, null, count);
@@ -5692,34 +5705,29 @@
       if (parser.matchToken("random")) {
         var count = null;
         if (parser.currentToken().type === "NUMBER") {
-          parser.pushFollow("of");
-          parser.pushFollow("from");
+          var follows = parser.pushFollows("of", "from");
           try {
             count = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("random", root, null, null, null, count);
       }
       if (parser.matchToken("item") || parser.matchToken("items") || parser.matchToken("character") || parser.matchToken("characters")) {
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var range = _PickCommand.parsePickRange(parser);
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("range", root, range, null, null);
       }
       if (parser.matchToken("match")) {
         parser.matchToken("of");
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var re = parser.parseElement("expression");
           var flags = "";
@@ -5727,16 +5735,14 @@
             flags = parser.requireTokenType("IDENTIFIER").value;
           }
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("match", root, null, re, flags);
       }
       if (parser.matchToken("matches")) {
         parser.matchToken("of");
-        parser.pushFollow("of");
-        parser.pushFollow("from");
+        var follows = parser.pushFollows("of", "from");
         try {
           var re = parser.parseElement("expression");
           var flags = "gu";
@@ -5744,8 +5750,7 @@
             flags = "g" + parser.requireTokenType("IDENTIFIER").value.replace("g", "");
           }
         } finally {
-          parser.popFollow();
-          parser.popFollow();
+          parser.popFollows(follows);
         }
         var root = _PickCommand.parseSource(parser);
         return new _PickCommand("matches", root, null, re, flags);
@@ -7537,13 +7542,11 @@
         visibility = true;
         hideShowStrategy = VisibilityCommand.resolveHideShowStrategy(parser, styleProp);
         if (parser.matchToken("of")) {
-          parser.pushFollow("with");
-          parser.pushFollow("between");
+          var follows = parser.pushFollows("with", "between");
           try {
             onExpr = parser.requireElement("expression");
           } finally {
-            parser.popFollow();
-            parser.popFollow();
+            parser.popFollows(follows);
           }
         } else {
           onExpr = parser.requireElement("implicitMeTarget");
@@ -8338,37 +8341,6 @@
     TransitionCommand: () => TransitionCommand,
     ViewTransitionCommand: () => ViewTransitionCommand
   });
-  function _extractStyleProp(expr) {
-    if (expr.type === "styleRef") {
-      return { name: expr.name, target: null };
-    }
-    if (expr.type === "possessive" && expr.attribute && (expr.attribute.type === "styleRef" || expr.attribute.type === "computedStyleRef")) {
-      return { name: expr.attribute.name, target: expr.root };
-    }
-    if (expr.type === "ofExpression" && expr._urRoot && (expr._urRoot.type === "styleRef" || expr._urRoot.type === "computedStyleRef")) {
-      return { name: expr._urRoot.name, target: expr.root };
-    }
-    return null;
-  }
-  var StyleRefValue = class extends Expression {
-    constructor(styleProp) {
-      super();
-      this.type = "styleRefValue";
-      this.styleProp = styleProp;
-    }
-    evaluate(context) {
-      return this.styleProp;
-    }
-  };
-  var InitialLiteral = class extends Expression {
-    constructor() {
-      super();
-      this.type = "initial_literal";
-    }
-    evaluate(context) {
-      return "initial";
-    }
-  };
   var SettleCommand = class _SettleCommand extends Command {
     static keyword = "settle";
     constructor(onExpr) {
@@ -8418,148 +8390,112 @@
   }
   var TransitionCommand = class _TransitionCommand extends Command {
     static keyword = "transition";
-    constructor(targetsExpr, to, properties, from, usingExpr, over) {
+    constructor(propExprs, from, to, usingExpr, over) {
       super();
-      this.to = to;
-      this.targetsExpr = targetsExpr;
-      this.properties = properties;
+      this.propExprs = propExprs;
       this.from = from;
+      this.to = to;
       this.usingExpr = usingExpr;
       this.over = over;
-      this.args = { targets: targetsExpr, properties, from, to, using: usingExpr, over };
+      this.args = { from, to, using: usingExpr, over };
     }
     static parse(parser) {
-      if (parser.matchToken("transition")) {
-        var targetsExpr;
-        var properties = [];
-        var from = [];
-        var to = [];
-        var firstExpr = parser.requireElement("expression");
-        var firstProp = _extractStyleProp(firstExpr);
-        if (firstProp) {
-          targetsExpr = firstProp.target || parser.parseElement("implicitMeTarget");
-          properties.push(new StyleRefValue(firstProp.name));
-        } else {
-          parser.raiseError("Expected a style reference (e.g. *opacity) for transition");
+      if (!parser.matchToken("transition")) return;
+      var propExprs = [];
+      var from = [];
+      var to = [];
+      do {
+        var follows = parser.pushFollows("from", "to");
+        try {
+          propExprs.push(parser.requireElement("expression"));
+        } finally {
+          parser.popFollows(follows);
         }
-        if (parser.matchToken("from")) {
-          from.push(parser.requireElement("expression"));
-        } else {
-          from.push(null);
-        }
+        from.push(parser.matchToken("from") ? parser.requireElement("expression") : null);
         parser.requireToken("to");
-        if (parser.matchToken("initial")) {
-          to.push(new InitialLiteral());
-        } else {
-          to.push(parser.requireElement("expression"));
-        }
-        var currentToken = parser.currentToken();
-        while (!parser.commandBoundary(currentToken) && currentToken.value !== "over" && currentToken.value !== "using") {
-          if (parser.currentToken().type === "STYLE_REF") {
-            var styleRef = parser.consumeToken();
-            properties.push(new StyleRefValue(styleRef.value.slice(1)));
-          } else {
-            break;
-          }
-          if (parser.matchToken("from")) {
-            from.push(parser.requireElement("expression"));
-          } else {
-            from.push(null);
-          }
-          parser.requireToken("to");
-          if (parser.matchToken("initial")) {
-            to.push(new InitialLiteral());
-          } else {
-            to.push(parser.requireElement("expression"));
-          }
-          currentToken = parser.currentToken();
-        }
-        if (parser.matchToken("over")) {
-          var over = parser.requireElement("expression");
-        } else if (parser.matchToken("using")) {
-          var usingExpr = parser.requireElement("expression");
-        }
-        return new _TransitionCommand(targetsExpr, to, properties, from, usingExpr, over);
+        to.push(parser.matchToken("initial") ? "initial" : parser.requireElement("expression"));
+      } while (!parser.commandBoundary(parser.currentToken()) && parser.currentToken().value !== "over" && parser.currentToken().value !== "using");
+      var over, usingExpr;
+      if (parser.matchToken("over")) {
+        over = parser.requireElement("expression");
+      } else if (parser.matchToken("using")) {
+        usingExpr = parser.requireElement("expression");
       }
+      return new _TransitionCommand(propExprs, from, to, usingExpr, over);
     }
-    resolve(context, { targets, properties, from, to, using, over }) {
-      context.meta.runtime.nullCheck(targets, this.targetsExpr);
+    resolve(context, { from, to, using, over }) {
+      var cmd = this;
+      var runtime2 = context.meta.runtime;
+      var target;
+      if (this.propExprs[0].root) {
+        target = this.propExprs[0].root.evaluate(context);
+        runtime2.nullCheck(target, this.propExprs[0].root);
+      } else {
+        target = context.me;
+      }
       var promises = [];
-      context.meta.runtime.implicitLoop(targets, (target) => {
-        var promise = new Promise((resolve, reject) => {
-          var initialTransition = target.style.transition;
+      runtime2.implicitLoop(target, function(target2) {
+        promises.push(new Promise(function(resolve) {
+          var initialTransition = target2.style.transition;
           if (over) {
-            target.style.transition = "all " + over + "ms ease-in";
+            target2.style.transition = "all " + over + "ms ease-in";
           } else if (using) {
-            target.style.transition = using;
+            target2.style.transition = using;
           } else {
-            target.style.transition = config.defaultTransition;
+            target2.style.transition = config.defaultTransition;
           }
-          var internalData = context.meta.runtime.getInternalData(target);
-          var computedStyles = getComputedStyle(target);
-          var initialStyles = {};
-          for (var i = 0; i < computedStyles.length; i++) {
-            var name = computedStyles[i];
-            var initialValue = computedStyles[name];
-            initialStyles[name] = initialValue;
+          var internalData = runtime2.getInternalData(target2);
+          if (!internalData.transitionInitials) internalData.transitionInitials = {};
+          var initialValues = internalData.transitionInitials;
+          for (var j = 0; j < cmd.propExprs.length; j++) {
+            if (!(j in initialValues)) {
+              initialValues[j] = cmd.propExprs[j].evaluate(context);
+            }
           }
-          if (!internalData.initialStyles) {
-            internalData.initialStyles = initialStyles;
-          }
-          for (var i = 0; i < properties.length; i++) {
-            var property = properties[i];
-            var fromVal = from[i];
-            if (fromVal === "computed" || fromVal == null) {
-              target.style[property] = initialStyles[property];
-            } else {
-              target.style[property] = fromVal;
+          for (var j = 0; j < cmd.propExprs.length; j++) {
+            if (from[j] != null) {
+              var lhs = {};
+              for (var key in cmd.propExprs[j].lhs) {
+                var e = cmd.propExprs[j].lhs[key];
+                lhs[key] = e && e.evaluate ? e.evaluate(context) : e;
+              }
+              cmd.propExprs[j].set(context, lhs, from[j]);
             }
           }
           var transitionStarted = false;
           var resolved = false;
-          target.addEventListener(
-            "transitionend",
-            () => {
-              if (!resolved) {
-                target.style.transition = initialTransition;
-                resolved = true;
-                resolve();
-              }
-            },
-            { once: true }
-          );
-          target.addEventListener(
-            "transitionstart",
-            () => {
-              transitionStarted = true;
-            },
-            { once: true }
-          );
-          setTimeout(() => {
+          target2.addEventListener("transitionend", function() {
+            if (!resolved) {
+              target2.style.transition = initialTransition;
+              resolved = true;
+              resolve();
+            }
+          }, { once: true });
+          target2.addEventListener("transitionstart", function() {
+            transitionStarted = true;
+          }, { once: true });
+          setTimeout(function() {
             if (!resolved && !transitionStarted) {
-              target.style.transition = initialTransition;
+              target2.style.transition = initialTransition;
               resolved = true;
               resolve();
             }
           }, 100);
-          setTimeout(() => {
-            var autoProps = [];
-            for (var i2 = 0; i2 < properties.length; i2++) {
-              var property2 = properties[i2];
-              var toVal = to[i2];
-              if (toVal === "initial") {
-                var propertyValue = internalData.initialStyles[property2];
-                target.style[property2] = propertyValue;
-              } else {
-                target.style[property2] = toVal;
+          setTimeout(function() {
+            for (var j2 = 0; j2 < cmd.propExprs.length; j2++) {
+              var lhs2 = {};
+              for (var key2 in cmd.propExprs[j2].lhs) {
+                var e2 = cmd.propExprs[j2].lhs[key2];
+                lhs2[key2] = e2 && e2.evaluate ? e2.evaluate(context) : e2;
               }
+              var val = to[j2] === "initial" ? initialValues[j2] : to[j2];
+              cmd.propExprs[j2].set(context, lhs2, val);
             }
           }, 0);
-        });
-        promises.push(promise);
+        }));
       });
-      return Promise.all(promises).then(() => {
-        return this.findNext(context);
+      return Promise.all(promises).then(function() {
+        return cmd.findNext(context);
       });
     }
   };
@@ -9486,16 +9422,12 @@
      */
     static parse(parser) {
       if (!parser.matchToken("bind")) return;
-      parser.pushFollow("and");
-      parser.pushFollow("with");
-      parser.pushFollow("to");
+      var follows = parser.pushFollows("and", "with", "to");
       var left;
       try {
         left = parser.requireElement("expression");
       } finally {
-        parser.popFollow();
-        parser.popFollow();
-        parser.popFollow();
+        parser.popFollows(follows);
       }
       if (!parser.matchToken("and") && !parser.matchToken("with") && !parser.matchToken("to")) {
         parser.raiseExpected("and", "with", "to");
@@ -9534,30 +9466,33 @@
     var ctx = runtime2.makeContext(target, feature, target, null);
     var leftSide = _resolveSide(left, target, feature, runtime2, ctx);
     var rightSide = _resolveSide(right, target, feature, runtime2, ctx);
-    if (!leftSide.element && !_isAssignable(left)) {
-      throw new Error("bind requires a writable expression on the left side, but '" + left.type + "' cannot be assigned to");
+    var leftWritable = leftSide.element || _isAssignable(left);
+    var rightWritable = rightSide.element || _isAssignable(right);
+    if (!leftWritable && !rightWritable) {
+      throw new Error("bind requires at least one writable side");
     }
-    if (!rightSide.element && !_isAssignable(right)) {
-      throw new Error("bind requires a writable expression on the right side, but '" + right.type + "' cannot be assigned to");
+    if (leftWritable) {
+      runtime2.reactivity.createEffect(
+        function() {
+          return rightSide.read();
+        },
+        function(newValue) {
+          leftSide.write(newValue);
+        },
+        { element: target }
+      );
     }
-    runtime2.reactivity.createEffect(
-      function() {
-        return leftSide.read();
-      },
-      function(newValue) {
-        rightSide.write(newValue);
-      },
-      { element: target }
-    );
-    runtime2.reactivity.createEffect(
-      function() {
-        return rightSide.read();
-      },
-      function(newValue) {
-        leftSide.write(newValue);
-      },
-      { element: target }
-    );
+    if (rightWritable) {
+      runtime2.reactivity.createEffect(
+        function() {
+          return leftSide.read();
+        },
+        function(newValue) {
+          rightSide.write(newValue);
+        },
+        { element: target }
+      );
+    }
     _setupFormReset(leftSide, rightSide, target, runtime2);
   }
   function _resolveSide(expr, target, feature, runtime2, ctx) {

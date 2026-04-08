@@ -138,6 +138,13 @@
     popFollow() {
       this.#follows.pop();
     }
+    pushFollows(...strs) {
+      for (var i = 0; i < strs.length; i++) this.#follows.push(strs[i]);
+      return strs.length;
+    }
+    popFollows(count) {
+      for (var i = 0; i < count; i++) this.#follows.pop();
+    }
     clearFollows() {
       var tmp = this.#follows;
       this.#follows = [];
@@ -647,7 +654,7 @@
         try {
           cache[prop] = createParser(tokenizer.tokenize(attrValue)).requireElement("expression");
         } catch (e) {
-          console.error("hyper-component: failed to parse attrs." + prop + ":", e.message);
+          console.error("component: failed to parse attrs." + prop + ":", e.message);
           return null;
         }
       }
@@ -685,9 +692,9 @@
       });
     }
     function registerComponent(templateEl, componentScript) {
-      const tagName = templateEl.getAttribute("hyper-component");
+      const tagName = templateEl.getAttribute("component");
       if (!tagName.includes("-")) {
-        console.error("hyper-component name must contain a dash: '" + tagName + "'");
+        console.error("component name must contain a dash: '" + tagName + "'");
         return;
       }
       const templateSource = templateEl.innerHTML;
@@ -782,10 +789,10 @@
     var registered = /* @__PURE__ */ new Set();
     _hyperscript.addBeforeProcessHook(function(elt) {
       if (!elt || !elt.querySelectorAll) return;
-      elt.querySelectorAll("template[hyper-component]").forEach(function(tmpl) {
+      elt.querySelectorAll("template[component]").forEach(function(tmpl) {
         var script = tmpl.getAttribute("_") || "";
         tmpl.removeAttribute("_");
-        var tagName = tmpl.getAttribute("hyper-component");
+        var tagName = tmpl.getAttribute("component");
         if (!registered.has(tagName) && !customElements.get(tagName)) {
           registered.add(tagName);
           registerComponent(tmpl, script);
