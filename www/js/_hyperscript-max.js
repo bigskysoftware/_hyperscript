@@ -3598,7 +3598,7 @@
     AttributeRefAccess: () => AttributeRefAccess,
     BeepExpression: () => BeepExpression,
     BlockLiteral: () => BlockLiteral,
-    CollectionOp: () => CollectionOp,
+    CollectionExpression: () => CollectionExpression,
     ComparisonOperator: () => ComparisonOperator,
     DotOrColonPath: () => DotOrColonPath,
     FunctionCall: () => FunctionCall,
@@ -4222,7 +4222,7 @@
       this.args = { lhs, rhs };
     }
     static parse(parser) {
-      var expr = parser.parseElement("unaryExpression");
+      var expr = parser.parseElement("collectionExpression");
       var mathOp, initialMathOp = null;
       mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken("mod");
       while (mathOp) {
@@ -4231,7 +4231,7 @@
         if (initialMathOp.value !== operator) {
           parser.raiseError("You must parenthesize math operations with different operators");
         }
-        var rhs = parser.parseElement("unaryExpression");
+        var rhs = parser.parseElement("collectionExpression");
         expr = new _MathOperator(expr, operator, rhs);
         mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken("mod");
       }
@@ -4547,44 +4547,46 @@
       return this.evalStatically();
     }
   };
-  var COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
-  function _parseCollectionOperand(parser, keyword) {
-    var others = COLLECTION_KEYWORDS.filter((k) => k !== keyword);
-    var count = parser.pushFollows(...others);
-    try {
-      return parser.requireElement("expression");
-    } finally {
-      parser.popFollows(count);
-    }
-  }
-  var CollectionOp = class extends Expression {
-    static grammarName = "collectionOp";
-    static expressionType = "indirect";
-    static parse(parser, root) {
-      if (parser.matchToken("where")) {
-        var condition = _parseCollectionOperand(parser, "where");
-        root = new WhereExpression(root, condition);
-      } else if (parser.matchToken("sorted")) {
-        parser.requireToken("by");
-        var key = _parseCollectionOperand(parser, "sorted");
-        var descending = parser.matchToken("descending");
-        root = new SortedByExpression(root, key, !!descending);
-      } else if (parser.matchToken("mapped")) {
-        parser.requireToken("to");
-        var projection = _parseCollectionOperand(parser, "mapped");
-        root = new MappedToExpression(root, projection);
-      } else if (parser.matchToken("split")) {
-        parser.requireToken("by");
-        var delimiter = _parseCollectionOperand(parser, "split");
-        root = new SplitByExpression(root, delimiter);
-      } else if (parser.matchToken("joined")) {
-        parser.requireToken("by");
-        var delimiter = _parseCollectionOperand(parser, "joined");
-        root = new JoinedByExpression(root, delimiter);
-      } else {
-        return;
+  var CollectionExpression = class extends Expression {
+    static grammarName = "collectionExpression";
+    static KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+    static parseOperand(parser) {
+      var count = parser.pushFollows(...this.KEYWORDS);
+      try {
+        return parser.requireElement("expression");
+      } finally {
+        parser.popFollows(count);
       }
-      return parser.parseElement("indirectExpression", root);
+    }
+    static parse(parser) {
+      var root = parser.parseElement("unaryExpression");
+      var changed = true;
+      while (changed) {
+        changed = false;
+        if (parser.matchToken("where")) {
+          root = new WhereExpression(root, this.parseOperand(parser));
+          changed = true;
+        } else if (parser.matchToken("sorted")) {
+          parser.requireToken("by");
+          var key = this.parseOperand(parser);
+          var descending = parser.matchToken("descending");
+          root = new SortedByExpression(root, key, !!descending);
+          changed = true;
+        } else if (parser.matchToken("mapped")) {
+          parser.requireToken("to");
+          root = new MappedToExpression(root, this.parseOperand(parser));
+          changed = true;
+        } else if (parser.matchToken("split")) {
+          parser.requireToken("by");
+          root = new SplitByExpression(root, this.parseOperand(parser));
+          changed = true;
+        } else if (parser.matchToken("joined")) {
+          parser.requireToken("by");
+          root = new JoinedByExpression(root, this.parseOperand(parser));
+          changed = true;
+        }
+      }
+      return root;
     }
   };
   var WhereExpression = class extends Expression {
