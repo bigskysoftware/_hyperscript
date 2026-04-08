@@ -11,7 +11,6 @@ export class LanguageKernel {
     #features = {};
     #leafExpressions = [];
     #indirectExpressions = [];
-    #weakIndirectExpressions = [];
     #postfixExpressions = [];
     #unaryExpressions = [];
     #topExpressions = [];
@@ -105,16 +104,6 @@ export class LanguageKernel {
     parseIndirectExpression(parser, root) {
         for (var i = 0; i < this.#indirectExpressions.length; i++) {
             var indirect = this.#indirectExpressions[i];
-            root.endToken = parser.lastMatch();
-            var result = this.parseElement(indirect, parser, root);
-            if (result) {
-                return result;
-            }
-        }
-        // Second pass: weak indirect expressions (e.g. where, sorted by)
-        // bind more loosely than normal indirects like `in`, `.property`, `[index]`
-        for (var i = 0; i < this.#weakIndirectExpressions.length; i++) {
-            var indirect = this.#weakIndirectExpressions[i];
             root.endToken = parser.lastMatch();
             var result = this.parseElement(indirect, parser, root);
             if (result) {
@@ -340,7 +329,6 @@ export class LanguageKernel {
         switch (ElementClass.expressionType) {
             case 'leaf':     this.addLeafExpression(name, parse); break;
             case 'indirect': this.addIndirectExpression(name, parse); break;
-            case 'weakIndirect': this.addWeakIndirectExpression(name, parse); break;
             case 'unary':    this.addUnaryExpression(name, parse); break;
             case 'top':      this.addTopExpression(name, parse); break;
             case 'postfix':  this.addPostfixExpression(name, parse); break;
@@ -372,11 +360,6 @@ export class LanguageKernel {
 
     addIndirectExpression(name, definition) {
         this.#indirectExpressions.push(name);
-        this.addGrammarElement(name, definition);
-    }
-
-    addWeakIndirectExpression(name, definition) {
-        this.#weakIndirectExpressions.push(name);
         this.addGrammarElement(name, definition);
     }
 

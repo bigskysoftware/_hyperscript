@@ -92,3 +92,54 @@ test.describe("chaining collection expressions", () => {
 	});
 
 });
+
+test.describe("weak indirect binding", () => {
+
+	test("where binds after in without parens", async ({html, run}) => {
+		await html(
+			"<div id='container'>" +
+			"<span class='a'>A</span><span class='b'>B</span><span class='a'>C</span>" +
+			"</div>"
+		);
+		var result = await run("<span/> in #container where it matches .a");
+		expect(result.length).toBe(2);
+	});
+
+	test("sorted by binds after in without parens", async ({html, run}) => {
+		await html(
+			"<ul id='list'><li>C</li><li>A</li><li>B</li></ul>"
+		);
+		var result = await run("<li/> in #list where its textContent is not 'A'");
+		expect(result.length).toBe(2);
+	});
+
+	test("where binds after property access", async ({run}) => {
+		var result = await run("obj.items where it > 2", {
+			locals: { obj: { items: [1, 2, 3, 4] } }
+		});
+		expect(result).toEqual([3, 4]);
+	});
+
+	test("where after in with mapped to", async ({html, run}) => {
+		await html(
+			"<ul id='items'><li class='yes'>A</li><li>B</li><li class='yes'>C</li></ul>"
+		);
+		var result = await run(
+			"<li/> in #items where it matches .yes mapped to its textContent"
+		);
+		expect(result).toEqual(["A", "C"]);
+	});
+
+	test("where binds after in on closest", async ({html, find}) => {
+		await html(
+			"<div id='box'><span class='a'>A</span><span class='b'>B</span><span class='a'>C</span></div>" +
+			"<button _=\"on click set result to (<span/> in #box) where it matches .a then put result.length into me\">go (parens)</button>" +
+			"<button id='b2' _=\"on click set result to <span/> in #box where it matches .a then put result.length into me\">go</button>"
+		);
+		await find('button').first().click();
+		await expect(find('button').first()).toHaveText("2");
+		await find('#b2').click();
+		await expect(find('#b2')).toHaveText("2");
+	});
+
+});

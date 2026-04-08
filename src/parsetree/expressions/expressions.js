@@ -766,7 +766,7 @@ export class MathOperator extends Expression {
     }
 
     static parse(parser) {
-        var expr = parser.parseElement("unaryExpression");
+        var expr = parser.parseElement("collectionExpression");
         var mathOp, initialMathOp = null;
         mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken('mod');
         while (mathOp) {
@@ -775,7 +775,7 @@ export class MathOperator extends Expression {
             if (initialMathOp.value !== operator) {
                 parser.raiseError("You must parenthesize math operations with different operators");
             }
-            var rhs = parser.parseElement("unaryExpression");
+            var rhs = parser.parseElement("collectionExpression");
             expr = new MathOperator(expr, operator, rhs);
             mathOp = parser.matchAnyOpToken("+", "-", "*", "/") || parser.matchToken('mod');
         }
@@ -1145,47 +1145,60 @@ class DotOrColonPathNode extends Expression {
  * collection op, the OTHER keywords are pushed as follows so they act as
  * boundaries. This is the single place to update when adding new collection ops.
  */
-const COLLECTION_KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
+/**
+ * CollectionExpression - Collection operations (where, sorted by, mapped to, etc.)
+ *
+ * Lives above unaryExpression in the grammar so that collection ops bind
+ * more loosely than indirect expressions like `in`, `.property`, `[index]`.
+ *
+ * Parses: <expr> where <condition>
+ *         <expr> sorted by <key> [descending]
+ *         <expr> mapped to <projection>
+ *         <expr> split by <delimiter>
+ *         <expr> joined by <delimiter>
+ */
+export class CollectionExpression extends Expression {
+    static grammarName = "collectionExpression";
+    static KEYWORDS = ["where", "sorted", "mapped", "split", "joined"];
 
-function _parseCollectionOperand(parser, keyword) {
-    var others = COLLECTION_KEYWORDS.filter(k => k !== keyword);
-    var count = parser.pushFollows(...others);
-    try {
-        return parser.requireElement("expression");
-    } finally {
-        parser.popFollows(count);
-    }
-}
-
-export class CollectionOp extends Expression {
-    static grammarName = "collectionOp";
-    static expressionType = "weakIndirect";
-
-    static parse(parser, root) {
-        if (parser.matchToken("where")) {
-            var condition = _parseCollectionOperand(parser, "where");
-            root = new WhereExpression(root, condition);
-        } else if (parser.matchToken("sorted")) {
-            parser.requireToken("by");
-            var key = _parseCollectionOperand(parser, "sorted");
-            var descending = parser.matchToken("descending");
-            root = new SortedByExpression(root, key, !!descending);
-        } else if (parser.matchToken("mapped")) {
-            parser.requireToken("to");
-            var projection = _parseCollectionOperand(parser, "mapped");
-            root = new MappedToExpression(root, projection);
-        } else if (parser.matchToken("split")) {
-            parser.requireToken("by");
-            var delimiter = _parseCollectionOperand(parser, "split");
-            root = new SplitByExpression(root, delimiter);
-        } else if (parser.matchToken("joined")) {
-            parser.requireToken("by");
-            var delimiter = _parseCollectionOperand(parser, "joined");
-            root = new JoinedByExpression(root, delimiter);
-        } else {
-            return;
+    static parseOperand(parser) {
+        var count = parser.pushFollows(...this.KEYWORDS);
+        try {
+            return parser.requireElement("expression");
+        } finally {
+            parser.popFollows(count);
         }
-        return parser.parseElement("indirectExpression", root);
+    }
+
+    static parse(parser) {
+        var root = parser.parseElement("unaryExpression");
+        var changed = true;
+        while (changed) {
+            changed = false;
+            if (parser.matchToken("where")) {
+                root = new WhereExpression(root, this.parseOperand(parser));
+                changed = true;
+            } else if (parser.matchToken("sorted")) {
+                parser.requireToken("by");
+                var key = this.parseOperand(parser);
+                var descending = parser.matchToken("descending");
+                root = new SortedByExpression(root, key, !!descending);
+                changed = true;
+            } else if (parser.matchToken("mapped")) {
+                parser.requireToken("to");
+                root = new MappedToExpression(root, this.parseOperand(parser));
+                changed = true;
+            } else if (parser.matchToken("split")) {
+                parser.requireToken("by");
+                root = new SplitByExpression(root, this.parseOperand(parser));
+                changed = true;
+            } else if (parser.matchToken("joined")) {
+                parser.requireToken("by");
+                root = new JoinedByExpression(root, this.parseOperand(parser));
+                changed = true;
+            }
+        }
+        return root;
     }
 }
 
