@@ -1089,6 +1089,9 @@
       this.#kernel = kernel2;
       this.tokens = tokens;
     }
+    toString() {
+      this.tokens.matched;
+    }
     static formatErrors(errors) {
       if (!errors.length) return "";
       var source = errors[0].source;
@@ -5280,7 +5283,7 @@
         css = "[" + attributeRef.attribute.name + "]";
       }
       if (css == null) {
-        var expr = parser.requireElement("expression");
+        var expr = parser.requireElement("unaryExpression");
         if (expr.css == null) {
           parser.raiseError("Expected a CSS expression");
         } else {
@@ -5317,7 +5320,7 @@
     }
     static parse(parser) {
       if (!parser.matchToken("no")) return;
-      var root = parser.requireElement("unaryExpression");
+      var root = parser.requireElement("collectionExpression");
       return new _NoExpression(root);
     }
     resolve(context, { value: val }) {
