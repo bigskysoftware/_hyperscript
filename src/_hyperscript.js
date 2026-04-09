@@ -11,6 +11,7 @@ import {config} from './core/config.js';
 import {conversions} from './core/runtime/conversions.js';
 import {Reactivity} from './core/runtime/reactivity.js';
 import {Morph} from './core/runtime/morph.js';
+import {HtmxCompat} from './core/runtime/htmx-compat.js';
 
 // Import parse element modules
 import * as Expressions from './parsetree/expressions/expressions.js';
@@ -256,25 +257,8 @@ if (typeof document !== 'undefined') {
             _hyperscript.process(document.documentElement);
             document.dispatchEvent(new Event("hyperscript:ready"));
 
-            // htmx -> hyperscript: process new htmx content
-            var _processingFromHtmx = false;
-            globalScope.document.addEventListener("htmx:load", (/** @type {CustomEvent} */ evt) => {
-                _processingFromHtmx = true;
-                _hyperscript.process(evt.detail.elt);
-                _processingFromHtmx = false;
-            });
-            globalScope.document.addEventListener("htmx:after:process", (/** @type {CustomEvent} */ evt) => {
-                _processingFromHtmx = true;
-                _hyperscript.process(evt.target);
-                _processingFromHtmx = false;
-            });
-
-            // hyperscript -> htmx: notify htmx about hyperscript-inserted content
-            if (typeof htmx !== 'undefined') {
-                _hyperscript.addAfterProcessHook(function(elt) {
-                    if (!_processingFromHtmx) htmx.process(elt);
-                });
-            }
+            // htmx compatibility layer
+            new HtmxCompat(globalScope, _hyperscript).init();
         });
     })();
 }

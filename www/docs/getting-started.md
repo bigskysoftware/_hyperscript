@@ -92,9 +92,11 @@ end
 </script>
 ~~~
 
-Hyperscript is a sister project of [`htmx`](https://htmx.org).
+### Onward!
 
-OK, let's learn us some hyperscript...
+Hyperscript is a sister project of [htmx](https://htmx.org) and [integrates seamlessly](/docs/conclusion/#htmx) with it.
+
+OK, now let's learn us some hyperscript...
 
 <div class="docs-page-nav">
 <a href="/docs/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5m-7 7l7-7 7 7"/></svg> <strong>Docs Home</strong></a>

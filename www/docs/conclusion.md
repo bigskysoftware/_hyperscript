@@ -343,6 +343,85 @@ This will prevent hyperscript from executing within that area in the DOM:
 This approach allows you enjoy the benefits of [Locality of Behavior](https://htmx.org/essays/locality-of-behaviour/)
 while still providing additional safety if your HTML-escaping discipline fails.
 
+## htmx Compatibility {#htmx}
+
+Hyperscript has built-in htmx integration.  When htmx is detected on the page, hyperscript automatically:
+
+* Processes hyperscript on htmx-swapped content (listens for `htmx:load` and `htmx:after:process`)
+* Notifies htmx about DOM content inserted by hyperscript (calls `htmx.process()`)
+
+No configuration needed — just include both scripts on the page.
+
+### hs-include (htmx 4+) {#hs-include}
+
+The `hs-include` attribute lets you include hyperscript element-scoped variables in htmx requests.  Variables
+are serialized as flat form fields, just like `hx-vals`.
+
+You must register the extension in your htmx config:
+
+```html
+<meta name="htmx-config" content='{"extensions":"hs-include"}'>
+```
+
+Then use the `hs-include` attribute on any htmx-triggering element:
+
+```html
+<button _="init set :count to 0
+           on click increment :count"
+        hs-include=":count"
+        hx-post="/api"
+        hx-target="#result">
+  Submit
+</button>
+```
+
+When the button fires its htmx request, `count=0` (or whatever the current value is) will be included in the
+POST body.
+
+#### Specifiers
+
+The attribute value is a comma-separated list of specifiers:
+
+| Specifier | Meaning |
+|---|---|
+| `:varName` | Element-scoped variable from the element with the attribute |
+| `^varName` | Inherited variable (walks DOM ancestors) |
+| `#selector:varName` | Variable from another element's scope |
+| `*` | All element-scoped variables |
+
+Examples:
+
+```html
+<!-- specific vars -->
+<button hs-include=":userId, :token" hx-post="/api">Go</button>
+
+<!-- inherited var from a parent -->
+<button hs-include="^sharedState" hx-post="/api">Go</button>
+
+<!-- var from another element -->
+<button hs-include="#config-panel:settings" hx-post="/api">Go</button>
+
+<!-- everything -->
+<button hs-include="*" hx-post="/api">Go</button>
+```
+
+Object and array values are JSON-serialized.  Missing variables are silently skipped.
+
+#### hs-include:inherited
+
+Place `hs-include:inherited` on a container to apply to all descendant htmx triggers, matching the
+htmx inheritance convention:
+
+```html
+<div _="init set :authToken to 'abc123'" hs-include:inherited=":authToken">
+  <!-- all htmx requests from descendants will include authToken -->
+  <button hx-post="/api/one">One</button>
+  <button hx-post="/api/two">Two</button>
+</div>
+```
+
+A direct `hs-include` on the triggering element takes precedence over an inherited one.
+
 ## Language History {#history}
 
 The initial motivation for hyperscript came when I ported [intercooler.js](https://intercoolerjs.org) to
