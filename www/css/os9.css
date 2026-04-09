@@ -1053,9 +1053,6 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     grid-area: 1 / 1;
 }
 
-.hero-logo .hero-logo-animated { visibility: hidden; }
-.hero-logo.active .hero-logo-static { visibility: hidden; }
-.hero-logo.active .hero-logo-animated { visibility: visible; }
 
 .hero-accent { color: #5b8fd4; font-weight: 900; }
 
