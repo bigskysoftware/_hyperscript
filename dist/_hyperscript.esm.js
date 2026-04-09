@@ -3592,6 +3592,126 @@ function _queryEltAndDescendants(elt, selector) {
   return results;
 }
 
+// src/core/runtime/htmx-compat.js
+var HtmxCompat = class _HtmxCompat {
+  #processingFromHtmx = false;
+  constructor(globalScope2, hyperscript) {
+    this.globalScope = globalScope2;
+    this.hyperscript = hyperscript;
+  }
+  init() {
+    var self2 = this;
+    var globalScope2 = this.globalScope;
+    var _hyperscript2 = this.hyperscript;
+    globalScope2.document.addEventListener("htmx:load", function(evt) {
+      self2.#processingFromHtmx = true;
+      _hyperscript2.process(evt.detail.elt);
+      self2.#processingFromHtmx = false;
+    });
+    globalScope2.document.addEventListener("htmx:after:process", function(evt) {
+      self2.#processingFromHtmx = true;
+      _hyperscript2.process(evt.target);
+      self2.#processingFromHtmx = false;
+    });
+    if (typeof htmx !== "undefined") {
+      _hyperscript2.addAfterProcessHook(function(elt) {
+        if (!self2.#processingFromHtmx) htmx.process(elt);
+      });
+      if (htmx.version?.startsWith("4")) {
+        htmx.registerExtension("hs-include", {
+          htmx_config_request: function(elt, detail) {
+            var ctx = detail?.ctx;
+            if (!ctx) return;
+            var sourceElt = ctx.sourceElement || elt;
+            var found = _HtmxCompat.#findHsInclude(sourceElt);
+            if (!found) return;
+            var vars = _HtmxCompat.#resolveSpecifiers(found.value, found.scopeElt);
+            var body = ctx.request?.body;
+            if (body instanceof FormData) {
+              for (var k in vars) body.set(k, vars[k]);
+            }
+          }
+        });
+      }
+    }
+  }
+  // ----- hs-include helpers -----
+  static #findHsInclude(sourceElt) {
+    var attr = sourceElt.getAttribute("hs-include");
+    if (attr !== null) return { value: attr, scopeElt: sourceElt };
+    var elt = sourceElt.parentElement;
+    while (elt) {
+      attr = elt.getAttribute("hs-include:inherited");
+      if (attr !== null) return { value: attr, scopeElt: elt };
+      elt = elt.parentElement;
+    }
+    return null;
+  }
+  static #readScope(elt) {
+    return elt?._hyperscript?.elementScope || {};
+  }
+  static #serialize(value) {
+    if (value == null) return "";
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch (_) {
+        return "";
+      }
+    }
+    return String(value);
+  }
+  static #resolveInherited(scopeKey, startElt) {
+    var elt = startElt;
+    while (elt) {
+      var scope = elt._hyperscript?.elementScope;
+      if (scope && scopeKey in scope) return scope[scopeKey];
+      elt = elt.parentElement;
+    }
+  }
+  static #resolveSpecifiers(attrValue, scopeElt) {
+    var result = {};
+    var raw = attrValue.trim();
+    if (raw === "*") {
+      var scope = this.#readScope(scopeElt);
+      for (var k in scope) {
+        if (Object.prototype.hasOwnProperty.call(scope, k)) {
+          result[k[0] === ":" ? k.slice(1) : k] = this.#serialize(scope[k]);
+        }
+      }
+      return result;
+    }
+    var self2 = this;
+    raw.split(",").forEach(function(part) {
+      part = part.trim();
+      if (!part) return;
+      if (part[0] === ":") {
+        var name = part.slice(1);
+        var scope2 = self2.#readScope(scopeElt);
+        var scopeKey = ":" + name;
+        if (scopeKey in scope2) result[name] = self2.#serialize(scope2[scopeKey]);
+      } else if (part[0] === "^") {
+        var name = part.slice(1);
+        var val = self2.#resolveInherited(":" + name, scopeElt);
+        if (val !== void 0) result[name] = self2.#serialize(val);
+      } else if (part[0] === "#") {
+        var colonIdx = part.lastIndexOf(":");
+        if (colonIdx > 0) {
+          var selector = part.slice(0, colonIdx);
+          var name = part.slice(colonIdx + 1);
+          var targetElt = document.querySelector(selector);
+          if (targetElt) {
+            var scope2 = self2.#readScope(targetElt);
+            var scopeKey = ":" + name;
+            if (scopeKey in scope2) result[name] = self2.#serialize(scope2[scopeKey]);
+          }
+        }
+      }
+    });
+    return result;
+  }
+};
+
 // src/parsetree/expressions/expressions.js
 var expressions_exports = {};
 __export(expressions_exports, {
@@ -10048,22 +10168,7 @@ if (typeof document !== "undefined") {
     ready(() => {
       _hyperscript.process(document.documentElement);
       document.dispatchEvent(new Event("hyperscript:ready"));
-      var _processingFromHtmx = false;
-      globalScope.document.addEventListener("htmx:load", (evt) => {
-        _processingFromHtmx = true;
-        _hyperscript.process(evt.detail.elt);
-        _processingFromHtmx = false;
-      });
-      globalScope.document.addEventListener("htmx:after:process", (evt) => {
-        _processingFromHtmx = true;
-        _hyperscript.process(evt.target);
-        _processingFromHtmx = false;
-      });
-      if (typeof htmx !== "undefined") {
-        _hyperscript.addAfterProcessHook(function(elt) {
-          if (!_processingFromHtmx) htmx.process(elt);
-        });
-      }
+      new HtmxCompat(globalScope, _hyperscript).init();
     });
   })();
 }
