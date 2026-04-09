@@ -1,8 +1,93 @@
 ///=========================================================================
 /// This module provides the EventSource (SSE) feature for hyperscript
+/// Uses fetch + ReadableStream instead of the browser EventSource API
+/// for wildcard event matching, POST support, and custom headers.
 ///=========================================================================
 
 import { Feature } from '../parsetree/base.js';
+
+// ========================================
+// SSE PARSER
+// ========================================
+
+async function* parseSSE(reader) {
+	var decoder = new TextDecoder();
+	var buffer = '';
+	var hasData = false;
+	var message = { data: '', event: '', id: '', retry: null };
+	var firstChunk = true;
+
+	try {
+		while (true) {
+			var { done, value } = await reader.read();
+			if (done) break;
+
+			var chunk = decoder.decode(value, { stream: true });
+			if (firstChunk) {
+				if (chunk.charCodeAt(0) === 0xFEFF) chunk = chunk.slice(1);
+				firstChunk = false;
+			}
+			buffer += chunk;
+
+			var lines = buffer.split(/\r\n|\r|\n/);
+			buffer = lines.pop() || '';
+
+			for (var i = 0; i < lines.length; i++) {
+				var line = lines[i];
+				if (!line) {
+					if (hasData) {
+						yield message;
+						hasData = false;
+						message = { data: '', event: '', id: '', retry: null };
+					}
+					continue;
+				}
+
+				var colonIndex = line.indexOf(':');
+				if (colonIndex === 0) continue;
+
+				var field, val;
+				if (colonIndex < 0) {
+					field = line;
+					val = '';
+				} else {
+					field = line.slice(0, colonIndex);
+					val = line.slice(colonIndex + 1);
+					if (val[0] === ' ') val = val.slice(1);
+				}
+
+				if (field === 'data') {
+					message.data += (hasData ? '\n' : '') + val;
+					hasData = true;
+				} else if (field === 'event') {
+					message.event = val;
+				} else if (field === 'id') {
+					if (!val.includes('\0')) message.id = val;
+				} else if (field === 'retry') {
+					var retryValue = parseInt(val, 10);
+					if (!isNaN(retryValue)) message.retry = retryValue;
+				}
+			}
+		}
+	} finally {
+		reader.releaseLock();
+	}
+}
+
+// ========================================
+// GLOB MATCHING
+// ========================================
+
+function matchesEventPattern(pattern, eventName) {
+	if (pattern === eventName) return true;
+	if (!pattern.includes('*')) return false;
+	var regex = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+	return regex.test(eventName);
+}
+
+// ========================================
+// FEATURE
+// ========================================
 
 export class EventSourceFeature extends Feature {
 	static keyword = "eventsource";
@@ -24,114 +109,49 @@ export class EventSourceFeature extends Feature {
 
 		var urlElement;
 		var withCredentials = false;
+		var method = 'GET';
+		var headers = null;
 
-		// Get the name we'll assign to this EventSource in the hyperscript context
 		var name = parser.requireElement("dotOrColonPath");
 		var qualifiedName = name.evalStatically();
 		var nameSpace = qualifiedName.split(".");
 		var eventSourceName = nameSpace.pop();
 
-		// Get the URL of the EventSource
 		if (parser.matchToken("from")) {
 			urlElement = parser.parseURLOrExpression();
 		}
 
-		// Get option to connect with/without credentials
-		if (parser.matchToken("with")) {
+		// Parse options: with credentials, with method, with headers (in any order)
+		while (parser.matchToken("with")) {
 			if (parser.matchToken("credentials")) {
 				withCredentials = true;
+			} else if (parser.matchToken("method")) {
+				method = parser.requireElement("stringLike").evalStatically().toUpperCase();
+			} else if (parser.matchToken("headers")) {
+				headers = parser.requireElement("objectLiteral");
+			} else {
+				parser.raiseExpected("credentials", "method", "headers");
 			}
 		}
 
-		var stub = {
-			eventSource: null,
-			listeners: [],
-			retryCount: 0,
-			closed: false,
-			reconnectTimeout: null,
-			open: function (url) {
-				if (url == undefined) {
-					if (stub.eventSource != null && stub.eventSource.url != undefined) {
-						url = stub.eventSource.url;
-					} else {
-						throw new Error("no url defined for EventSource.");
-					}
-				}
+		// Evaluate headers at parse time — keys and values must be static literals
+		var staticHeaders = null;
+		if (headers) {
+			staticHeaders = {};
+			for (var i = 0; i < headers.keyExpressions.length; i++) {
+				var key = headers.keyExpressions[i].evalStatically();
+				var val = headers.valueExpressions[i].evalStatically();
+				staticHeaders[key] = val;
+			}
+		}
 
-				// Guard multiple opens on the same EventSource
-				if (stub.eventSource != null) {
-					if (url != stub.eventSource.url) {
-						stub.eventSource.close();
-					} else if (stub.eventSource.readyState != EventSource.CLOSED) {
-						return;
-					}
-				}
-
-				// Mark as not explicitly closed (allow reconnection)
-				stub.closed = false;
-
-				stub.eventSource = new EventSource(url, {
-					withCredentials: withCredentials,
-				});
-
-				// On successful connection, reset retry count
-				stub.eventSource.addEventListener("open", function () {
-					stub.retryCount = 0;
-				});
-
-				// On connection error, close to prevent browser's native auto-reconnect
-				// and use exponential backoff to retry
-				stub.eventSource.addEventListener("error", function () {
-					stub.eventSource.close();
-
-					// Only reconnect if the user has not explicitly called close()
-					if (!stub.closed) {
-						stub.retryCount = Math.min(7, stub.retryCount + 1);
-						var timeout = Math.random() * (2 ** stub.retryCount) * 500;
-						stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
-					}
-				});
-
-				// Add event listeners
-				for (var index = 0; index < stub.listeners.length; index++) {
-					var item = stub.listeners[index];
-					stub.eventSource.addEventListener(item.type, item.handler, item.options);
-				}
-			},
-			close: function () {
-				stub.closed = true;
-				if (stub.reconnectTimeout) {
-					clearTimeout(stub.reconnectTimeout);
-					stub.reconnectTimeout = null;
-				}
-				if (stub.eventSource != undefined) {
-					stub.eventSource.close();
-				}
-				stub.retryCount = 0;
-			},
-			addEventListener: function (type, handler, options) {
-				stub.listeners.push({
-					type: type,
-					handler: handler,
-					options: options,
-				});
-
-				if (stub.eventSource != null) {
-					stub.eventSource.addEventListener(type, handler, options);
-				}
-			},
-		};
-
+		var stub = createStub(withCredentials, method, staticHeaders);
 		var feature = new EventSourceFeature(eventSourceName, nameSpace, stub);
 
-		// Parse each event listener and add it into the list
 		while (parser.matchToken("on")) {
 			var eventName = parser.requireElement("stringLike").evalStatically();
 
-			// default encoding is "" (autodetect)
 			var encoding = "";
-
-			// look for alternate encoding
 			if (parser.matchToken("as")) {
 				encoding = parser.requireElement("stringLike").evalStatically();
 			}
@@ -148,7 +168,6 @@ export class EventSourceFeature extends Feature {
 
 		parser.requireToken("end");
 
-		// If we have a URL element, connect to the remote server now
 		if (urlElement != undefined) {
 			stub.open(urlElement.evalStatically());
 		}
@@ -157,9 +176,178 @@ export class EventSourceFeature extends Feature {
 	}
 }
 
+// ========================================
+// STUB (connection manager)
+// ========================================
+
+function createStub(withCredentials, method, headers) {
+	var stub = {
+		listeners: [],
+		retryCount: 0,
+		closed: false,
+		abortController: null,
+		reader: null,
+		lastEventId: null,
+		reconnectTimeout: null,
+		url: null,
+		withCredentials: withCredentials,
+		method: method,
+		headers: headers,
+
+		open: function (url) {
+			if (url == undefined) {
+				if (stub.url != null) {
+					url = stub.url;
+				} else {
+					throw new Error("no url defined for EventSource.");
+				}
+			}
+
+			// If already connected to same URL, skip
+			if (stub.url === url && stub.abortController && !stub.abortController.signal.aborted) {
+				return;
+			}
+
+			// Close existing connection if URL changed or reconnecting
+			if (stub.abortController) {
+				stub.abortController.abort();
+			}
+
+			stub.closed = false;
+			stub.url = url;
+			startConnection(stub);
+		},
+
+		close: function () {
+			stub.closed = true;
+			if (stub.reconnectTimeout) {
+				clearTimeout(stub.reconnectTimeout);
+				stub.reconnectTimeout = null;
+			}
+			if (stub.abortController) {
+				stub.abortController.abort();
+				stub.abortController = null;
+			}
+			stub.retryCount = 0;
+			dispatch(stub, 'close', { type: 'close' });
+		},
+
+		addEventListener: function (type, handler, options) {
+			stub.listeners.push({ type: type, handler: handler, options: options });
+		},
+	};
+
+	return stub;
+}
+
+// ========================================
+// CONNECTION LOOP
+// ========================================
+
+function startConnection(stub) {
+	var ac = new AbortController();
+	stub.abortController = ac;
+
+	var fetchOptions = {
+		method: stub.method,
+		signal: ac.signal,
+		headers: Object.assign({}, stub.headers || {}),
+	};
+	if (stub.withCredentials) {
+		fetchOptions.credentials = 'include';
+	}
+	if (stub.lastEventId) {
+		fetchOptions.headers['Last-Event-ID'] = stub.lastEventId;
+	}
+
+	fetch(stub.url, fetchOptions)
+		.then(function (response) {
+			if (ac.signal.aborted) return;
+			if (!response.ok) {
+				throw new Error("SSE connection failed with status " + response.status);
+			}
+
+			stub.retryCount = 0;
+			dispatch(stub, 'open', { type: 'open' });
+
+			return readStream(stub, response.body.getReader(), ac);
+		})
+		.catch(function (err) {
+			if (ac.signal.aborted) return;
+			dispatch(stub, 'error', { type: 'error', error: err });
+			scheduleReconnect(stub);
+		});
+}
+
+async function readStream(stub, reader, ac) {
+	stub.reader = reader;
+	var baseDelay = 500;
+
+	try {
+		for await (var msg of parseSSE(reader)) {
+			if (ac.signal.aborted) break;
+
+			if (msg.id) stub.lastEventId = msg.id;
+			if (msg.retry != null) baseDelay = msg.retry;
+
+			var eventType = msg.event || 'message';
+			var evt = {
+				type: eventType,
+				data: msg.data,
+				lastEventId: msg.id || stub.lastEventId || '',
+			};
+			dispatch(stub, eventType, evt);
+		}
+	} catch (err) {
+		if (!ac.signal.aborted) {
+			dispatch(stub, 'error', { type: 'error', error: err });
+		}
+	}
+
+	stub.reader = null;
+
+	// Stream ended — reconnect unless explicitly closed
+	if (!stub.closed && !ac.signal.aborted) {
+		scheduleReconnect(stub, baseDelay);
+	}
+}
+
+function scheduleReconnect(stub, baseDelay) {
+	if (stub.closed) return;
+	baseDelay = baseDelay || 500;
+
+	stub.retryCount = Math.min(7, stub.retryCount + 1);
+	var timeout = Math.random() * (2 ** stub.retryCount) * baseDelay;
+	stub.reconnectTimeout = setTimeout(function () {
+		stub.reconnectTimeout = null;
+		if (!stub.closed) startConnection(stub);
+	}, timeout);
+}
+
+// ========================================
+// EVENT DISPATCH
+// ========================================
+
+function dispatch(stub, eventType, evt) {
+	for (var i = 0; i < stub.listeners.length; i++) {
+		var listener = stub.listeners[i];
+		if (matchesEventPattern(listener.type, eventType)) {
+			try {
+				listener.handler(evt);
+			} catch (e) {
+				console.error("Error in SSE handler for '" + listener.type + "':", e);
+			}
+		}
+	}
+}
+
+// ========================================
+// HANDLER FACTORY
+// ========================================
+
 function makeHandler(encoding, commandList, stub, feature) {
 	return function (evt) {
-		var data = decode(evt["data"], encoding);
+		var data = decode(evt.data, encoding);
 		var context = feature.runtime.makeContext(stub, feature, stub);
 		context.event = evt;
 		context.result = data;
@@ -174,11 +362,14 @@ function decode(data, encoding) {
 	return data;
 }
 
+// ========================================
+// PLUGIN REGISTRATION
+// ========================================
+
 export default function eventsourcePlugin(_hyperscript) {
 	_hyperscript.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
 }
 
-// Auto-register when imported
 if (typeof self !== 'undefined' && self._hyperscript) {
 	self._hyperscript.use(eventsourcePlugin);
 }

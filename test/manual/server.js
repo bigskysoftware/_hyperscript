@@ -80,6 +80,54 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	// Wildcard SSE events endpoint
+	if (req.url === '/sse-wildcard') {
+		res.writeHead(200, {
+			'Content-Type': 'text/event-stream',
+			'Cache-Control': 'no-cache',
+			'Connection': 'keep-alive',
+			'Access-Control-Allow-Origin': '*',
+		});
+
+		res.write('event: user.login\n');
+		res.write('data: {"user":"alice"}\n\n');
+
+		setTimeout(() => {
+			res.write('event: user.logout\n');
+			res.write('data: {"user":"bob"}\n\n');
+		}, 500);
+
+		setTimeout(() => {
+			res.write('event: system.status\n');
+			res.write('data: {"status":"ok"}\n\n');
+		}, 1000);
+
+		setTimeout(() => {
+			res.write('event: user.update\n');
+			res.write('data: {"user":"alice","action":"profile"}\n\n');
+		}, 1500);
+
+		return;
+	}
+
+	// POST SSE endpoint
+	if (req.url === '/sse-post' && req.method === 'POST') {
+		var body = '';
+		req.on('data', (chunk) => { body += chunk; });
+		req.on('end', () => {
+			res.writeHead(200, {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache',
+				'Connection': 'keep-alive',
+				'Access-Control-Allow-Origin': '*',
+			});
+
+			res.write('event: ack\n');
+			res.write('data: {"received":' + JSON.stringify(body) + '}\n\n');
+		});
+		return;
+	}
+
 	// Root → index.html
 	if (req.url === '/') {
 		req.url = '/test/manual/index.html';

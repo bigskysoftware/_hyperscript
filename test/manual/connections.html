@@ -32,6 +32,10 @@
   <div id="sse-done" style="display:none"></div>
   <div id="sse-greeting" style="display:none"></div>
   <div id="sse-farewell" style="display:none"></div>
+  <div id="sse-wildcard-count" style="display:none">0</div>
+  <div id="sse-wildcard-system" style="display:none"></div>
+  <div id="sse-catchall-count" style="display:none">0</div>
+  <div id="sse-post-ack" style="display:none"></div>
   <div id="ws-welcome" style="display:none"></div>
   <div id="ws-rpc-result" style="display:none"></div>
   <div id="ws-greet-result" style="display:none"></div>
@@ -64,6 +68,38 @@
       end
       on "farewell" as json
         put it.message into #sse-farewell
+      end
+    end
+  </script>
+
+  <!-- EventSource: wildcard event matching -->
+  <script type="text/hyperscript">
+    eventsource WildcardSSE from "/sse-wildcard"
+      on "user.*" as json
+        set count to #sse-wildcard-count's innerHTML as Int
+        put (count + 1) into #sse-wildcard-count
+      end
+      on "system.*" as json
+        put it.status into #sse-wildcard-system
+      end
+    end
+  </script>
+
+  <!-- EventSource: catch-all -->
+  <script type="text/hyperscript">
+    eventsource CatchAllSSE from "/sse-wildcard"
+      on "*" as json
+        set count to #sse-catchall-count's innerHTML as Int
+        put (count + 1) into #sse-catchall-count
+      end
+    end
+  </script>
+
+  <!-- EventSource: POST method -->
+  <script type="text/hyperscript">
+    eventsource PostSSE from "/sse-post" with method "POST"
+      on "ack" as json
+        put it.received into #sse-post-ack
       end
     end
   </script>
@@ -159,7 +195,49 @@
           'Got: "' + document.getElementById('sse-done').textContent + '"');
       }
 
-      // Test 5: Named SSE - greeting
+      // Test 5: Wildcard event matching (user.*)
+      try {
+        await waitFor(() => {
+          var count = parseInt(document.getElementById('sse-wildcard-count').textContent);
+          return count >= 3;  // user.login, user.logout, user.update
+        }, 5000);
+        report('sse-results', 'wildcard: user.* matches 3 events', true);
+      } catch (e) {
+        report('sse-results', 'wildcard: user.* matches 3 events', false,
+          'count: ' + document.getElementById('sse-wildcard-count').textContent);
+      }
+
+      // Test 6: Wildcard system.* event
+      try {
+        await waitFor(() => document.getElementById('sse-wildcard-system').textContent === 'ok', 5000);
+        report('sse-results', 'wildcard: system.* matches system.status', true);
+      } catch (e) {
+        report('sse-results', 'wildcard: system.* matches system.status', false,
+          'Got: "' + document.getElementById('sse-wildcard-system').textContent + '"');
+      }
+
+      // Test 7: Catch-all * matches all events
+      try {
+        await waitFor(() => {
+          var count = parseInt(document.getElementById('sse-catchall-count').textContent);
+          return count >= 4;  // all 4 events
+        }, 5000);
+        report('sse-results', 'catch-all: * matches all events', true);
+      } catch (e) {
+        report('sse-results', 'catch-all: * matches all events', false,
+          'count: ' + document.getElementById('sse-catchall-count').textContent);
+      }
+
+      // Test 8: POST method SSE
+      try {
+        await waitFor(() => document.getElementById('sse-post-ack').textContent !== '', 5000);
+        report('sse-results', 'POST method: receives ack', true);
+      } catch (e) {
+        report('sse-results', 'POST method: receives ack', false,
+          'Got: "' + document.getElementById('sse-post-ack').textContent + '"');
+      }
+
+      // Test 5 (original): Named SSE - greeting
       try {
         await waitFor(() => document.getElementById('sse-greeting').textContent === 'hello');
         report('sse-results', 'named event: greeting', true);
