@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../../src/_hyperscript.js" type="module"></script>
+</head>
+<body>
+  <table>
+    <tr><td><input type="checkbox" class="cb"></td></tr>
+    <tr><td><input type="checkbox" class="cb"></td></tr>
+    <tr><td><input id="master" type="checkbox"
+      _="set :checkboxes to <input[type=checkbox]/> in the closest <table/> where it is not me
+         on change
+           set checked of the :checkboxes to my checked
+         on change from the closest <table/>
+           if no :checkboxes where it is checked
+             set my indeterminate to false
+             set my checked to false
+           else if no :checkboxes where it is not checked
+             set my indeterminate to false
+             set my checked to true
+           else
+             set my indeterminate to true
+           end"></td></tr>
+  </table>
+</body>
+</html>
