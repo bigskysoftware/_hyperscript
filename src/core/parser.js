@@ -34,6 +34,10 @@ export class Parser {
         this.tokens = tokens;
     }
 
+    toString() {
+        this.tokens.matched
+    }
+
     static formatErrors(errors) {
         if (!errors.length) return "";
         var source = errors[0].source;

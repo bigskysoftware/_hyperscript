@@ -262,7 +262,7 @@ export class ClosestExpr extends Expression {
         }
 
         if (css == null) {
-            var expr = parser.requireElement("expression");
+            var expr = parser.requireElement("unaryExpression");
             if (expr.css == null) {
                 parser.raiseError("Expected a CSS expression");
             } else {

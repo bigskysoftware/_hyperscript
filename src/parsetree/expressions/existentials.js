@@ -23,7 +23,7 @@ export class NoExpression extends Expression {
 
     static parse(parser) {
         if (!parser.matchToken("no")) return;
-        var root = parser.requireElement("unaryExpression");
+        var root = parser.requireElement("collectionExpression");
         return new NoExpression(root);
     }
 

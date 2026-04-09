@@ -98,6 +98,31 @@ test.describe("the closest expression", () => {
 		await expect.poll(() => evaluate(() => document.getElementById('outerDiv2').getAttribute("foo"))).toBe("doh")
 	})
 
+	test("closest does not consume a following where clause", async ({html, find}) => {
+		await html(
+			"<table><tr><td>" +
+			"<input type='checkbox' class='cb'>" +
+			"<input type='checkbox' class='cb'>" +
+			"<input id='master' type='checkbox' " +
+			"_=\"set :others to <input[type=checkbox]/> in the closest <table/> where it is not me " +
+			"on click put :others.length into #out\">" +
+			"</td></tr></table>" +
+			"<div id='out'></div>"
+		);
+		await find('#master').click();
+		await expect(find('#out')).toHaveText("2");
+	})
+
+	test("closest with to modifier still works after parse change", async ({html, evaluate}) => {
+		await html("<div id='outer'><div id='inner'></div></div>")
+		let result = await evaluate(() => {
+			const inner = document.getElementById('inner')
+			const outer = document.getElementById('outer')
+			return _hyperscript("closest <div/> to my.parentElement", { me: inner }) === outer
+		})
+		expect(result).toBe(true)
+	})
+
 	test("returns an array where appropriate", async ({html, find, evaluate}) => {
 		await html(
 			"<div id='d2' class='bar'><div id='d1' class='foo' _='on click add .doh to closest .bar to .foo'></div></div>" +

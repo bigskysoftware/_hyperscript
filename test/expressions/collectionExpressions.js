@@ -142,4 +142,88 @@ test.describe("weak indirect binding", () => {
 		await expect(find('#b2')).toHaveText("2");
 	});
 
+	test("where in init followed by on feature", async ({html, find}) => {
+		await html(
+			"<div id='box'><span class='a'>A</span><span class='b'>B</span></div>" +
+			"<button _=\"set :items to <span/> in #box where it matches .a " +
+			"on click put :items.length into me\">go</button>"
+		);
+		await find('button').click();
+		await expect(find('button')).toHaveText("1");
+	});
+
+	test("where in component init followed by on feature", async ({html, find}) => {
+		await html(`
+			<div id='box'><span class='a'>A</span><span class='b'>B</span></div>
+			<template component="test-where-comp"
+				_="set :items to <span/> in #box where it matches .a
+				   on click put :items.length into me">
+				<slot/>
+			</template>
+			<test-where-comp>go</test-where-comp>
+		`);
+		await find('test-where-comp').click();
+		await expect(find('test-where-comp')).toHaveText("1");
+	});
+
+	test("where with is not me in component template", async ({html, find, evaluate}) => {
+		await html(`
+			<div id='box'><input type="checkbox" class="cb"><input type="checkbox" class="cb"></div>
+			<template component="test-where-me">
+				<input type="checkbox" _="set :checkboxes to <input[type=checkbox]/> in #box where it is not me on change set checked of the :checkboxes to my checked">
+			</template>
+			<test-where-me></test-where-me>
+		`);
+		var attr = await evaluate(() => document.querySelector('test-where-me input')?.getAttribute('_'));
+		console.log("ATTR:", attr);
+		await find('test-where-me input').click();
+		await expect.poll(() => find('.cb').first().isChecked()).toBe(true);
+	});
+
+	test("where with is not me followed by on feature", async ({html, find}) => {
+		await html(`
+			<table>
+			<tr><td><input type="checkbox" class="cb" checked></td></tr>
+			<tr><td><input type="checkbox" class="cb"></td></tr>
+			<tr><td><input type="checkbox" class="cb" checked></td></tr>
+			<tr><td><input id="master" type="checkbox"
+				_="set :checkboxes to <input[type=checkbox]/> in the closest <table/> where it is not me
+				   on change set checked of the :checkboxes to my checked"></td></tr>
+			</table>
+		`);
+		await find('#master').click();
+		await expect.poll(() => find('.cb').first().isChecked()).toBe(true);
+	});
+
+	test("full select-all pattern with multiple on features", async ({html, find, evaluate}) => {
+		await html(`
+			<table>
+			<tr><td><input type="checkbox" class="cb" checked></td></tr>
+			<tr><td><input type="checkbox" class="cb"></td></tr>
+			<tr><td><input type="checkbox" class="cb" checked></td></tr>
+			<tr><td><input id="master" type="checkbox"
+				_="set :checkboxes to <input[type=checkbox]/> in the closest <table/> where it is not me
+				   on change
+				     set checked of the :checkboxes to my checked
+				   on change from the closest <table/>
+				     if no :checkboxes where it is checked
+				       set my indeterminate to false
+				       set my checked to false
+				     else if no :checkboxes where it is not checked
+				       set my indeterminate to false
+				       set my checked to true
+				     else
+				       set my indeterminate to true
+				     end"></td></tr>
+			</table>
+		`);
+		// master check should check all
+		await find('#master').click();
+		await expect.poll(() => find('.cb').first().isChecked()).toBe(true);
+		// uncheck one child - master should become indeterminate
+		await find('.cb').first().click();
+		var indet = await evaluate(() => document.querySelector('#master').indeterminate);
+		expect(indet).toBe(true);
+	});
+
 });
