@@ -35,7 +35,7 @@ export class WhenFeature extends Feature {
         // Check for bare local variables that can't be reactive
         for (var i = 0; i < exprs.length; i++) {
             var expr = exprs[i];
-            if (expr.type === "symbol" && expr.scope === "default"
+            if (expr.type === "symbol" && expr.scope === "local"
                 && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
                 parser.raiseError(
                     "Cannot watch local variable '" + expr.name + "'. " +

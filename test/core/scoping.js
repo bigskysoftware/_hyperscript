@@ -183,26 +183,6 @@ test.describe("scoping", () => {
 		await expect(find('#d1')).toHaveAttribute('out', '10');
 	});
 
-	test("local variables can override element variables", async ({html, find}) => {
-		await html("<div id='d1' _='on click 1 set element foo to 20" +
-			"                                  on click 2 set local foo to 10 then set @out to foo" +
-			"                                  on click 3 set @out to foo'></div>");
-		await find('#d1').dispatchEvent('click');
-		await find('#d1').dispatchEvent('click');
-		await expect(find('#d1')).toHaveAttribute('out', '10');
-		await find('#d1').dispatchEvent('click');
-		await expect(find('#d1')).toHaveAttribute('out', '20');
-	});
-
-	test("explicit element variable references works", async ({html, find}) => {
-		await html("<div id='d1' _='on click 1 set element foo to 20" +
-			"                                  on click 2 set local foo to 10 then set @out to foo then set @out2 to element foo'></div>");
-		await find('#d1').dispatchEvent('click');
-		await find('#d1').dispatchEvent('click');
-		await expect(find('#d1')).toHaveAttribute('out', '10');
-		await expect(find('#d1')).toHaveAttribute('out2', '20');
-	});
-
 	test("global scoped variables span features", async ({html, find}) => {
 		await html(
 			"<div id='d1' _='on click 1 set $x to 10 " +

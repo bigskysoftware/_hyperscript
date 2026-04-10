@@ -94,7 +94,7 @@ export class JsCommand extends Command {
     }
 
     resolve(context) {
-        var args = this.inputs.map(input => context.meta.runtime.resolveSymbol(input, context, 'default'));
+        var args = this.inputs.map(input => context.meta.runtime.resolveSymbol(input, context, 'local'));
         var result = this.function.apply(context.meta.runtime.globalScope, args);
         if (result && typeof result.then === "function") {
             return result.then((actualResult) => {

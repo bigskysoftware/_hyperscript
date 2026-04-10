@@ -159,7 +159,7 @@ export class SymbolRef extends Expression {
     }
 
     static parse(parser) {
-        var scope = "default";
+        var scope = null;
         if (parser.matchToken("global")) {
             scope = "global";
         } else if (parser.matchToken("element")) {
@@ -185,13 +185,16 @@ export class SymbolRef extends Expression {
             } else if (caretPrefix) {
                 name = "^" + name;
             }
-            if (scope === "default") {
+            // Resolve final scope: explicit keyword > name prefix > local default
+            if (scope === null) {
                 if (name.startsWith("$")) {
                     scope = "global";
                 } else if (name.startsWith(":")) {
                     scope = "element";
                 } else if (name.startsWith("^")) {
                     scope = "inherited";
+                } else {
+                    scope = "local";
                 }
             }
             var targetExpr = null;
@@ -997,14 +1000,14 @@ export class ComparisonOperator extends Expression {
         }
 
         if (operator === "is") {
-            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "default"
+            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "local"
                 && rhs.name !== "undefined" && rhs.name !== "null") {
                 return !!context.meta.runtime.resolveProperty(lhsVal, rhs.name);
             }
             return lhsVal == rhsVal;
         }
         if (operator === "is not") {
-            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "default"
+            if (rhsVal === undefined && rhs.type === "symbol" && rhs.scope === "local"
                 && rhs.name !== "undefined" && rhs.name !== "null") {
                 return !context.meta.runtime.resolveProperty(lhsVal, rhs.name);
             }

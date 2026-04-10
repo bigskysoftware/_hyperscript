@@ -280,9 +280,11 @@ export class Runtime {
                 this.#trackMutation(inherited.value);
                 return inherited.value;
             }
-            if (type === "local") return context.locals[str];
-
-            // default scope resolution
+            // local scope resolution: meta.context (set only inside `on click[...]`
+            // filter expressions to the current event) → locals → element → global.
+            // Event destructuring in handler bodies is explicit: `on click(x, y)`
+            // copies event/detail props into ctx.locals at handler entry, so in body
+            // code `x` is a real local, not a fallback lookup.
             if (context.meta?.context) {
                 var fromMetaContext = context.meta.context[str];
                 if (typeof fromMetaContext !== "undefined") return fromMetaContext;
@@ -337,11 +339,7 @@ export class Runtime {
                 }
                 return;
             }
-            if (type === "local") {
-                context.locals[str] = value;
-                return;
-            }
-            // default scope resolution
+            // local scope resolution (tries locals → element → global chain)
             if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
                 context.locals[str] = value;
                 return;

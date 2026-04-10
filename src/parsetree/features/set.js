@@ -22,8 +22,8 @@ export class SetFeature extends Feature {
     static parse(parser) {
         let setCmd = parser.parseElement("setCommand");
         if (setCmd) {
-            if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
-                parser.raiseError("variables declared at the feature level must be element or DOM scoped.");
+            if (setCmd.target.scope === "local") {
+                parser.raiseError("variables declared at the feature level cannot be locally scoped.");
             }
             let setFeature = new SetFeature(setCmd);
             parser.ensureTerminated(setCmd);

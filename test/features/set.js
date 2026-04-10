@@ -15,20 +15,12 @@ test.describe('the set feature', () => {
 		await expect(find('div')).toHaveText('42')
 	})
 
-	test('rejects global-scoped ($) variables at the feature level', async ({html, page}) => {
-		var messages = []
-		page.on('console', m => { if (m.type() === 'error') messages.push(m.text()) })
-		page.on('pageerror', e => messages.push(e.message))
-		await html("<div _='set $globalAtFeature to 42'></div>")
-		expect(messages.join('\n')).toMatch(/element or DOM scoped/)
-	})
-
 	test('rejects bare (local) variables at the feature level', async ({html, page}) => {
 		var messages = []
 		page.on('console', m => { if (m.type() === 'error') messages.push(m.text()) })
 		page.on('pageerror', e => messages.push(e.message))
 		await html("<div _='set localAtFeature to 42'></div>")
-		expect(messages.join('\n')).toMatch(/element or DOM scoped/)
+		expect(messages.join('\n')).toMatch(/cannot be locally scoped/)
 	})
 
 })
