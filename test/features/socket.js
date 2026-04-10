@@ -236,6 +236,223 @@ test.describe('the socket feature', () => {
 		expect(result).toBe('kaboom')
 	})
 
+	test('rpc proxy noTimeout avoids timeout rejection', async ({evaluate}) => {
+		var result = await evaluate(() => new Promise((resolve) => {
+			var OrigWS = window.WebSocket
+			var sent = []
+			var mockSocket = {
+				onmessage: null,
+				send: function(msg) { sent.push(msg) },
+				addEventListener: function(){},
+				close: function(){},
+			}
+			window.WebSocket = function() { return mockSocket }
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket NoTOSocket ws://localhost/ws with timeout 20 end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+
+				var settled = false
+				var p = window.NoTOSocket.rpc.noTimeout.slowCall('x')
+				p.then(function (v) { settled = true; resolve({ kind: 'resolved', value: v }) })
+				 .catch(function (e) { settled = true; resolve({ kind: 'rejected', err: e }) })
+
+				setTimeout(function () {
+					if (!settled) {
+						var outgoing = JSON.parse(sent[0])
+						mockSocket.onmessage({ data: JSON.stringify({ iid: outgoing.iid, return: 'late' }) })
+					}
+				}, 80)
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		}))
+		expect(result.kind).toBe('resolved')
+		expect(result.value).toBe('late')
+	})
+
+	test('rpc proxy timeout(n) rejects after a custom window', async ({evaluate}) => {
+		var result = await evaluate(() => new Promise((resolve) => {
+			var OrigWS = window.WebSocket
+			var mockSocket = {
+				onmessage: null,
+				send: function(){},
+				addEventListener: function(){},
+				close: function(){},
+			}
+			window.WebSocket = function() { return mockSocket }
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket CustomTOSocket ws://localhost/ws with timeout 60000 end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+
+				window.CustomTOSocket.rpc.timeout(50).willTimeOut()
+					.then(function () { resolve({ kind: 'resolved' }) })
+					.catch(function (e) { resolve({ kind: 'rejected', err: e }) })
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		}))
+		expect(result.kind).toBe('rejected')
+		expect(result.err).toBe('Timed out')
+	})
+
+	test('rpc proxy default timeout rejects the promise', async ({evaluate}) => {
+		var result = await evaluate(() => new Promise((resolve) => {
+			var OrigWS = window.WebSocket
+			var mockSocket = {
+				onmessage: null,
+				send: function(){},
+				addEventListener: function(){},
+				close: function(){},
+			}
+			window.WebSocket = function() { return mockSocket }
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket DefTOSocket ws://localhost/ws with timeout 50 end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+
+				window.DefTOSocket.rpc.neverReplies()
+					.then(function () { resolve({ kind: 'resolved' }) })
+					.catch(function (e) { resolve({ kind: 'rejected', err: e }) })
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		}))
+		expect(result.kind).toBe('rejected')
+		expect(result.err).toBe('Timed out')
+	})
+
+	test('rpc proxy blacklists then/catch/length/toJSON', async ({evaluate}) => {
+		var result = await evaluate(() => {
+			var OrigWS = window.WebSocket
+			window.WebSocket = function() {
+				return { onmessage: null, send: function(){}, addEventListener: function(){}, close: function(){} }
+			}
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket BlacklistSocket ws://localhost/ws end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+				return {
+					then: window.BlacklistSocket.rpc.then,
+					catch: window.BlacklistSocket.rpc.catch,
+					length: window.BlacklistSocket.rpc.length,
+					toJSON: window.BlacklistSocket.rpc.toJSON,
+				}
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		})
+		expect(result.then).toBeNull()
+		expect(result.catch).toBeNull()
+		expect(result.length).toBeNull()
+		expect(result.toJSON).toBeNull()
+	})
+
+	test('dispatchEvent sends JSON-encoded event over the socket', async ({evaluate}) => {
+		var payload = await evaluate(() => {
+			var OrigWS = window.WebSocket
+			var sent = []
+			var mockSocket = {
+				onmessage: null,
+				send: function(msg) { sent.push(msg) },
+				addEventListener: function(){},
+				close: function(){},
+			}
+			window.WebSocket = function() { return mockSocket }
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket DispatchSocket ws://localhost/ws end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+
+				var evt = new CustomEvent('ping', {
+					detail: { n: 1, msg: 'hi', sender: 'internal', _namedArgList_: 'internal' }
+				})
+				window.DispatchSocket.dispatchEvent(evt)
+				return JSON.parse(sent[0])
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		})
+		expect(payload.type).toBe('ping')
+		expect(payload.n).toBe(1)
+		expect(payload.msg).toBe('hi')
+		expect(payload.sender).toBeUndefined()
+		expect(payload._namedArgList_).toBeUndefined()
+	})
+
+	test('rpc reconnects after the underlying socket closes', async ({evaluate}) => {
+		var result = await evaluate(() => {
+			var OrigWS = window.WebSocket
+			var created = []
+			var closeHandlers = []
+			window.WebSocket = function() {
+				var sock = {
+					onmessage: null,
+					send: function(){},
+					addEventListener: function(type, handler) {
+						if (type === 'close') closeHandlers.push(handler)
+					},
+					close: function(){},
+				}
+				created.push(sock)
+				return sock
+			}
+			try {
+				var script = document.createElement('script')
+				script.type = 'text/hyperscript'
+				script.textContent = 'socket ReconnectSocket ws://localhost/ws end'
+				document.body.appendChild(script)
+				_hyperscript.processNode(script)
+
+				// Simulate the server closing the connection
+				closeHandlers.forEach(function (h) { h({}) })
+
+				// Next RPC call should create a fresh socket
+				window.ReconnectSocket.rpc.ping()
+				return { count: created.length }
+			} finally {
+				window.WebSocket = OrigWS
+			}
+		})
+		expect(result.count).toBe(2)
+	})
+
+	test('on message as JSON throws on non-JSON payload', async ({page}) => {
+		var err = await page.evaluate(() => {
+			var OrigWS = window.WebSocket
+			var mockSocket = { onmessage: null, send: function(){}, addEventListener: function(){}, close: function(){} }
+			window.WebSocket = function() { return mockSocket }
+			var script = document.createElement('script')
+			script.type = 'text/hyperscript'
+			script.textContent = `
+				socket StrictJsonSocket ws://localhost/ws
+				  on message as JSON
+				    set window.strictFired to true
+			`
+			document.body.appendChild(script)
+			_hyperscript.processNode(script)
+			window.WebSocket = OrigWS
+			try {
+				mockSocket.onmessage({ data: 'not-json' })
+				return null
+			} catch (e) {
+				return e.message
+			}
+		})
+		expect(err).toContain('Received non-JSON message')
+	})
+
 	test('namespaced sockets work', async ({evaluate}) => {
 		var result = await evaluate(() => {
 			var OrigWS = window.WebSocket;
