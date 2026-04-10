@@ -91,4 +91,34 @@ test.describe('the behavior feature', () => {
 		await expect(find('div')).toHaveText('3')
 	})
 
+	test('install resolves namespaced behavior paths', async ({html, find}) => {
+		await html(
+			"<script type=text/hyperscript>behavior App.Widgets.Clickable on click add .clicked end end</script>" +
+			"<div _='install App.Widgets.Clickable'></div>"
+		)
+		await find('div').dispatchEvent('click')
+		await expect(find('div')).toHaveClass(/clicked/)
+	})
+
+	test('install throws when the behavior path does not exist', async ({html, page, evaluate}) => {
+		var messages = []
+		page.on('console', m => { if (m.type() === 'error') messages.push(m.text()) })
+		page.on('pageerror', e => messages.push(e.message))
+		await html("<div _='install NoSuchBehavior'></div>")
+		// install() runs during processNode; errors are surfaced via console.error
+		var combined = messages.join('\n')
+		expect(combined).toMatch(/No such behavior defined as NoSuchBehavior/)
+	})
+
+	test('install throws when the path resolves to a non-function', async ({html, page, evaluate}) => {
+		var messages = []
+		page.on('console', m => { if (m.type() === 'error') messages.push(m.text()) })
+		page.on('pageerror', e => messages.push(e.message))
+		await evaluate(() => { window.NotABehavior = { hello: 'world' } })
+		await html("<div _='install NotABehavior'></div>")
+		var combined = messages.join('\n')
+		expect(combined).toMatch(/NotABehavior is not a behavior/)
+		await evaluate(() => { delete window.NotABehavior })
+	})
+
 })
