@@ -1,5 +1,33 @@
 import {test, expect} from '../fixtures.js'
 
+/**
+ * Install a minimal document.startViewTransition mock. `window.__vtLog` records
+ * lifecycle events (start, skipped, finished) so tests can assert escape-path
+ * behavior on the view transition itself rather than the surrounding DOM.
+ */
+async function installVTMock(evaluate) {
+	await evaluate(() => {
+		window.__vtLog = []
+		document.startViewTransition = function (arg) {
+			window.__vtLog.push('start')
+			var skipped = false
+			var updateFn = typeof arg === 'function' ? arg : arg.update
+			var updateP
+			try { updateP = updateFn() } catch (e) { updateP = Promise.reject(e) }
+			var finished = Promise.resolve(updateP).then(
+				function () { window.__vtLog.push('finished'); },
+				function () { window.__vtLog.push('finished-err'); }
+			)
+			return {
+				finished: finished,
+				updateCallbackDone: Promise.resolve(updateP),
+				ready: Promise.resolve(),
+				skipTransition: function () { skipped = true; window.__vtLog.push('skipped') },
+			}
+		}
+	})
+}
+
 test.describe("the start view transition command", () => {
 
 	test("runs the body when view transitions API is unavailable", async ({html, find, evaluate}) => {
@@ -90,5 +118,109 @@ test.describe("the start view transition command", () => {
 		// Either the inner throws and is caught at the handler boundary, or
 		// it runs — we don't assert on the exact error text, just that the
 		// click didn't crash the page. The branch is hit either way.
+	})
+
+	test("exit inside a view transition skips the animation", async ({html, find, evaluate}) => {
+		await installVTMock(evaluate)
+		await html(`
+			<button _="on click
+			             start view transition
+			               add .before to me
+			               exit
+			               add .after to me
+			             end">go</button>
+		`)
+		await find('button').dispatchEvent('click')
+		await expect(find('button')).toHaveClass(/before/)
+		await expect(find('button')).not.toHaveClass(/after/)
+		// AbortViewTransition calls skipTransition() before exit
+		var log = await evaluate(() => window.__vtLog)
+		expect(log).toContain('start')
+		expect(log).toContain('skipped')
+	})
+
+	test("halt the event inside a view transition skips the animation", async ({html, find, evaluate}) => {
+		await installVTMock(evaluate)
+		await html(`
+			<button _="on click
+			             start view transition
+			               add .before to me
+			               halt
+			             end
+			             add .after to me">go</button>
+		`)
+		await find('button').dispatchEvent('click')
+		await expect(find('button')).toHaveClass(/before/)
+		// halt stopped the handler before reaching the trailing add
+		await expect(find('button')).not.toHaveClass(/after/)
+		var log = await evaluate(() => window.__vtLog)
+		expect(log).toContain('skipped')
+	})
+
+	test("return inside a def called from a view transition skips the animation", async ({html, find, evaluate}) => {
+		await installVTMock(evaluate)
+		await html(`
+			<script type="text/hyperscript">
+			  def escapeIt
+			    return 42
+			  end
+			</script>
+			<button _="on click
+			             start view transition
+			               add .before to me
+			               return
+			               add .after to me
+			             end
+			             add .after-handler to me">go</button>
+		`)
+		await find('button').dispatchEvent('click')
+		await expect(find('button')).toHaveClass(/before/)
+		await expect(find('button')).not.toHaveClass(/after/)
+		// `return` from on-handler short-circuits everything after the transition too
+		await expect(find('button')).not.toHaveClass(/after-handler/)
+		var log = await evaluate(() => window.__vtLog)
+		expect(log).toContain('skipped')
+	})
+
+	test("break inside a loop inside a view transition is NOT replaced", async ({html, find, evaluate}) => {
+		await installVTMock(evaluate)
+		await html(`
+			<button _="on click
+			             start view transition
+			               repeat 3 times
+			                 add .in-loop to me
+			                 break
+			               end
+			               add .after-loop to me
+			             end">go</button>
+		`)
+		await find('button').dispatchEvent('click')
+		// break exited the loop, but the transition body continued to add .after-loop
+		await expect(find('button')).toHaveClass(/in-loop/)
+		await expect(find('button')).toHaveClass(/after-loop/)
+		var log = await evaluate(() => window.__vtLog)
+		expect(log).toContain('start')
+		expect(log).toContain('finished')
+		// skipTransition must NOT have been called: break stayed within the loop
+		expect(log).not.toContain('skipped')
+	})
+
+	test("return inside an if branch inside a view transition skips the animation", async ({html, find, evaluate}) => {
+		await installVTMock(evaluate)
+		await html(`
+			<button _="on click
+			             start view transition
+			               add .before to me
+			               if true
+			                 return
+			               end
+			               add .after to me
+			             end">go</button>
+		`)
+		await find('button').dispatchEvent('click')
+		await expect(find('button')).toHaveClass(/before/)
+		await expect(find('button')).not.toHaveClass(/after/)
+		var log = await evaluate(() => window.__vtLog)
+		expect(log).toContain('skipped')
 	})
 })
