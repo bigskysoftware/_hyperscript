@@ -755,4 +755,126 @@ test.describe('the on feature', () => {
 		await expect(find('#result')).toHaveText('2')
 	})
 
+	test('debounced at <time> collapses rapid events to the last one', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d' _='on click debounced at 80ms " +
+			"   increment @n then put @n into me'></div>"
+		)
+		await evaluate(() => {
+			const el = document.querySelector('#work-area #d')
+			el.dispatchEvent(new Event('click'))
+			el.dispatchEvent(new Event('click'))
+			el.dispatchEvent(new Event('click'))
+		})
+		// Still empty immediately after — debounce is pending
+		await expect(find('#d')).toHaveText('')
+		// After the debounce window the handler runs exactly once
+		await expect(find('#d')).toHaveText('1')
+		// And never progresses past 1
+		await evaluate(() => new Promise(r => setTimeout(r, 100)))
+		await expect(find('#d')).toHaveText('1')
+	})
+
+	test('debounced at <time> resets the timer on each event', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d' _='on click debounced at 80ms " +
+			"   increment @n then put @n into me'></div>"
+		)
+		await evaluate(() => new Promise(r => {
+			const el = document.querySelector('#work-area #d')
+			el.dispatchEvent(new Event('click'))
+			setTimeout(() => { el.dispatchEvent(new Event('click')); r() }, 40)
+		}))
+		// 40ms in — still pending because second click reset the timer
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+		await expect(find('#d')).toHaveText('')
+		// Eventually fires exactly once
+		await expect(find('#d')).toHaveText('1')
+	})
+
+	test('throttled at <time> drops events within the window', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d' _='on click throttled at 200ms " +
+			"   increment @n then put @n into me'></div>"
+		)
+		await evaluate(() => {
+			const el = document.querySelector('#work-area #d')
+			el.dispatchEvent(new Event('click'))
+			el.dispatchEvent(new Event('click'))
+			el.dispatchEvent(new Event('click'))
+		})
+		// First click runs immediately; the rest are dropped
+		await expect(find('#d')).toHaveText('1')
+		await evaluate(() => new Promise(r => setTimeout(r, 50)))
+		await expect(find('#d')).toHaveText('1')
+	})
+
+	test('throttled at <time> allows events after the window elapses', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d' _='on click throttled at 60ms " +
+			"   increment @n then put @n into me'></div>"
+		)
+		await find('#d').dispatchEvent('click')
+		await expect(find('#d')).toHaveText('1')
+		await evaluate(() => new Promise(r => setTimeout(r, 80)))
+		await find('#d').dispatchEvent('click')
+		await expect(find('#d')).toHaveText('2')
+	})
+
+	test('on intersection fires when the element is in the viewport', async ({html, find}) => {
+		await html(
+			"<div id='d' _='on intersection(intersecting) " +
+			"   if intersecting put \"seen\" into me end'></div>"
+		)
+		// IntersectionObserver fires an initial callback asynchronously;
+		// work-area is in the viewport so intersecting should be true.
+		await expect(find('#d')).toHaveText('seen')
+	})
+
+	test('on intersection having threshold parses and fires', async ({html, find}) => {
+		await html(
+			"<div id='d' style='width:100px;height:100px' " +
+			"  _='on intersection(intersecting) having threshold 0.1 " +
+			"       if intersecting put \"seen\" into me end'></div>"
+		)
+		await expect(find('#d')).toHaveText('seen')
+	})
+
+	test('on intersection having margin parses and fires', async ({html, find}) => {
+		await html(
+			"<div id='d' style='width:100px;height:100px' " +
+			"  _='on intersection(intersecting) having margin \"10px\" " +
+			"       if intersecting put \"seen\" into me end'></div>"
+		)
+		await expect(find('#d')).toHaveText('seen')
+	})
+
+	test('on load from window responds to window load events', async ({html, find, evaluate}) => {
+		await html(
+			"<div id='d' _='on customload from window put \"loaded\" into me'></div>"
+		)
+		await evaluate(() => window.dispatchEvent(new Event('customload')))
+		await expect(find('#d')).toHaveText('loaded')
+	})
+
+	test('halt the event stops propagation to ancestors', async ({html, find}) => {
+		await html(
+			"<div id='outer' _='on click add .outer-clicked'>" +
+			"  <button id='inner' _='on click halt the event'></button>" +
+			"</div>"
+		)
+		await find('#inner').dispatchEvent('click')
+		await expect(find('#outer')).not.toHaveClass(/outer-clicked/)
+	})
+
+	test("halt the event's bubbling stops propagation", async ({html, find}) => {
+		await html(
+			"<div id='outer' _='on click add .outer-clicked'>" +
+			"  <button id='inner' _=\"on click halt the event's bubbling\"></button>" +
+			"</div>"
+		)
+		await find('#inner').dispatchEvent('click')
+		await expect(find('#outer')).not.toHaveClass(/outer-clicked/)
+	})
+
 })
