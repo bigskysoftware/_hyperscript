@@ -21,6 +21,7 @@ export class NakedString extends Expression {
     }
 
     static parse(parser) {
+        document.addEventListener()
         if (parser.hasMore()) {
             var tokenArr = parser.consumeUntilWhitespace();
             parser.matchTokenType("WHITESPACE");

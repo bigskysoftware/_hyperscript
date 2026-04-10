@@ -2,6 +2,7 @@ import { test as base, expect } from '@playwright/test'
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { COVERAGE, accumulateCoverage, flushCoverageShard } from './fixtures.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const hsBundle = readFileSync(path.join(__dirname, '.bundle', '_hyperscript.js'), 'utf8')
@@ -9,23 +10,34 @@ const htmxBundle = readFileSync(path.join(__dirname, 'vendor', 'htmx.js'), 'utf8
 
 export { expect }
 
-export const test = base.extend({
-    page: async ({ browser }, use) => {
-        const page = await browser.newPage()
-        await page.setContent([
-            '<!DOCTYPE html><html><head><base href="http://localhost/"></head><body>',
-            `<script>${htmxBundle}</script>`,
-            `<script>htmx.config.mode = "cors";</script>`,
-            `<script>${hsBundle}</script>`,
-            '<div id="work-area"></div>',
-            '</body></html>',
-        ].join('\n'))
-        await page.waitForFunction(() =>
-            typeof _hyperscript !== 'undefined' && typeof htmx !== 'undefined'
-        )
-        await use(page)
-        await page.close()
-    },
+export function makeHtmxTest(extraInit = '') {
+    return base.extend({
+        _covAccumulator: [async ({}, use) => {
+            const acc = { map: null }
+            await use(acc)
+            if (COVERAGE) flushCoverageShard(acc.map)
+        }, { scope: 'worker' }],
+
+        page: async ({ browser, _covAccumulator }, use) => {
+            const page = await browser.newPage()
+            await page.setContent([
+                '<!DOCTYPE html><html><head><base href="http://localhost/"></head><body>',
+                `<script>${htmxBundle}</script>`,
+                `<script>htmx.config.mode = "cors";${extraInit}</script>`,
+                `<script>${hsBundle}</script>`,
+                '<div id="work-area"></div>',
+                '</body></html>',
+            ].join('\n'))
+            await page.waitForFunction(() =>
+                typeof _hyperscript !== 'undefined' && typeof htmx !== 'undefined'
+            )
+            await use(page)
+            if (COVERAGE) {
+                const cov = await page.evaluate(() => window.__coverage__ || null)
+                if (cov) _covAccumulator.map = accumulateCoverage(_covAccumulator.map, cov)
+            }
+            await page.close()
+        },
 
     html: async ({ page }, use) => {
         await use(async (markup) => {
@@ -63,4 +75,7 @@ export const test = base.extend({
             })
         })
     },
-})
+    })
+}
+
+export const test = makeHtmxTest()
