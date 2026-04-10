@@ -37,4 +37,26 @@ test.describe("the objectLiteral expression", () => {
 		})
 		expect(result).toEqual({ bar: true, foo: false })
 	})
+
+	test("nested object literals work", async ({run}) => {
+		expect(await run("{outer: {inner: 1}}")).toEqual({ outer: { inner: 1 } })
+	})
+
+	test("deeply nested object literals work", async ({run}) => {
+		expect(await run("{a: {b: {c: 'deep'}}}")).toEqual({ a: { b: { c: 'deep' } } })
+	})
+
+	test("object literals can contain arrays", async ({run}) => {
+		expect(await run("{items: [1, 2, 3], count: 3}")).toEqual({ items: [1, 2, 3], count: 3 })
+	})
+
+	test("object literal values can be expressions", async ({run}) => {
+		expect(await run("{sum: 1 + 2, product: 3 * 4}")).toEqual({ sum: 3, product: 12 })
+	})
+
+	test("mixed field name styles in one literal", async ({run}) => {
+		expect(await run('{plain: 1, "quoted": 2, -dashed: 3}')).toEqual({
+			plain: 1, quoted: 2, "-dashed": 3
+		})
+	})
 })

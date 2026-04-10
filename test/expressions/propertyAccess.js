@@ -36,4 +36,35 @@ test.describe("propertyAccess", () => {
 		const result = await run(".cb.checked")
 		expect(result).toEqual([true, false])
 	})
+
+	test("chained property access (three levels)", async ({run}) => {
+		const result = await run("a.b.c", { locals: { a: { b: { c: "deep" } } } })
+		expect(result).toBe("deep")
+	})
+
+	test("chained property access (four levels)", async ({run}) => {
+		const result = await run("a.b.c.d", { locals: { a: { b: { c: { d: 42 } } } } })
+		expect(result).toBe(42)
+	})
+
+	test("null-safe access through an undefined intermediate", async ({run}) => {
+		const result = await run("a.b.c", { locals: { a: {} } })
+		expect(result).toBeUndefined()
+	})
+
+	test("property access on function result", async ({run, evaluate}) => {
+		await evaluate(() => { window.makeObj = () => ({ name: 'hi' }) })
+		expect(await run("makeObj().name")).toBe('hi')
+		await evaluate(() => { delete window.makeObj })
+	})
+
+	test("of form chains through multiple levels", async ({run}) => {
+		const result = await run("c of b of a", { locals: { a: { b: { c: "deep" } } } })
+		expect(result).toBe("deep")
+	})
+
+	test("mixing dot and of forms", async ({run}) => {
+		const result = await run("c of a.b", { locals: { a: { b: { c: "mixed" } } } })
+		expect(result).toBe("mixed")
+	})
 })
