@@ -381,7 +381,7 @@ h4 { font-size: 1.05rem; }
 
 p { margin: 0.6rem 0; }
 
-a { color: var(--accent); font-weight: 500; }
+a { color: var(--accent); font-weight: 700; }
 a:hover { color: var(--accent-hover); }
 
 ul, ol {
@@ -1052,6 +1052,10 @@ v-h { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden;
     image-rendering: pixelated;
     grid-area: 1 / 1;
 }
+
+.hero-logo .hero-logo-animated { visibility: hidden; }
+.hero-logo.active .hero-logo-static { visibility: hidden; }
+.hero-logo.active .hero-logo-animated { visibility: visible; }
 
 
 .hero-accent { color: #5b8fd4; font-weight: 900; }
