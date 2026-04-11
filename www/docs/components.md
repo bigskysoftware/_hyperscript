@@ -61,8 +61,11 @@ its own isolated DOM scope, so two instances do not share state.
 
 {% example "Component state" %}
 <template component="click-counter" _="init set ^count to 0">
+  <style>
+    .label { margin-left: 1em; }
+  </style>
   <button _="on click increment ^count">+</button>
-  <span style="margin-left: 1em;">Clicks: ${^count}</span>
+  <span class="label">Clicks: ${^count}</span>
 </template>
 
 <click-counter></click-counter>
@@ -101,8 +104,11 @@ This allows you to pass variables and objects as naturally as you would any hype
 
 {% example "Passing data via attrs" %}
 <template component="user-card" _="init set ^user to attrs.data">
-  <h3 style="margin: 0;">${^user.name}</h3>
-  <p style="margin: 0;">${^user.email}</p>
+  <style>
+    h3, p { margin: 0; }
+  </style>
+  <h3>${^user.name}</h3>
+  <p>${^user.email}</p>
 </template>
 
 <div _="init set $currentUser to { name: 'Carson', email: 'carson@example.com' }">
@@ -127,13 +133,22 @@ is projected into the template at the slot position:
 
 {% example "Default slot" %}
 <template component="my-card">
-  <div style="border: 1px solid #ccc; padding: 1em; border-radius: 4px;">
+  <style>
+    :scope { display: block; }
+    .frame {
+      border: 1px solid #ccc;
+      padding: 1em;
+      border-radius: 4px;
+    }
+    p { margin: 0; }
+  </style>
+  <div class="frame">
     <slot/>
   </div>
 </template>
 
 <my-card>
-  <p style="margin: 0;">This paragraph ends up inside the card.</p>
+  <p>This paragraph ends up inside the card.</p>
 </my-card>
 {% endexample %}
 
@@ -141,16 +156,24 @@ Named slots let you project multiple regions:
 
 {% example "Named slots" %}
 <template component="my-layout">
-  <div style="border: 1px solid #ccc; border-radius: 4px;">
-    <header style="padding: 0.5em; background: #f0f0f0;"><slot name="title"/></header>
-    <main style="padding: 1em;"><slot/></main>
-    <footer style="padding: 0.5em; background: #f0f0f0; font-size: 0.85em;"><slot name="footer"/></footer>
+  <style>
+    :scope { display: block; }
+    .frame { border: 1px solid #ccc; border-radius: 4px; }
+    header, footer { padding: 0.5em; background: #f0f0f0; }
+    footer { font-size: 0.85em; }
+    main { padding: 1em; }
+    p { margin: 0; }
+  </style>
+  <div class="frame">
+    <header><slot name="title"/></header>
+    <main><slot/></main>
+    <footer><slot name="footer"/></footer>
   </div>
 </template>
 
 <my-layout>
   <strong slot="title">Page Title</strong>
-  <p style="margin: 0;">This goes into the default slot.</p>
+  <p>This goes into the default slot.</p>
   <span slot="footer">Footer text</span>
 </my-layout>
 {% endexample %}
@@ -158,6 +181,59 @@ Named slots let you project multiple regions:
 Slotted content is scoped to the *parent*, not the component. A `^var` in slotted
 markup resolves against the parent's scope, not the component's. This is usually
 what you want: the caller's content should see the caller's variables.
+
+### Scoped Styles {#scoped-styles}
+
+A `<style>` block placed inside a component definition is automatically
+scoped to the component's tag name. At registration time, hyperscript lifts
+the `<style>` out of the template, wraps its contents in a CSS
+[`@scope`](https://developer.mozilla.org/en-US/docs/Web/CSS/@scope) rule,
+and inserts a single `<style>` element immediately after the `<template>`.
+
+{% example "Scoped styles" %}
+<template component="badge-pill">
+  <style>
+    :scope {
+      display: inline-block;
+      padding: 0.2em 0.7em;
+      border-radius: 999px;
+      background: #2b6b1f;
+      color: white;
+      font-size: 0.85em;
+    }
+    .count { font-weight: 600; margin-left: 0.3em; }
+  </style>
+  <slot/><span class="count">${attrs.count}</span>
+</template>
+
+<badge-pill count="3">Inbox</badge-pill>
+<badge-pill count="12">Drafts</badge-pill>
+
+<p class="count">This outer <code>.count</code> is unaffected by the component's styles.</p>
+{% endexample %}
+
+Inside a scoped style block:
+
+- **Bare selectors** like `.count` or `[role=tab]` match descendants of any
+  instance of the component.
+- **`:scope`** targets the component root itself.
+
+That means you write `:scope { display: block }` instead of
+`badge-pill { display: block }`, and `.count` instead of `badge-pill .count` -
+the `@scope` wrapper does the prefixing for you.
+
+The wrapped style block is emitted once per component definition, not
+per instance, so a hundred `<badge-pill>` elements on the page still share
+a single stylesheet.
+
+#### Why `@scope` and not Shadow DOM
+
+`@scope` is a one-way mirror: component styles can't leak out and
+clobber the rest of the page, but the page's styles still flow in. Fonts,
+colors, CSS variables, and theme tokens set on an ancestor still cascade
+into the component as you'd expect, and the component's elements remain
+normal participants in the document - forms submit, focus navigation works,
+querySelectors from outside still find them.
 
 ### DOM Isolation {#dom-isolation}
 

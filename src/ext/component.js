@@ -114,6 +114,23 @@ export default function componentPlugin(_hyperscript) {
             console.error("component name must contain a dash: '" + tagName + "'");
             return;
         }
+
+        // Extract <style> blocks from the template, wrap them in @scope (tag-name),
+        // and insert a single combined <style> right after the template element.
+        // This gives component styles automatic encapsulation while keeping the
+        // styles co-located with the definition for debugging.
+        var styleEls = templateEl.content.querySelectorAll('style');
+        if (styleEls.length) {
+            var combined = '';
+            styleEls.forEach(function(s) {
+                combined += s.textContent + '\n';
+                s.remove();
+            });
+            var scopedStyle = document.createElement('style');
+            scopedStyle.textContent = '@scope (' + tagName + ') {\n' + combined + '}';
+            templateEl.insertAdjacentElement('afterend', scopedStyle);
+        }
+
         const templateSource = templateEl.innerHTML;
 
         // Parse template once to validate — actual rendering happens per instance

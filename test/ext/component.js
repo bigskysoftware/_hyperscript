@@ -256,4 +256,38 @@ test.describe('the component extension', () => {
 		await evaluate(() => { delete window.$count })
 	})
 
+	test('extracts <style> blocks and wraps them in @scope', async ({html, page}) => {
+		await html(`
+			<template component="test-styled">
+				<style>
+					:scope { display: block; }
+					.inner { color: rgb(11, 22, 33); }
+				</style>
+				<span class="inner">styled</span>
+			</template>
+			<test-styled></test-styled>
+		`)
+		// The wrapped style tag should sit immediately after the template
+		const styleText = await page.evaluate(() => {
+			const tmpl = document.querySelector('template[component="test-styled"]')
+			const next = tmpl && tmpl.nextElementSibling
+			return next && next.tagName === 'STYLE' ? next.textContent : null
+		})
+		expect(styleText).toContain('@scope (test-styled)')
+		expect(styleText).toContain('.inner')
+		// And the template's own content no longer has a <style>
+		const templateStyles = await page.evaluate(() => {
+			const tmpl = document.querySelector('template[component="test-styled"]')
+			return tmpl.content.querySelectorAll('style').length
+		})
+		expect(templateStyles).toBe(0)
+		// Style actually applies to the rendered descendant
+		await expect.poll(async () => {
+			return await page.evaluate(() => {
+				const el = document.querySelector('test-styled .inner')
+				return el && getComputedStyle(el).color
+			})
+		}).toBe('rgb(11, 22, 33)')
+	})
+
 })
