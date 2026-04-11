@@ -774,13 +774,20 @@ export class ShowCommand extends VisibilityCommand {
 /**
  * TakeCommand - Take classes or attributes from elements
  *
- * Parses: take <classes|attribute> [from <elements>] [for <target>]
- * Executes: Removes classes/attributes from source and adds to target
+ * Parses: take <classes|attribute> [with <value>] [from <elements> [giving <value>]] [for <target>]
+ * Executes: Removes classes/attributes from source and adds to target.
+ * The optional replacement (set on the source elements instead of just
+ * removing the class/attribute) can be written either as `with <value>`
+ * before the `from` clause or as `giving <value>` after it - the
+ * post-`from` reading often flows more naturally. For the class form
+ * the replacement is itself a class reference, and the `for` target
+ * gets the inverse swap (it gains the taken class and loses the
+ * replacement).
  */
 export class TakeCommand extends Command {
     static keyword = "take";
 
-    constructor(variant, classRefs, attributeRef, fromExpr, forExpr, replacementValue) {
+    constructor(variant, classRefs, attributeRef, fromExpr, forExpr, replacementValue, replacementClass) {
         super();
         this.variant = variant;
         this.classRefs = classRefs;
@@ -790,6 +797,7 @@ export class TakeCommand extends Command {
         this.forElt = forExpr;
         this.forExpr = forExpr;
         this.replacementValue = replacementValue;
+        this.replacementClass = replacementClass;
         if (variant === "class") {
             this.args = { classRefs, from: fromExpr, forElt: forExpr };
         } else {
@@ -807,6 +815,7 @@ export class TakeCommand extends Command {
 
             var attributeRef = null;
             var replacementValue = null;
+            var replacementClass = null;
 
             let weAreTakingClasses = classRefs.length > 0;
             if (!weAreTakingClasses) {
@@ -818,10 +827,31 @@ export class TakeCommand extends Command {
                 if (parser.matchToken("with")) {
                     replacementValue = parser.requireElement("expression");
                 }
+            } else if (parser.matchToken("with")) {
+                if (classRefs.length > 1) {
+                    parser.raiseError("`with` cannot be combined with multiple class refs");
+                }
+                replacementClass = parser.requireElement("classRef");
             }
 
             if (parser.matchToken("from")) {
                 var fromExpr = parser.requireElement("expression");
+                if (parser.matchToken("giving")) {
+                    if (weAreTakingClasses) {
+                        if (replacementClass) {
+                            parser.raiseError("`giving` cannot be combined with `with`");
+                        }
+                        if (classRefs.length > 1) {
+                            parser.raiseError("`giving` cannot be combined with multiple class refs");
+                        }
+                        replacementClass = parser.requireElement("classRef");
+                    } else {
+                        if (replacementValue) {
+                            parser.raiseError("`giving` cannot be combined with `with`");
+                        }
+                        replacementValue = parser.requireElement("expression");
+                    }
+                }
             }
 
             if (parser.matchToken("for")) {
@@ -831,9 +861,9 @@ export class TakeCommand extends Command {
             }
 
             if (weAreTakingClasses) {
-                return new TakeCommand("class", classRefs, null, fromExpr, forExpr, null);
+                return new TakeCommand("class", classRefs, null, fromExpr, forExpr, null, replacementClass);
             } else {
-                return new TakeCommand("attribute", null, attributeRef, fromExpr, forExpr, replacementValue);
+                return new TakeCommand("attribute", null, attributeRef, fromExpr, forExpr, replacementValue, null);
             }
         }
     }
@@ -841,19 +871,23 @@ export class TakeCommand extends Command {
     resolve(context, { classRefs, from, forElt, replacementValue }) {
         if (this.variant === "class") {
             context.meta.runtime.nullCheck(forElt, this.forExpr);
+            var replacementClass = this.replacementClass ? this.replacementClass.className : null;
             context.meta.runtime.implicitLoop(classRefs, (classRef) => {
                 var clazz = classRef.className;
                 if (from) {
                     context.meta.runtime.implicitLoop(from, (target) => {
                         target.classList.remove(clazz);
+                        if (replacementClass) target.classList.add(replacementClass);
                     });
                 } else {
                     context.meta.runtime.implicitLoop(classRef, (target) => {
                         target.classList.remove(clazz);
+                        if (replacementClass) target.classList.add(replacementClass);
                     });
                 }
                 context.meta.runtime.implicitLoop(forElt, (target) => {
                     target.classList.add(clazz);
+                    if (replacementClass) target.classList.remove(replacementClass);
                 });
             });
         } else {

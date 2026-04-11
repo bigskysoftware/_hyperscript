@@ -74,6 +74,34 @@ test.describe("the take command", () => {
 		await expect(find('div').nth(2)).toHaveAttribute('data-foo', 'qux');
 	});
 
+	test("can take a class and swap it with another via with", async ({html, find}) => {
+		await html("<div class='item selected'></div><div class='item' _='on click take .selected with .unselected from .item'></div><div class='item'></div>");
+		await find('div').nth(1).dispatchEvent('click');
+		await expect(find('div').first()).not.toHaveClass(/\bselected\b/);
+		await expect(find('div').first()).toHaveClass(/unselected/);
+		await expect(find('div').nth(1)).toHaveClass(/\bselected\b/);
+		await expect(find('div').nth(1)).not.toHaveClass(/unselected/);
+		await expect(find('div').nth(2)).toHaveClass(/unselected/);
+	});
+
+	test("can take a class and swap it with another via giving", async ({html, find}) => {
+		await html("<div class='item selected'></div><div class='item unselected' _='on click take .selected from .item giving .unselected'></div><div class='item unselected'></div>");
+		await find('div').nth(1).dispatchEvent('click');
+		await expect(find('div').first()).toHaveClass(/unselected/);
+		await expect(find('div').first()).not.toHaveClass(/\bselected\b/);
+		await expect(find('div').nth(1)).toHaveClass(/\bselected\b/);
+		await expect(find('div').nth(1)).not.toHaveClass(/unselected/);
+		await expect(find('div').nth(2)).toHaveClass(/unselected/);
+	});
+
+	test("giving may follow the from clause as an alternative to with", async ({html, find}) => {
+		await html("<div class='div' data-foo='bar'></div><div class='div' _='on click take @data-foo=baz from .div giving \"qux\"'></div><div class='div'></div>");
+		await find('div').nth(1).dispatchEvent('click');
+		await expect(find('div').first()).toHaveAttribute('data-foo', 'qux');
+		await expect(find('div').nth(1)).toHaveAttribute('data-foo', 'baz');
+		await expect(find('div').nth(2)).toHaveAttribute('data-foo', 'qux');
+	});
+
 	test("can take an attribute for other elements", async ({html, find}) => {
 		await html("<div class='div' data-foo='bar'></div><div class='div' _='on click take @data-foo from .div for #d3'></div><div id='d3' class='div'></div>");
 		await find('div').nth(1).dispatchEvent('click');
