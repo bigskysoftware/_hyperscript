@@ -137,10 +137,11 @@ export class TemplateTextCommand extends Command {
 export class RenderCommand extends Command {
     static keyword = "render";
 
-    constructor(template_, templateArgs) {
+    constructor(template_, templateArgs, insertHere, target) {
         super();
         this.template_ = template_;
-        this.args = { template: template_, templateArgs };
+        this.insertHere = insertHere;
+        this.args = { template: template_, templateArgs, target };
     }
 
     static parse(parser) {
@@ -150,12 +151,17 @@ export class RenderCommand extends Command {
         if (parser.matchToken("with")) {
             templateArgs = parser.parseElement("nakedNamedArgumentList");
         }
-        var cmd = new RenderCommand(template_, templateArgs);
+        var insertHere = !!parser.matchToken("here");
+        var target = null;
+        if (!insertHere && parser.matchToken("into")) {
+            target = parser.requireElement("expression");
+        }
+        var cmd = new RenderCommand(template_, templateArgs, insertHere, target);
         cmd._parser = parser;
         return cmd;
     }
 
-    resolve(ctx, { template, templateArgs }) {
+    resolve(ctx, { template, templateArgs, target }) {
         if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
 
         var buf = [];
@@ -190,17 +196,20 @@ export class RenderCommand extends Command {
 
         commandList.execute(renderCtx);
 
-        if (renderCtx.meta.returned) {
-            ctx.result = buf.join("");
+        var finish = (result) => {
+            ctx.result = result;
+            if (this.insertHere) ctx.me.innerHTML = result;
+            if (target) target.innerHTML = result;
             return runtime.findNext(this, ctx);
+        };
+
+        if (renderCtx.meta.returned) {
+            return finish(buf.join(""));
         }
 
         renderCtx.meta.resolve = resolve;
         renderCtx.meta.reject = reject;
-        return promise.then(() => {
-            ctx.result = buf.join("");
-            return runtime.findNext(this, ctx);
-        });
+        return promise.then(() => finish(buf.join("")));
     }
 }
 

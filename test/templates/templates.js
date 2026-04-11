@@ -452,6 +452,30 @@ test.describe('Templating', () => {
         expect(res).toBe('1\n2\n')
     })
 
+    test('render into sets innerHTML of target element', async ({html, find, evaluate}) => {
+        await html('<template id="tmpl"><b>hello</b></template><div id="target"></div><button _="on click render #tmpl into #target">go</button>')
+        await evaluate(() => document.querySelector('button').click())
+        await expect(find('#target b')).toHaveText('hello')
+    })
+
+    test('render into with args', async ({html, find, evaluate}) => {
+        await html('<template id="tmpl"><b>${x}</b></template><div id="target"></div><button _="on click render #tmpl with x: \'world\' into #target">go</button>')
+        await evaluate(() => document.querySelector('button').click())
+        await expect(find('#target b')).toHaveText('world')
+    })
+
+    test('render here sets innerHTML of me', async ({html, find, evaluate}) => {
+        await html('<div id="target" _="on click render #tmpl here"><template id="tmpl"><b>hello</b></template></div>')
+        await evaluate(() => document.querySelector('#target').click())
+        await expect(find('#target b')).toHaveText('hello')
+    })
+
+    test('render here with args', async ({html, find, evaluate}) => {
+        await html('<div id="target" _="on click render #tmpl with x: \'world\' here"><template id="tmpl"><b>${x}</b></template></div>')
+        await evaluate(() => document.querySelector('#target').click())
+        await expect(find('#target b')).toHaveText('world')
+    })
+
     test('conditional with nested parens in value does not false-trigger on inner if', async ({html, evaluate}) => {
         await html('<template>${fn(x) if condition}</template>')
         await evaluate(() => {
