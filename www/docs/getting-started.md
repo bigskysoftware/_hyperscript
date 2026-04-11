@@ -94,7 +94,7 @@ end
 
 ### Onward!
 
-Hyperscript is a sister project of [htmx](https://htmx.org) and [integrates seamlessly](/docs/conclusion/#htmx) with it.
+Note that hyperscript is a sister project of [htmx](https://htmx.org) and [integrates seamlessly](/docs/conclusion/#htmx) with it.
 
 OK, now let's learn us some hyperscript...
 
