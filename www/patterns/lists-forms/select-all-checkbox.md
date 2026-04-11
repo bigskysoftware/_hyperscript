@@ -1,5 +1,7 @@
 ---
+layout: pattern.njk
 title: Select All Checkbox
+description: A header checkbox that selects all rows in a table, with an indeterminate state when only some are checked.
 tags: [forms, dom, interaction]
 difficulty: intermediate
 ---

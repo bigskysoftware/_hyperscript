@@ -982,6 +982,137 @@ code.syntax {
     font-size: 0.9em;
 }
 
+/* ---- Patterns index ---- */
+
+.patterns-header {
+    margin-bottom: 1.5rem;
+}
+.patterns-header p {
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+}
+
+input.patterns-search {
+    width: 100%;
+    font-size: 1.05rem;
+    padding: 14px 16px 14px 46px;
+    margin: 0 0 3.5rem;
+    box-sizing: border-box;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.5' y2='16.5'/></svg>") no-repeat 16px center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+input.patterns-search:hover {
+    border-color: var(--accent);
+}
+input.patterns-search:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+#patterns-no-results {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+}
+
+.pattern-section {
+    margin-bottom: 3rem;
+}
+.pattern-section:last-of-type {
+    margin-bottom: 1rem;
+}
+.pattern-section[hidden] { display: none; }
+
+.pattern-section h3 {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.pattern-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    margin-top: 0.25rem;
+}
+.pattern-table th {
+    text-align: left;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+.pattern-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--bg-subtle);
+    vertical-align: top;
+    line-height: 1.5;
+}
+.pattern-table td:first-child { white-space: nowrap; }
+.pattern-table td:last-child { text-align: right; white-space: nowrap; }
+
+.pattern-table tr.pattern-row[hidden] { display: none; }
+.pattern-table tr.pattern-row:hover td { background: var(--bg-subtle); }
+
+.pattern-table a {
+    font-weight: 700;
+    text-decoration: none;
+}
+.pattern-table a:hover { text-decoration: underline; }
+
+/* ---- Difficulty badge ---- */
+
+.difficulty {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+}
+.difficulty-beginner     { border-color: #b6d7a8; background: #eaf5e3; color: #3b6b1f; }
+.difficulty-intermediate { border-color: #f2c97d; background: #fdf3df; color: #8a5a00; }
+.difficulty-advanced     { border-color: #e3a4a4; background: #fbe7e7; color: #8a2929; }
+
+/* ---- Pattern detail page ---- */
+
+.pattern-breadcrumb {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.pattern-breadcrumb a {
+    text-decoration: none;
+    color: var(--text-muted);
+}
+.pattern-breadcrumb a:hover { color: var(--accent); }
+
+.pattern-detail-header {
+    margin-bottom: 1.5rem;
+}
+.pattern-detail-header h1 {
+    margin: 0 0 0.5rem;
+}
+.pattern-lead {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    margin: 0 0 0.75rem;
+}
+
 /* ---- Grid layout (from missing.css) ---- */
 
 .basicgrid {

@@ -1,5 +1,7 @@
 ---
+layout: pattern.njk
 title: Filter Elements by Search
+description: Live-filter a list of elements as the user types, using the `show ... when` form.
 tags: [search, dom]
 difficulty: intermediate
 ---

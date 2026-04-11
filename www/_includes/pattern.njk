@@ -1,0 +1,14 @@
+---
+layout: layout.njk
+---
+
+<nav class="pattern-breadcrumb"><a href="/patterns/">← All Patterns</a></nav>
+
+<header class="pattern-detail-header">
+    <h1>{{ title }}</h1>
+    {% if description %}<p class="pattern-lead">{{ description }}</p>{% endif %}
+</header>
+
+<div class="pattern-body">
+{{ content | safe }}
+</div>

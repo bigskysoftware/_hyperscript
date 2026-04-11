@@ -1,13 +1,14 @@
 ---
+layout: pattern.njk
 title: Click-Outside-to-Close Dropdown
+description: A dropdown menu built on a non-modal `<dialog>` that closes when you click anywhere outside it.
 tags: [interaction, dom]
 difficulty: beginner
 ---
 
 A dropdown menu opens on click and closes when the user clicks anywhere
 outside it. Built on a non-modal `<dialog>` so it gets keyboard accessibility
-and Esc-to-dismiss for free, plus hyperscript's `on click elsewhere` modifier
-for the click-outside behavior.
+and using hyperscript's `elsewhere` modifier for the click-outside behavior.
 
 {% example "Click outside the menu to close it" %}
 <div class="dropdown">

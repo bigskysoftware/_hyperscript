@@ -1,5 +1,7 @@
 ---
+layout: pattern.njk
 title: Fade & Remove
+description: Fade an element to zero opacity using `transition`, then remove it from the DOM.
 tags: [animation, dom]
 difficulty: beginner
 ---

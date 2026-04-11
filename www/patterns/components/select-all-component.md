@@ -1,10 +1,12 @@
 ---
+layout: pattern.njk
 title: Select All Component
+description: The select-all checkbox wrapped in a reusable `<master-checkbox>` component you can drop into any table.
 tags: [forms, dom, component]
 difficulty: intermediate
 ---
 
-The [Select All Checkbox](/patterns/50-select-all-checkbox) pattern wrapped in a reusable
+The [Select All Checkbox](/patterns/lists-forms/select-all-checkbox/) pattern wrapped in a reusable
 component. Drop a `<master-checkbox>` into any table header and it just works.
 
 {% example "Master checkbox component" %}

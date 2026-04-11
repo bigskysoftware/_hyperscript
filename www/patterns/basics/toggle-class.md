@@ -1,5 +1,7 @@
 ---
+layout: pattern.njk
 title: Toggle a Class
+description: Listen for an event, toggle a CSS class. The simplest hyperscript pattern.
 tags: [basics, dom]
 difficulty: beginner
 ---
