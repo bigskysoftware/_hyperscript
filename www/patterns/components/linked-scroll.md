@@ -6,9 +6,8 @@ tags: [behavior, dom, interaction]
 difficulty: intermediate
 ---
 
-A `behavior` that keeps any number of scrollable elements in lock-step. Scroll
-one and the others follow. The trick is a re-entry guard built from a single
-data attribute, so the synchronized scrolls don't echo back and forth forever.
+A `behavior` that keeps any number of scrollable elements in lock-step.
+Scroll one, the others follow.
 
 {% example "Scroll either column - the other follows" %}
 <div>
@@ -90,74 +89,31 @@ end
 </style>
 {% endexample %}
 
-The behavior:
-
 ~~~ hyperscript
-behavior LinkedScroll
-    init
-        set my @data-scrolling to 'false'
+behavior ScrollLock
+  set @data-locked-scroll to 'true'
+  on scroll
+    tell <[data-locked-scroll]/> where it is not me
+      set your scrollTop to my scrollTop
+      set your scrollLeft to my scrollLeft
     end
-    on scroll
-        if my @data-scrolling is 'false'
-            for el in <[data-scrolling]/>
-                if el is not me
-                    set el's @data-scrolling to 'true'
-                    set el's scrollTop to my scrollTop
-                    set el's scrollLeft to my scrollLeft
-                end
-            end
-        end
-        set my @data-scrolling to 'false'
-    end
+  end
 end
 ~~~
 
-Then `install LinkedScroll` on each scrollable element you want linked.
+The feature-level `set @data-locked-scroll to 'true'` marks each element
+on install so the `tell` query can find its peers without IDs or classes.
 
-## Why the data attribute
+There's no re-entry guard because assigning `scrollTop` to its current
+value is a no-op and **doesn't fire a scroll event** - so the cascade
+terminates after one round. Works in all three engines.
 
-The naive version of this pattern - "on scroll, set the other element's
-scrollTop to mine" - creates an infinite loop. Setting `scrollTop` fires a
-`scroll` event on the target. That target's handler then tries to sync back
-to the source, which fires another scroll event, and so on. Two columns
-scrolling at slightly different rates can echo back and forth indefinitely.
+{% note "When you'd need a guard" %}
+The self-terminating trick assumes both scrollers can reach the same
+value. If their content heights differ, setting the shorter one's
+`scrollTop` clamps to its max, and the loop never settles. For asymmetric
+scrollers, add a `data-scrolling` flag the handler checks first, or
+normalize positions to a 0-1 range before assigning.
+{% endnote %}
 
-The fix is a one-bit re-entry guard, stored on each element as
-`@data-scrolling`:
-
-1. **Real user scroll**: the source's `data-scrolling` is `'false'`. The
-   handler enters the body, marks every *other* linked element's
-   `data-scrolling` to `'true'` *before* writing their scroll positions, then
-   resets its own flag at the end.
-2. **Echo scroll** (triggered by setting `scrollTop` on a sibling): when that
-   sibling's scroll event fires, its `data-scrolling` is now `'true'`, so the
-   handler skips the propagation step. It still resets its own flag at the
-   end so the next real user scroll works.
-
-The flag has to be set *before* the scroll write, not after, because scroll
-events from programmatic `scrollTop = ...` fire on the next paint - by the
-time the sibling's handler runs, our handler has already finished and reset
-its own flag, so we can't rely on "did the source's flag move." Each element
-manages its own flag independently.
-
-`<[data-scrolling]/>` is a CSS attribute selector inside a hyperscript query
-literal - it matches any element with the `data-scrolling` attribute set,
-regardless of value. That's how the behavior discovers its siblings without
-needing IDs or class names: every linked element identifies itself by having
-the data attribute, which it sets on itself in `init`.
-
-## Drop-in usage
-
-The behavior works for any number of scrollers, not just two:
-
-~~~ html
-<pre class="column" _="install LinkedScroll">...</pre>
-<pre class="column" _="install LinkedScroll">...</pre>
-<pre class="column" _="install LinkedScroll">...</pre>
-~~~
-
-It also syncs both axes - `scrollLeft` as well as `scrollTop` - so it works
-for horizontally-scrolling tables, side-by-side diff views, parallel logs,
-or anything else where the user expects "scrolling one means scrolling all."
-
-> Adapted from [a gist by Geoffrey Eisenbarth](https://gist.github.com/geoffrey-eisenbarth/b8137075e291168ef23bc1bdccd68e33).
+> Inspired by [a gist by Geoffrey Eisenbarth](https://gist.github.com/geoffrey-eisenbarth/b8137075e291168ef23bc1bdccd68e33).
