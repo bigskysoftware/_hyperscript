@@ -86,8 +86,8 @@ both directions of the toggle, every time the input fires.
 
 That means each line is a stateless rule:
 
-1. **Row visibility** — `add @hidden to <tr.employee-row/> when its textContent does not contain my value`. After this runs, exactly the matching rows have `hidden` cleared and the rest have it set. No loops, no `if`s, no temp vars.
+1. **Row visibility** - `add @hidden to <tr.employee-row/> when its textContent does not contain my value`. After this runs, exactly the matching rows have `hidden` cleared and the rest have it set. No loops, no `if`s, no temp vars.
 
-2. **Group visibility** — `add @hidden to <section.employee-group/> when <tr.employee-row:not([hidden])/> in it is empty`. The predicate references the result of the previous line via `<tr.employee-row:not([hidden])/>` — a CSS selector that only matches rows still visible. If a section has zero such rows, it gets `hidden`.
+2. **Group visibility** - `add @hidden to <section.employee-group/> when <tr.employee-row:not([hidden])/> in it is empty`. The predicate references the result of the previous line via `<tr.employee-row:not([hidden])/>` - a CSS selector that only matches rows still visible. If a section has zero such rows, it gets `hidden`.
 
-3. **Empty state** — `add @hidden to #employee-empty when <section.employee-group:not([hidden])/> is not empty`. Same pattern, one level up: hide the empty-state message when at least one section is still visible. Otherwise show it.
+3. **Empty state** - `add @hidden to #employee-empty when <section.employee-group:not([hidden])/> is not empty`. Same pattern, one level up: hide the empty-state message when at least one section is still visible. Otherwise show it.

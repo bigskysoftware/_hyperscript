@@ -78,4 +78,4 @@ All the logic lives on the header checkbox with two event handlers:
   `where its checked` and `where not its checked` to filter them. If none are checked,
   uncheck the header. If none are unchecked, check it. Otherwise, set `indeterminate`.
 
-No IDs needed — `the next <tbody/>` targets the sibling tbody relative to the header.
+No IDs needed - `the next <tbody/>` targets the sibling tbody relative to the header.

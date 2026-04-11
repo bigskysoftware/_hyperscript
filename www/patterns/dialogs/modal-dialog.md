@@ -45,7 +45,7 @@ needing IDs.
 ## Click outside to close
 
 When a `<dialog>` is opened with `showModal()`, the backdrop is part of the
-dialog element itself — there's no separate backdrop node. Clicks on the
+dialog element itself - there's no separate backdrop node. Clicks on the
 dialog content fire with `event.target` set to the inner element you clicked;
 clicks on the backdrop fire with `event.target` equal to the dialog.
 
@@ -74,14 +74,14 @@ dialog p { color: #555; line-height: 1.5; }
 </style>
 {% endexample %}
 
-`on click[target is me] close me` — the `[target is me]` filter only matches
+`on click[target is me] close me` - the `[target is me]` filter only matches
 when the click landed directly on the dialog (the backdrop), not on any of
 its descendants. No coordinate math required.
 
 ## Warn on unsaved changes
 
 For an editing dialog, you usually want to warn the user before throwing away
-their changes — but only if they actually made any, and never when they
+their changes - but only if they actually made any, and never when they
 explicitly save. Track dirtiness in an element-scoped variable, route every
 dismissal path through one custom event, and have the save button bypass it.
 
@@ -145,20 +145,20 @@ The mental model:
 | Esc key (`cancel` event)   | yes                             | yes                |
 | X button                   | yes                             | yes                |
 | Cancel button              | yes                             | yes                |
-| Save button (success)      | no — direct `close`             | no — `:dirty` cleared first |
+| Save button (success)      | no - direct `close`             | no - `:dirty` cleared first |
 
 Pieces worth calling out:
 
-- **`on input from <input,textarea/> in me set :dirty to true`** — listens
+- **`on input from <input,textarea/> in me set :dirty to true`** - listens
   for any input event from any descendant input or textarea, flips the
   element-scoped flag. `:dirty` (element-scoped) lives and dies with this
   dialog instance, so reopening starts clean.
-- **`on cancel halt the event`** — the [`cancel`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/cancel_event)
+- **`on cancel halt the event`** - the [`cancel`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/cancel_event)
   event fires when the user presses Esc on a modal dialog; its default
   action is to close. `halt the event` prevents that default so we can
   route Esc through the dirty check too. Without it, Esc would close the
   dialog regardless of unsaved changes.
-- **One `closeRequested` event** — the X, Cancel button, backdrop click,
+- **One `closeRequested` event** - the X, Cancel button, backdrop click,
   and Esc all `send closeRequested to me`. The dirty check exists in
   exactly one place. Save bypasses by calling `close` directly, after
   resetting `:dirty`.

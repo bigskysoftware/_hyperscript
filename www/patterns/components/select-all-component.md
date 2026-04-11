@@ -68,7 +68,7 @@ th { background: #f5f5f5; }
 </style>
 {% endexample %}
 
-The component extends `<input>` behavior — since `<master-checkbox>` has no template,
+The component extends `<input>` behavior - since `<master-checkbox>` has no template,
 it renders as an empty custom element, but the hyperscript on the component definition
 runs on each instance. It finds all checkboxes in `the closest <table/>`, excluding itself
 with `where it is not me`.
