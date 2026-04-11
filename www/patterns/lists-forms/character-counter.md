@@ -1,6 +1,6 @@
 ---
 layout: pattern.njk
-title: Character Counter with Limit
+title: Reactive Character Counter
 description: A textarea, a counter, and a submit button - each declared with `bind` against one shared variable, no event wiring.
 tags: [reactivity, forms]
 difficulty: beginner

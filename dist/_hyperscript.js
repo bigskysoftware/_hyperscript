@@ -9278,7 +9278,9 @@
       let setCmd = parser.parseElement("setCommand");
       if (setCmd) {
         if (setCmd.target.scope === "local") {
-          parser.raiseError("variables declared at the feature level cannot be locally scoped.");
+          parser.raiseError(
+            "variables declared at the feature level cannot be locally scoped (use :foo, ^foo, $foo, or an @attribute target instead)."
+          );
         }
         let setFeature = new _SetFeature(setCmd);
         parser.ensureTerminated(setCmd);

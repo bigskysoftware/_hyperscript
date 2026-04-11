@@ -1,7 +1,7 @@
 ---
 layout: pattern.njk
-title: Tip Calculator
-description: Two inputs, one derived total. Change either field and the total recomputes - no event wiring between them.
+title: Reactive Tip Calculator
+description: Two inputs, one derived total. Change either field and the total recomputes via `live` - no event wiring between them.
 tags: [reactivity, forms]
 difficulty: beginner
 ---

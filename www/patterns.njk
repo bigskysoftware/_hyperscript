@@ -86,24 +86,30 @@ title: Patterns - ///_hyperscript
     <td>Three lines of <code>add ... when</code> filter rows, hide empty groups, and toggle a no-results state.</td>
     <td><span class="difficulty difficulty-intermediate">intermediate</span></td>
 </tr>
-</tbody>
-</table>
-</section>
-
-<section class="pattern-section" id="reactive">
-<h3>Reactive</h3>
-<table class="pattern-table">
-<thead><tr><th>Pattern</th><th>Description</th><th>Difficulty</th></tr></thead>
-<tbody>
 <tr class="pattern-row">
-    <td><a href="/patterns/reactive/tip-calculator/">Tip Calculator</a></td>
-    <td>Two inputs and a derived total — change either field and the total recomputes, with no event wiring between them.</td>
+    <td><a href="/patterns/lists-forms/tip-calculator/">Reactive Tip Calculator</a></td>
+    <td>Two inputs and a derived total - change either field and the total recomputes via <code>live</code>, with no event wiring between them.</td>
     <td><span class="difficulty difficulty-beginner">beginner</span></td>
 </tr>
 <tr class="pattern-row">
-    <td><a href="/patterns/reactive/character-counter/">Character Counter with Limit</a></td>
-    <td>A textarea, a counter, and a submit button — each declared with <code>bind</code> against a single shared variable, no event wiring.</td>
+    <td><a href="/patterns/lists-forms/character-counter/">Reactive Character Counter</a></td>
+    <td>A textarea, a counter, and a submit button - each declared with <code>bind</code> against one shared variable, no event wiring.</td>
     <td><span class="difficulty difficulty-beginner">beginner</span></td>
+</tr>
+<tr class="pattern-row">
+    <td><a href="/patterns/lists-forms/password-match/">Password Match Validation</a></td>
+    <td>Two password fields validated against each other as the user types - shown as a class first, then via <code>setCustomValidity</code> for real form validation.</td>
+    <td><span class="difficulty difficulty-beginner">beginner</span></td>
+</tr>
+<tr class="pattern-row">
+    <td><a href="/patterns/lists-forms/dependent-range/">Dependent Field Range</a></td>
+    <td>Two date inputs whose <code>min</code>/<code>max</code> constraints are reactively bound to each other's value, so the picker greys out invalid days.</td>
+    <td><span class="difficulty difficulty-beginner">beginner</span></td>
+</tr>
+<tr class="pattern-row">
+    <td><a href="/patterns/lists-forms/drag-to-reorder/">Drag to Reorder</a></td>
+    <td>A draggable list using the HTML5 drag-and-drop API - one set of handlers on the parent <code>&lt;ul&gt;</code>, no per-item setup.</td>
+    <td><span class="difficulty difficulty-intermediate">intermediate</span></td>
 </tr>
 </tbody>
 </table>
@@ -117,6 +123,11 @@ title: Patterns - ///_hyperscript
 <tr class="pattern-row">
     <td><a href="/patterns/components/select-all-component/">Select All Component</a></td>
     <td>The select-all checkbox wrapped in a reusable <code>&lt;master-checkbox&gt;</code> component you can drop into any table.</td>
+    <td><span class="difficulty difficulty-intermediate">intermediate</span></td>
+</tr>
+<tr class="pattern-row">
+    <td><a href="/patterns/components/linked-scroll/">Linked Scroll</a></td>
+    <td>A <code>behavior</code> that keeps two or more scrollable elements in lock-step, with a one-bit re-entry guard to break the echo loop.</td>
     <td><span class="difficulty difficulty-intermediate">intermediate</span></td>
 </tr>
 </tbody>
