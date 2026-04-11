@@ -1,6 +1,6 @@
 <div class="docs-layout">
 
-<aside id="toc-wrapper">
+<div id="toc-wrapper">
 <div id="toc-header">
 
 <img src="/img/logo.png" alt="" id="toc-logo">
@@ -28,6 +28,6 @@
 [[toc]]
 
 </nav>
-</aside>
+</div>
 
 <div id="docs-content">

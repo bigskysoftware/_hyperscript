@@ -645,6 +645,41 @@ hr {
     color: var(--text);
 }
 
+/* ---- Callouts ({% note %} / {% tip %} / {% warning %} shortcodes) ---- */
+
+.callout {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    padding: 12px 16px;
+    margin: 1.25rem 0;
+}
+
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child  { margin-bottom: 0; }
+
+.callout-title {
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    margin: 0 0 0.5rem;
+}
+
+.callout-tip {
+    border-left-color: #3ca85b;
+    background: #f1faf3;
+}
+.callout-tip .callout-title { color: #2b7a3f; }
+
+.callout-warning {
+    border-left-color: var(--warn-border);
+    background: var(--warn-bg);
+}
+.callout-warning .callout-title { color: #8a6d00; }
+
 /* ---- Example figures ({% example %} shortcode) ---- */
 
 figure.box {
@@ -699,7 +734,6 @@ figure.box > :last-child {
 .example-card {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     margin: 1.5rem 0;
 }

@@ -13,8 +13,8 @@ const HIDE_SHOW_STRATEGIES = {
     display: function (op, element, arg, runtime) {
         if (!arg && element instanceof HTMLDialogElement) {
             if (op === "hide") element.close();
-            else if (op === "show") { if (!element.open) element.showModal(); }
-            else if (op === "toggle") { if (element.open) element.close(); else element.showModal(); }
+            else if (op === "show") { if (!element.open) element.show(); }
+            else if (op === "toggle") { if (element.open) element.close(); else element.show(); }
             return;
         }
         if (arg) {

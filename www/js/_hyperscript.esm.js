@@ -2304,7 +2304,6 @@ var Runtime = class _Runtime {
       this.#trackMutation(inherited.value);
       return inherited.value;
     }
-    if (type === "local") return context.locals[str];
     if (context.meta?.context) {
       var fromMetaContext = context.meta.context[str];
       if (typeof fromMetaContext !== "undefined") return fromMetaContext;
@@ -2352,10 +2351,6 @@ var Runtime = class _Runtime {
           this.reactivity.notifyElementSymbol(str, owner);
         }
       }
-      return;
-    }
-    if (type === "local") {
-      context.locals[str] = value;
       return;
     }
     if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
@@ -3840,7 +3835,7 @@ var SymbolRef = class _SymbolRef extends Expression {
     this.targetExpr = targetExpr || null;
   }
   static parse(parser) {
-    var scope = "default";
+    var scope = null;
     if (parser.matchToken("global")) {
       scope = "global";
     } else if (parser.matchToken("element")) {
@@ -3863,13 +3858,15 @@ var SymbolRef = class _SymbolRef extends Expression {
       } else if (caretPrefix) {
         name = "^" + name;
       }
-      if (scope === "default") {
+      if (scope === null) {
         if (name.startsWith("$")) {
           scope = "global";
         } else if (name.startsWith(":")) {
           scope = "element";
         } else if (name.startsWith("^")) {
           scope = "inherited";
+        } else {
+          scope = "local";
         }
       }
       var targetExpr = null;
@@ -4557,13 +4554,13 @@ var ComparisonOperator = class _ComparisonOperator extends Expression {
       if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
     }
     if (operator === "is") {
-      if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+      if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "local" && rhs.name !== "undefined" && rhs.name !== "null") {
         return !!context.meta.runtime.resolveProperty(lhsVal, rhs.name);
       }
       return lhsVal == rhsVal;
     }
     if (operator === "is not") {
-      if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+      if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "local" && rhs.name !== "undefined" && rhs.name !== "null") {
         return !context.meta.runtime.resolveProperty(lhsVal, rhs.name);
       }
       return lhsVal != rhsVal;
@@ -7102,7 +7099,7 @@ var JsCommand = class _JsCommand extends Command {
     return new _JsCommand(jsBody.jsSource, func, inputs);
   }
   resolve(context) {
-    var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "default"));
+    var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "local"));
     var result = this.function.apply(context.meta.runtime.globalScope, args);
     if (result && typeof result.then === "function") {
       return result.then((actualResult) => {
@@ -7231,10 +7228,10 @@ var HIDE_SHOW_STRATEGIES = {
     if (!arg && element instanceof HTMLDialogElement) {
       if (op === "hide") element.close();
       else if (op === "show") {
-        if (!element.open) element.showModal();
+        if (!element.open) element.show();
       } else if (op === "toggle") {
         if (element.open) element.close();
-        else element.showModal();
+        else element.show();
       }
       return;
     }
@@ -9278,8 +9275,8 @@ var SetFeature = class _SetFeature extends Feature {
   static parse(parser) {
     let setCmd = parser.parseElement("setCommand");
     if (setCmd) {
-      if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
-        parser.raiseError("variables declared at the feature level must be element or DOM scoped.");
+      if (setCmd.target.scope === "local") {
+        parser.raiseError("variables declared at the feature level cannot be locally scoped.");
       }
       let setFeature = new _SetFeature(setCmd);
       parser.ensureTerminated(setCmd);
@@ -9482,7 +9479,7 @@ var WhenFeature = class _WhenFeature extends Feature {
     } while (parser.matchToken("or"));
     for (var i = 0; i < exprs.length; i++) {
       var expr = exprs[i];
-      if (expr.type === "symbol" && expr.scope === "default" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
+      if (expr.type === "symbol" && expr.scope === "local" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
         parser.raiseError(
           "Cannot watch local variable '" + expr.name + "'. Local variables are not reactive. Use '$" + expr.name + "' (global) or ':" + expr.name + "' (element-scoped) instead."
         );
@@ -9898,10 +9895,11 @@ var TemplateTextCommand = class _TemplateTextCommand extends Command {
 };
 var RenderCommand = class _RenderCommand extends Command {
   static keyword = "render";
-  constructor(template_, templateArgs) {
+  constructor(template_, templateArgs, insertHere, target) {
     super();
     this.template_ = template_;
-    this.args = { template: template_, templateArgs };
+    this.insertHere = insertHere;
+    this.args = { template: template_, templateArgs, target };
   }
   static parse(parser) {
     if (!parser.matchToken("render")) return;
@@ -9910,11 +9908,16 @@ var RenderCommand = class _RenderCommand extends Command {
     if (parser.matchToken("with")) {
       templateArgs = parser.parseElement("nakedNamedArgumentList");
     }
-    var cmd = new _RenderCommand(template_, templateArgs);
+    var insertHere = !!parser.matchToken("here");
+    var target = null;
+    if (!insertHere && parser.matchToken("into")) {
+      target = parser.requireElement("expression");
+    }
+    var cmd = new _RenderCommand(template_, templateArgs, insertHere, target);
     cmd._parser = parser;
     return cmd;
   }
-  resolve(ctx, { template, templateArgs }) {
+  resolve(ctx, { template, templateArgs, target }) {
     if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
     var buf = [];
     var runtime2 = ctx.meta.runtime;
@@ -9944,16 +9947,18 @@ var RenderCommand = class _RenderCommand extends Command {
       reject = rej;
     });
     commandList.execute(renderCtx);
-    if (renderCtx.meta.returned) {
-      ctx.result = buf.join("");
+    var finish = (result) => {
+      ctx.result = result;
+      if (this.insertHere) ctx.me.innerHTML = result;
+      if (target) target.innerHTML = result;
       return runtime2.findNext(this, ctx);
+    };
+    if (renderCtx.meta.returned) {
+      return finish(buf.join(""));
     }
     renderCtx.meta.resolve = resolve;
     renderCtx.meta.reject = reject;
-    return promise.then(() => {
-      ctx.result = buf.join("");
-      return runtime2.findNext(this, ctx);
-    });
+    return promise.then(() => finish(buf.join("")));
   }
 };
 var EscapeExpression = class _EscapeExpression extends Expression {

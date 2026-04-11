@@ -6,6 +6,14 @@ title: show - ///_hyperscript
 
 The `show` command makes a hidden element visible using a configurable strategy. The default strategy is `display`.
 
+> **`<dialog>` elements**
+>
+> When the target is a `<dialog>`, `show` calls the non-modal `dialog.show()`.
+> The dialog stays in normal document flow at its DOM position, so
+> `position: absolute` against an ancestor with `position: relative` works
+> for dropdown-style anchoring. Use [`open`](/commands/open) instead if you
+> want a modal dialog with a backdrop and focus trap (`showModal()`).
+
 ### Strategies
 
 The following built-in strategies are available:

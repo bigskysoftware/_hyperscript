@@ -2305,7 +2305,6 @@
         this.#trackMutation(inherited.value);
         return inherited.value;
       }
-      if (type === "local") return context.locals[str];
       if (context.meta?.context) {
         var fromMetaContext = context.meta.context[str];
         if (typeof fromMetaContext !== "undefined") return fromMetaContext;
@@ -2353,10 +2352,6 @@
             this.reactivity.notifyElementSymbol(str, owner);
           }
         }
-        return;
-      }
-      if (type === "local") {
-        context.locals[str] = value;
         return;
       }
       if (this.#isHyperscriptContext(context) && !this.#isReservedWord(str) && typeof context.locals[str] !== "undefined") {
@@ -3841,7 +3836,7 @@
       this.targetExpr = targetExpr || null;
     }
     static parse(parser) {
-      var scope = "default";
+      var scope = null;
       if (parser.matchToken("global")) {
         scope = "global";
       } else if (parser.matchToken("element")) {
@@ -3864,13 +3859,15 @@
         } else if (caretPrefix) {
           name = "^" + name;
         }
-        if (scope === "default") {
+        if (scope === null) {
           if (name.startsWith("$")) {
             scope = "global";
           } else if (name.startsWith(":")) {
             scope = "element";
           } else if (name.startsWith("^")) {
             scope = "inherited";
+          } else {
+            scope = "local";
           }
         }
         var targetExpr = null;
@@ -4558,13 +4555,13 @@
         if (typeof rhsVal === "string") rhsVal = rhsVal.toLowerCase();
       }
       if (operator === "is") {
-        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "local" && rhs.name !== "undefined" && rhs.name !== "null") {
           return !!context.meta.runtime.resolveProperty(lhsVal, rhs.name);
         }
         return lhsVal == rhsVal;
       }
       if (operator === "is not") {
-        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "default" && rhs.name !== "undefined" && rhs.name !== "null") {
+        if (rhsVal === void 0 && rhs.type === "symbol" && rhs.scope === "local" && rhs.name !== "undefined" && rhs.name !== "null") {
           return !context.meta.runtime.resolveProperty(lhsVal, rhs.name);
         }
         return lhsVal != rhsVal;
@@ -7103,7 +7100,7 @@
       return new _JsCommand(jsBody.jsSource, func, inputs);
     }
     resolve(context) {
-      var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "default"));
+      var args = this.inputs.map((input) => context.meta.runtime.resolveSymbol(input, context, "local"));
       var result = this.function.apply(context.meta.runtime.globalScope, args);
       if (result && typeof result.then === "function") {
         return result.then((actualResult) => {
@@ -7232,10 +7229,10 @@
       if (!arg && element instanceof HTMLDialogElement) {
         if (op === "hide") element.close();
         else if (op === "show") {
-          if (!element.open) element.showModal();
+          if (!element.open) element.show();
         } else if (op === "toggle") {
           if (element.open) element.close();
-          else element.showModal();
+          else element.show();
         }
         return;
       }
@@ -9279,8 +9276,8 @@
     static parse(parser) {
       let setCmd = parser.parseElement("setCommand");
       if (setCmd) {
-        if (setCmd.target.scope !== "element" && setCmd.target.scope !== "inherited") {
-          parser.raiseError("variables declared at the feature level must be element or DOM scoped.");
+        if (setCmd.target.scope === "local") {
+          parser.raiseError("variables declared at the feature level cannot be locally scoped.");
         }
         let setFeature = new _SetFeature(setCmd);
         parser.ensureTerminated(setCmd);
@@ -9483,7 +9480,7 @@
       } while (parser.matchToken("or"));
       for (var i = 0; i < exprs.length; i++) {
         var expr = exprs[i];
-        if (expr.type === "symbol" && expr.scope === "default" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
+        if (expr.type === "symbol" && expr.scope === "local" && !expr.name.startsWith("$") && !expr.name.startsWith(":")) {
           parser.raiseError(
             "Cannot watch local variable '" + expr.name + "'. Local variables are not reactive. Use '$" + expr.name + "' (global) or ':" + expr.name + "' (element-scoped) instead."
           );
@@ -9899,10 +9896,11 @@
   };
   var RenderCommand = class _RenderCommand extends Command {
     static keyword = "render";
-    constructor(template_, templateArgs) {
+    constructor(template_, templateArgs, insertHere, target) {
       super();
       this.template_ = template_;
-      this.args = { template: template_, templateArgs };
+      this.insertHere = insertHere;
+      this.args = { template: template_, templateArgs, target };
     }
     static parse(parser) {
       if (!parser.matchToken("render")) return;
@@ -9911,11 +9909,16 @@
       if (parser.matchToken("with")) {
         templateArgs = parser.parseElement("nakedNamedArgumentList");
       }
-      var cmd = new _RenderCommand(template_, templateArgs);
+      var insertHere = !!parser.matchToken("here");
+      var target = null;
+      if (!insertHere && parser.matchToken("into")) {
+        target = parser.requireElement("expression");
+      }
+      var cmd = new _RenderCommand(template_, templateArgs, insertHere, target);
       cmd._parser = parser;
       return cmd;
     }
-    resolve(ctx, { template, templateArgs }) {
+    resolve(ctx, { template, templateArgs, target }) {
       if (!(template instanceof Element)) throw new Error(this.template_.sourceFor() + " is not an element");
       var buf = [];
       var runtime2 = ctx.meta.runtime;
@@ -9945,16 +9948,18 @@
         reject = rej;
       });
       commandList.execute(renderCtx);
-      if (renderCtx.meta.returned) {
-        ctx.result = buf.join("");
+      var finish = (result) => {
+        ctx.result = result;
+        if (this.insertHere) ctx.me.innerHTML = result;
+        if (target) target.innerHTML = result;
         return runtime2.findNext(this, ctx);
+      };
+      if (renderCtx.meta.returned) {
+        return finish(buf.join(""));
       }
       renderCtx.meta.resolve = resolve;
       renderCtx.meta.reject = reject;
-      return promise.then(() => {
-        ctx.result = buf.join("");
-        return runtime2.findNext(this, ctx);
-      });
+      return promise.then(() => finish(buf.join("")));
     }
   };
   var EscapeExpression = class _EscapeExpression extends Expression {
@@ -11183,6 +11188,68 @@
   }
 
   // src/ext/eventsource.js
+  async function* parseSSE(reader) {
+    var decoder = new TextDecoder();
+    var buffer = "";
+    var hasData = false;
+    var message = { data: "", event: "", id: "", retry: null };
+    var firstChunk = true;
+    try {
+      while (true) {
+        var { done, value } = await reader.read();
+        if (done) break;
+        var chunk = decoder.decode(value, { stream: true });
+        if (firstChunk) {
+          if (chunk.charCodeAt(0) === 65279) chunk = chunk.slice(1);
+          firstChunk = false;
+        }
+        buffer += chunk;
+        var lines = buffer.split(/\r\n|\r|\n/);
+        buffer = lines.pop() || "";
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line) {
+            if (hasData) {
+              yield message;
+              hasData = false;
+              message = { data: "", event: "", id: "", retry: null };
+            }
+            continue;
+          }
+          var colonIndex = line.indexOf(":");
+          if (colonIndex === 0) continue;
+          var field, val;
+          if (colonIndex < 0) {
+            field = line;
+            val = "";
+          } else {
+            field = line.slice(0, colonIndex);
+            val = line.slice(colonIndex + 1);
+            if (val[0] === " ") val = val.slice(1);
+          }
+          if (field === "data") {
+            message.data += (hasData ? "\n" : "") + val;
+            hasData = true;
+          } else if (field === "event") {
+            message.event = val;
+          } else if (field === "id") {
+            if (!val.includes("\0")) message.id = val;
+          } else if (field === "retry") {
+            var retryValue = parseInt(val, 10);
+            if (!isNaN(retryValue)) message.retry = retryValue;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  function matchesEventPattern(pattern, eventName) {
+    if (pattern === eventName) return true;
+    if (!pattern.includes("*")) return false;
+    var regex = new RegExp("^" + pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+    return regex.test(eventName);
+  }
   var EventSourceFeature = class _EventSourceFeature extends Feature {
     static keyword = "eventsource";
     constructor(eventSourceName, nameSpace, stub) {
@@ -11199,6 +11266,8 @@
       if (!parser.matchToken("eventsource")) return;
       var urlElement;
       var withCredentials = false;
+      var method = "GET";
+      var headers = null;
       var name = parser.requireElement("dotOrColonPath");
       var qualifiedName = name.evalStatically();
       var nameSpace = qualifiedName.split(".");
@@ -11206,74 +11275,27 @@
       if (parser.matchToken("from")) {
         urlElement = parser.parseURLOrExpression();
       }
-      if (parser.matchToken("with")) {
+      while (parser.matchToken("with")) {
         if (parser.matchToken("credentials")) {
           withCredentials = true;
+        } else if (parser.matchToken("method")) {
+          method = parser.requireElement("stringLike").evalStatically().toUpperCase();
+        } else if (parser.matchToken("headers")) {
+          headers = parser.requireElement("objectLiteral");
+        } else {
+          parser.raiseExpected("credentials", "method", "headers");
         }
       }
-      var stub = {
-        eventSource: null,
-        listeners: [],
-        retryCount: 0,
-        closed: false,
-        reconnectTimeout: null,
-        open: function(url) {
-          if (url == void 0) {
-            if (stub.eventSource != null && stub.eventSource.url != void 0) {
-              url = stub.eventSource.url;
-            } else {
-              throw new Error("no url defined for EventSource.");
-            }
-          }
-          if (stub.eventSource != null) {
-            if (url != stub.eventSource.url) {
-              stub.eventSource.close();
-            } else if (stub.eventSource.readyState != EventSource.CLOSED) {
-              return;
-            }
-          }
-          stub.closed = false;
-          stub.eventSource = new EventSource(url, {
-            withCredentials
-          });
-          stub.eventSource.addEventListener("open", function() {
-            stub.retryCount = 0;
-          });
-          stub.eventSource.addEventListener("error", function() {
-            stub.eventSource.close();
-            if (!stub.closed) {
-              stub.retryCount = Math.min(7, stub.retryCount + 1);
-              var timeout = Math.random() * 2 ** stub.retryCount * 500;
-              stub.reconnectTimeout = window.setTimeout(stub.open, timeout);
-            }
-          });
-          for (var index = 0; index < stub.listeners.length; index++) {
-            var item = stub.listeners[index];
-            stub.eventSource.addEventListener(item.type, item.handler, item.options);
-          }
-        },
-        close: function() {
-          stub.closed = true;
-          if (stub.reconnectTimeout) {
-            clearTimeout(stub.reconnectTimeout);
-            stub.reconnectTimeout = null;
-          }
-          if (stub.eventSource != void 0) {
-            stub.eventSource.close();
-          }
-          stub.retryCount = 0;
-        },
-        addEventListener: function(type, handler, options) {
-          stub.listeners.push({
-            type,
-            handler,
-            options
-          });
-          if (stub.eventSource != null) {
-            stub.eventSource.addEventListener(type, handler, options);
-          }
+      var staticHeaders = null;
+      if (headers) {
+        staticHeaders = {};
+        for (var i = 0; i < headers.keyExpressions.length; i++) {
+          var key = headers.keyExpressions[i].evalStatically();
+          var val = headers.valueExpressions[i].evalStatically();
+          staticHeaders[key] = val;
         }
-      };
+      }
+      var stub = createStub(withCredentials, method, staticHeaders);
       var feature = new _EventSourceFeature(eventSourceName, nameSpace, stub);
       while (parser.matchToken("on")) {
         var eventName = parser.requireElement("stringLike").evalStatically();
@@ -11296,9 +11318,135 @@
       return feature;
     }
   };
+  function createStub(withCredentials, method, headers) {
+    var stub = {
+      listeners: [],
+      retryCount: 0,
+      closed: false,
+      abortController: null,
+      reader: null,
+      lastEventId: null,
+      reconnectTimeout: null,
+      url: null,
+      withCredentials,
+      method,
+      headers,
+      open: function(url) {
+        if (url == void 0) {
+          if (stub.url != null) {
+            url = stub.url;
+          } else {
+            throw new Error("no url defined for EventSource.");
+          }
+        }
+        if (stub.url === url && stub.abortController && !stub.abortController.signal.aborted) {
+          return;
+        }
+        if (stub.abortController) {
+          stub.abortController.abort();
+        }
+        stub.closed = false;
+        stub.url = url;
+        startConnection(stub);
+      },
+      close: function() {
+        stub.closed = true;
+        if (stub.reconnectTimeout) {
+          clearTimeout(stub.reconnectTimeout);
+          stub.reconnectTimeout = null;
+        }
+        if (stub.abortController) {
+          stub.abortController.abort();
+          stub.abortController = null;
+        }
+        stub.retryCount = 0;
+        dispatch(stub, "close", { type: "close" });
+      },
+      addEventListener: function(type, handler, options) {
+        stub.listeners.push({ type, handler, options });
+      }
+    };
+    return stub;
+  }
+  function startConnection(stub) {
+    var ac = new AbortController();
+    stub.abortController = ac;
+    var fetchOptions = {
+      method: stub.method,
+      signal: ac.signal,
+      headers: Object.assign({}, stub.headers || {})
+    };
+    if (stub.withCredentials) {
+      fetchOptions.credentials = "include";
+    }
+    if (stub.lastEventId) {
+      fetchOptions.headers["Last-Event-ID"] = stub.lastEventId;
+    }
+    fetch(stub.url, fetchOptions).then(function(response) {
+      if (ac.signal.aborted) return;
+      if (!response.ok) {
+        throw new Error("SSE connection failed with status " + response.status);
+      }
+      stub.retryCount = 0;
+      dispatch(stub, "open", { type: "open" });
+      return readStream(stub, response.body.getReader(), ac);
+    }).catch(function(err) {
+      if (ac.signal.aborted) return;
+      dispatch(stub, "error", { type: "error", error: err });
+      scheduleReconnect(stub);
+    });
+  }
+  async function readStream(stub, reader, ac) {
+    stub.reader = reader;
+    var baseDelay = 500;
+    try {
+      for await (var msg of parseSSE(reader)) {
+        if (ac.signal.aborted) break;
+        if (msg.id) stub.lastEventId = msg.id;
+        if (msg.retry != null) baseDelay = msg.retry;
+        var eventType = msg.event || "message";
+        var evt = {
+          type: eventType,
+          data: msg.data,
+          lastEventId: msg.id || stub.lastEventId || ""
+        };
+        dispatch(stub, eventType, evt);
+      }
+    } catch (err) {
+      if (!ac.signal.aborted) {
+        dispatch(stub, "error", { type: "error", error: err });
+      }
+    }
+    stub.reader = null;
+    if (!stub.closed && !ac.signal.aborted) {
+      scheduleReconnect(stub, baseDelay);
+    }
+  }
+  function scheduleReconnect(stub, baseDelay) {
+    if (stub.closed) return;
+    baseDelay = baseDelay || 500;
+    stub.retryCount = Math.min(7, stub.retryCount + 1);
+    var timeout = Math.random() * 2 ** stub.retryCount * baseDelay;
+    stub.reconnectTimeout = setTimeout(function() {
+      stub.reconnectTimeout = null;
+      if (!stub.closed) startConnection(stub);
+    }, timeout);
+  }
+  function dispatch(stub, eventType, evt) {
+    for (var i = 0; i < stub.listeners.length; i++) {
+      var listener = stub.listeners[i];
+      if (matchesEventPattern(listener.type, eventType)) {
+        try {
+          listener.handler(evt);
+        } catch (e) {
+          console.error("Error in SSE handler for '" + listener.type + "':", e);
+        }
+      }
+    }
+  }
   function makeHandler(encoding, commandList, stub, feature) {
     return function(evt) {
-      var data = decode(evt["data"], encoding);
+      var data = decode(evt.data, encoding);
       var context = feature.runtime.makeContext(stub, feature, stub);
       context.event = evt;
       context.result = data;

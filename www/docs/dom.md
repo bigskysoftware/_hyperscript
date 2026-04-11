@@ -343,6 +343,46 @@ Here is an example using `show ... when` to filter a list:
 </ul>
 {% endexample %}
 
+#### Open & Close {#open-close}
+
+The `open` and `close` commands work with dialogs, details elements and popovers:
+
+  ~~~ hyperscript
+  open #my-dialog      -- calls showModal() on a <dialog>
+  close #my-dialog     -- calls close() on a <dialog>
+  open #my-details     -- sets open attribute on a <details>
+  close #my-details    -- removes open attribute from a <details>
+  ~~~
+
+For elements with a `popover` attribute, `open` and `close` call `showPopover()` and `hidePopover()` respectively.
+As a fallback, they call `.open()` and `.close()` on the target.
+
+You can also enter and exit fullscreen mode:
+
+  ~~~ hyperscript
+  open fullscreen #video
+  close fullscreen
+  ~~~
+
+{% note "Modal vs. non-modal &lt;dialog&gt;" %}
+
+`open` on a `<dialog>` calls `showModal()`, which puts the dialog in the
+[top layer](https://developer.mozilla.org/en-US/docs/Glossary/Top_layer)
+with a `::backdrop`, focus trap, and Esc-to-dismiss. Top-layer elements are
+positioned relative to the viewport, not their DOM parent.
+
+For dropdown-style menus where you want the dialog rendered inline at its
+DOM position, use [`show`](#show--hide) instead. `show` on a `<dialog>` calls
+the non-modal `dialog.show()`, which leaves the dialog in normal document
+flow so ancestor-relative positioning works:
+
+~~~ hyperscript
+show #my-dropdown    -- calls .show() (non-modal, inline)
+open #my-dialog      -- calls .showModal() (modal, top layer)
+~~~
+
+{% endnote %}
+
 #### CSS Transitions {#transitions}
 
 You can transition a style from one state to another using the [`transition` command](/commands/transition). This
@@ -464,27 +504,6 @@ The `select` command selects the text content of an input or textarea:
 
   ~~~ hyperscript
   select #search-input
-  ~~~
-
-#### Open & Close {#open-close}
-
-The `open` and `close` commands work with dialogs, details elements and popovers:
-
-  ~~~ hyperscript
-  open #my-dialog      -- calls showModal() on a <dialog>
-  close #my-dialog     -- calls close() on a <dialog>
-  open #my-details     -- sets open attribute on a <details>
-  close #my-details    -- removes open attribute from a <details>
-  ~~~
-
-For elements with a `popover` attribute, `open` and `close` call `showPopover()` and `hidePopover()` respectively.
-As a fallback, they call `.open()` and `.close()` on the target.
-
-You can also enter and exit fullscreen mode:
-
-  ~~~ hyperscript
-  open fullscreen #video
-  close fullscreen
   ~~~
 
 <div class="docs-page-nav">

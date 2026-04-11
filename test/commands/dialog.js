@@ -2,7 +2,7 @@ import {test, expect} from '../fixtures.js'
 
 test.describe("dialog support in show/hide", () => {
 
-	test("show opens a dialog as modal", async ({html, find}) => {
+	test("show opens a dialog (non-modal)", async ({html, find}) => {
 		await html(
 			"<dialog id='d'><p>Hello</p></dialog>" +
 			"<button _='on click show #d'>Open</button>"
@@ -20,6 +20,27 @@ test.describe("dialog support in show/hide", () => {
 		await expect(find('#d')).toHaveAttribute('open');
 		await find('#close').click();
 		await expect(find('#d')).not.toHaveAttribute('open');
+	});
+
+	test("show opens a non-modal dialog (no ::backdrop)", async ({html, find, evaluate}) => {
+		await html(
+			"<dialog id='d'><p>Hello</p></dialog>" +
+			"<button _='on click show #d'>Open</button>"
+		);
+		await find('button').click();
+		// Non-modal dialogs do not match :modal; modal dialogs do.
+		var isModal = await evaluate(() => document.getElementById('d').matches(':modal'));
+		expect(isModal).toBe(false);
+	});
+
+	test("open opens a modal dialog (matches :modal)", async ({html, find, evaluate}) => {
+		await html(
+			"<dialog id='d'><p>Hello</p></dialog>" +
+			"<button _='on click open #d'>Open</button>"
+		);
+		await find('button').click();
+		var isModal = await evaluate(() => document.getElementById('d').matches(':modal'));
+		expect(isModal).toBe(true);
 	});
 
 	test("show on already-open dialog is a no-op", async ({html, find, evaluate}) => {

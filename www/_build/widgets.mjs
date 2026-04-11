@@ -1,5 +1,25 @@
-export function addWidgets(config) {
+// Eleventy passes its configured markdown-it instance (with Prism syntax
+// highlighting applied via the @11ty/eleventy-plugin-syntaxhighlight) so
+// that fenced code blocks inside callouts get highlighted the same as
+// blocks in the surrounding markdown.
+export function addWidgets(config, md) {
     let exampleId = 0
+
+    // {% note "Optional Title" %} ... {% endnote %}
+    // Variants: {% note %}, {% tip %}, {% warning %}
+    function makeCallout(kind) {
+        return (content, title) => {
+            const body = md.render(content.trim());
+            const heading = title
+                ? `<p class="callout-title">${md.renderInline(title)}</p>`
+                : '';
+            return `<aside class="callout callout-${kind}">${heading}${body}</aside>`;
+        };
+    }
+    config.addPairedShortcode('note', makeCallout('note'));
+    config.addPairedShortcode('tip', makeCallout('tip'));
+    config.addPairedShortcode('warning', makeCallout('warning'));
+
     config.addPairedShortcode('example', (content, caption) => {
         let trimmed = content.trim()
         let scopeClass = `_ex${exampleId++}`

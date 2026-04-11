@@ -135,7 +135,7 @@ export default function(config) {
 
     config.setLibrary("md", md)
 
-    addWidgets(config);
+    addWidgets(config, md);
 
     config.on("eleventy.after", () => {
         execSync("npx pagefind --site _site", { stdio: "inherit" });

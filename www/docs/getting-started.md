@@ -105,9 +105,10 @@ OK, now let's learn us some hyperscript...
 
 ---
 
-### An Aside: Is Hyperscript Too Big? {#size}
 
-<div class="aside">
+<div class="aside" >
+
+<h4 id="size" tabindex="-1" style="margin:0"><a class="header-anchor" href="#size" aria-hidden="true">§</a> Aside: Is Hyperscript Too Big?</h4>
 
 You might be wondering: how big is this thing?
 
