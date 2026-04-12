@@ -822,7 +822,10 @@ export class Runtime {
             if (!src) return;
             var hash = this.#hashScript(src);
             if (internalData.initialized) {
-                if (internalData.scriptHash === hash) return;
+                if (internalData.scriptHash === hash) {
+                    this.#resolveTemplateScopes(elt);
+                    return;
+                }
                 // Script changed (e.g. morph swap) - clean up and reinitialize
                 this.cleanup(elt);
                 internalData = this.getInternalData(elt);

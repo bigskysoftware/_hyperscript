@@ -179,6 +179,29 @@ test.describe('live templates', () => {
 		await expect(find('[data-live-template] li').last().locator('span')).toHaveText('C')
 	})
 
+	test('scope is refreshed after morph so surviving elements get updated indices', async ({html, find, run}) => {
+		await run("set $morphItems to [{name:'A'},{name:'B'},{name:'C'}]")
+		await html(`
+			<script type="text/hypertemplate" live>
+				<ul>
+				#for item in $morphItems index i
+					<li _="on click put i + ':' + item.name into me">${"\x24"}{item.name}</li>
+				#end
+				</ul>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(3)
+		// Verify initial scope: clicking C should show "2:C"
+		await find('[data-live-template] li').last().click()
+		await expect(find('[data-live-template] li').last()).toHaveText('2:C')
+		// Remove B — C shifts from index 2 to index 1
+		await run("call $morphItems.splice(1, 1)")
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(2)
+		// After morph, C's scope should be refreshed: now "1:C"
+		await find('[data-live-template] li').last().click()
+		await expect(find('[data-live-template] li').last()).toHaveText('1:C')
+	})
+
 	test('script-based live template preserves ${} in bare attribute position', async ({html, find, page}) => {
 		await html(`
 			<script type="text/hypertemplate" live _="init set ^items to [{text:'A', done:true},{text:'B', done:false}]">
