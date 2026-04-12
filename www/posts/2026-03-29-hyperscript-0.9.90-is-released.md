@@ -8,7 +8,8 @@ date: 2026-03-29
 ## hyperscript 0.9.90 Release
 
 We are pleased to present the 0.9.90 release of hyperscript. This is a significant release that includes a complete
-internal restructuring, a new reactivity system, many new commands and expressions, and improved error handling.
+internal restructuring, a new experimental reactivity system, a rewritten templating system, DOM morph support
+an experimental components mechanism, many new commands and expressions, and improved error handling.
 
 There is an [Upgrade Guide](#upgrade-guide) at the bottom of this release note.
 
@@ -247,17 +248,65 @@ toggle $theme between 'light', 'dark' and 'auto'
 This works with any [assignable expression](/commands/set) - variables, properties, style refs - and
 supports any number of values, not just two.
 
+#### take enhancements
+
+The [`take`](/commands/take) command gains two features:
+
+**`giving` keyword** -- an alternative to `with` that reads more naturally after the `from` clause:
+
+```hyperscript
+take @aria-selected='true' from <[role=tab]/> in me giving 'false' for tab
+```
+
+**Class swap** -- `take` now supports a replacement class via `with` or `giving`, so the
+`from` elements get one class and the `for` target gets the other:
+
+```hyperscript
+take .selected from .opt giving .unselected for the closest <.opt/> to the target
+```
+
+#### remove properties and array indices
+
+The [`remove`](/commands/remove) command now works on object properties and array indices:
+
+```hyperscript
+remove :arr[1]         -- splices index 1 out of the array
+remove :obj.field      -- deletes the property
+remove field of :obj   -- same, using the `of` form
+```
+
+For arrays, `remove` uses `splice` (indices shift). For objects, it uses `delete`.
+If the value at the expression is a DOM node, `remove` falls through to DOM detachment
+as before.
+
+#### hidden hide/show strategy
+
+A new built-in [`hide`/`show`](/commands/hide) strategy uses the native `hidden` attribute:
+
+```hyperscript
+hide me with hidden
+show me with hidden
+```
+
+Set it as the default for your whole app:
+
+```js
+_hyperscript.config.defaultHideShowStrategy = "hidden"
+```
+
 ### New Expressions & Syntax
 
 #### Collection Expressions
 
 Filter, sort, map, split, and join collections with postfix expressions that chain naturally.
-[`it`/`its`](/expressions/it) refer to the current element:
+[`it`/`its`](/expressions/it) refer to the current element. In a `for` loop, the `where`
+clause can also use the loop variable name directly:
 
 ```hyperscript
 items where its active sorted by its name mapped to its id
 "banana,apple,cherry" split by "," sorted by it joined by ", "
 <li/> in #list where it matches .visible
+for x in items where x.score > 10 ...
 ```
 
 #### clipboard and selection

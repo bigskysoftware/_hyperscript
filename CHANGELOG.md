@@ -4,8 +4,8 @@
 
 Hoooooo doggie, it's been a year of on and off work, and we finally had some time to focus on hyperscript!
 
-This is a *major* change/upgrade, including reworking the entire codebase to be much more sensible (and understandable
-to my students)
+This is a *major* change/upgrade, including restructuring the entire codebase to be much more understandable by my students
+as well as anyone else interested in the langauge.
 
 Here we go...
 
