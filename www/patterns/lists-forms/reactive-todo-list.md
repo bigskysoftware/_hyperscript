@@ -33,15 +33,14 @@ text. State is a plain array of `{text, done}` objects, rendered by a
 
   <script type="text/hypertemplate" live>
   <ul class="todo-list">
-    #for todo in $todos where the todo's text contains $search ignoring case index i
+    #for todo in $todos where the todo's text contains $search ignoring case
       <li class="${'done' if todo is done}">
         <label>
           <input type="checkbox" ${'checked' if todo is done}
-                 _="on click set $todos[${i}].done to my checked" />
+                 _="on click set the todo's done to my checked" />
           <span>${todo.text}</span>
         </label>
-        <span>DEBUG: done=${todo.done} isDone=${todo is done}</span>
-        <button class="todo-remove" _="on click remove $todos[${i}]">x</button>
+        <button class="todo-remove" _="on click remove todo from $todos">x</button>
       </li>
     #else
       <li class="empty">Nothing here.</li>

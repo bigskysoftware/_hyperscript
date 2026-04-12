@@ -780,6 +780,7 @@ function componentPlugin(_hyperscript) {
           reject = rej;
         });
         commandList.execute(ctx);
+        this.__hs_scopes = ctx.meta.__ht_scopes || null;
         if (ctx.meta.returned || !ctx.meta.resolve) {
           return buf.join("");
         }

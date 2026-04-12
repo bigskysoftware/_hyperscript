@@ -2775,7 +2775,10 @@
       if (!src) return;
       var hash = this.#hashScript(src);
       if (internalData.initialized) {
-        if (internalData.scriptHash === hash) return;
+        if (internalData.scriptHash === hash) {
+          this.#resolveTemplateScopes(elt);
+          return;
+        }
         this.cleanup(elt);
         internalData = this.getInternalData(elt);
       }
@@ -2797,6 +2800,7 @@
           );
           return;
         }
+        this.#resolveTemplateScopes(elt);
         hyperScript.apply(target || elt, elt, null, this);
         elt.setAttribute("data-hyperscript-powered", "true");
         this.triggerEvent(elt, "hyperscript:after:init");
@@ -2816,6 +2820,40 @@
           e.message,
           e.stack
         );
+      }
+    }
+    #resolveTemplateScopes(elt) {
+      var root = elt.closest('[data-live-template], [dom-scope="isolated"]');
+      if (!root || !root.__hs_scopes) return;
+      var matches = [];
+      var node = elt;
+      while (node && node !== root) {
+        var prev = node.previousSibling;
+        while (prev) {
+          if (prev.nodeType === 8) {
+            var text = prev.data;
+            if (text.startsWith("hs-scope:")) {
+              matches.push(text);
+              break;
+            }
+          }
+          prev = prev.previousSibling;
+        }
+        node = node.parentElement;
+      }
+      if (!matches.length) return;
+      var internalData = this.getInternalData(elt);
+      if (!internalData.elementScope) internalData.elementScope = {};
+      for (var i = 0; i < matches.length; i++) {
+        var parts = matches[i].split(":");
+        var loopId = parts[1];
+        var iter = parseInt(parts[2]);
+        var scope = root.__hs_scopes[loopId];
+        if (!scope) continue;
+        internalData.elementScope[scope.identifier] = scope.source[iter];
+        if (scope.indexIdentifier) {
+          internalData.elementScope[scope.indexIdentifier] = iter;
+        }
       }
     }
     #beforeProcessHooks = [];
@@ -6788,13 +6826,27 @@
         loopVal = nextValFromIterator.value;
       }
       if (keepLooping) {
+        var currentIndex = iteratorInfo.index;
         if (iteratorInfo.value) {
           context.result = context.locals[this.identifier] = loopVal;
         } else {
-          context.result = iteratorInfo.index;
+          context.result = currentIndex;
         }
         if (this.indexIdentifier) {
-          context.locals[this.indexIdentifier] = iteratorInfo.index;
+          context.locals[this.indexIdentifier] = currentIndex;
+        }
+        if (context.meta.__ht_template_result && iteratorInfo.value) {
+          var scopes = context.meta.__ht_scopes || (context.meta.__ht_scopes = {});
+          if (!scopes[this.slot]) {
+            scopes[this.slot] = {
+              identifier: this.identifier,
+              indexIdentifier: this.indexIdentifier,
+              source: iteratorInfo.value
+            };
+          }
+          context.meta.__ht_template_result.push(
+            "<!--hs-scope:" + this.slot + ":" + currentIndex + "-->"
+          );
         }
         iteratorInfo.didIterate = true;
         iteratorInfo.index++;
@@ -9952,6 +10004,7 @@
             return "";
           }
           cmds.execute(ctx);
+          wrapper.__hs_scopes = ctx.meta.__ht_scopes || null;
           if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
           var resolve;
           var promise = new Promise(function(r) {
@@ -10153,10 +10206,18 @@
         reject = rej;
       });
       commandList.execute(renderCtx);
+      var scopes = renderCtx.meta.__ht_scopes || null;
+      var SCOPE_MARKER_RE = /<!--hs-scope:[^>]*-->/g;
       var finish = (result) => {
-        ctx.result = result;
-        if (this.insertHere) ctx.me.innerHTML = result;
-        if (target) target.innerHTML = result;
+        ctx.result = result.replace(SCOPE_MARKER_RE, "");
+        if (this.insertHere) {
+          ctx.me.__hs_scopes = scopes;
+          ctx.me.innerHTML = result;
+        }
+        if (target) {
+          target.__hs_scopes = scopes;
+          target.innerHTML = result;
+        }
         return runtime2.findNext(this, ctx);
       };
       if (renderCtx.meta.returned) {
