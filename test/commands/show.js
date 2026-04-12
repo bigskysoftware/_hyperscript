@@ -58,6 +58,13 @@ test.describe("the show command", () => {
 		await expect(find('div')).toHaveCSS('visibility', 'visible');
 	});
 
+	test("can show element via the hidden attribute strategy", async ({html, find}) => {
+		await html("<div hidden _='on click show me with hidden'></div>");
+		await expect(find('div')).toHaveAttribute('hidden', '');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).not.toHaveAttribute('hidden', '');
+	});
+
 	test("can show other elements", async ({html, find}) => {
 		await html("<div style='display:none' class='showme'></div><div _='on click show .showme'></div>");
 		await expect(find('.showme')).toHaveCSS('display', 'none');

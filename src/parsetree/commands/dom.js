@@ -70,6 +70,16 @@ const HIDE_SHOW_STRATEGIES = {
             element.style.opacity = "1";
         }
     },
+    hidden: function (op, element) {
+        if (op === "toggle") {
+            op = element.hasAttribute("hidden") ? "show" : "hide";
+        }
+        if (op === "hide") {
+            element.setAttribute("hidden", "");
+        } else {
+            element.removeAttribute("hidden");
+        }
+    },
 };
 
 /** Extract property names from a CSS text string like "color: red; font-weight: bold" */

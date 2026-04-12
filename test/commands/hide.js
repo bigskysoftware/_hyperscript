@@ -104,6 +104,22 @@ test.describe("the hide command", () => {
 		await expect(find('div')).toHaveClass(/foo/);
 	});
 
+	test("can hide via the hidden attribute strategy", async ({html, find}) => {
+		await html("<div _='on click hide me with hidden'></div>");
+		await expect(find('div')).not.toHaveAttribute('hidden', '');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('hidden', '');
+	});
+
+	test("can configure hidden as the default hide strategy", async ({html, find, evaluate}) => {
+		await evaluate(() => { _hyperscript.config.defaultHideShowStrategy = "hidden" });
+		await html("<div _='on click hide'></div>");
+		await expect(find('div')).not.toHaveAttribute('hidden', '');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('hidden', '');
+		await evaluate(() => { delete _hyperscript.config.defaultHideShowStrategy });
+	});
+
 	test("can filter hide via the when clause", async ({html, find}) => {
 		await html(
 			"<div id='trigger' _='on click hide <div/> in me when it matches .hideable'>" +
