@@ -87,6 +87,11 @@ export function addWidgets(config, md) {
         rv += `</div>\n`
         rv += `</div>\n`
         rv += `<div class="example-actions">\n`
+        rv += `<button class="example-action-btn" data-snippet="${escaped}"`
+        rv += ` _="on click call navigator.clipboard.writeText(my @data-snippet)`
+        rv += `        put 'Copied!' into me`
+        rv += `        wait 1.2s`
+        rv += `        put 'Copy' into me">Copy</button>\n`
         rv += `<button class="example-action-btn"`
         rv += ` onclick="var elt=this.closest('figure').querySelector('.example-output');elt.innerHTML=elt.dataset.original;_hyperscript.process(elt)">Reset</button>\n`
         rv += `<a href="/playground/" class="example-action-btn" data-snippet="${escaped}"`
