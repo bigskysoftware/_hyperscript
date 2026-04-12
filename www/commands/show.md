@@ -6,13 +6,6 @@ title: show - ///_hyperscript
 
 The `show` command makes a hidden element visible using a configurable strategy. The default strategy is `display`.
 
-> **`<dialog>` elements**
->
-> When the target is a `<dialog>`, `show` calls the non-modal `dialog.show()`.
-> The dialog stays in normal document flow at its DOM position, so
-> `position: absolute` against an ancestor with `position: relative` works
-> for dropdown-style anchoring. Use [`open`](/commands/open) instead if you
-> want a modal dialog with a backdrop and focus trap (`showModal()`).
 
 ### Strategies
 
@@ -21,12 +14,24 @@ The following built-in strategies are available:
 - `display` -- toggles display between `none` and `block`
 - `visibility` -- toggles visibility between `hidden` and `visible`
 - `opacity` -- toggles opacity between `0` and `1`
+- `hidden` -- toggles the native [`hidden`](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden) attribute
 
 You can also use the style-literal form (e.g. `*display`).
 
 The `display` strategy accepts an argument to specify the display type when showing (e.g. `show:inline`). The default is `block`.
 
 You can change the default strategy by setting `_hyperscript.config.defaultHideShowStrategy`, or add new strategies via `_hyperscript.config.hideShowStrategies`.
+
+
+{% note "Dialog elements" %}
+
+When the target is a `<dialog>`, `show` calls the non-modal `dialog.show()`.
+The dialog stays in normal document flow at its DOM position, so
+`position: absolute` against an ancestor with `position: relative` works
+for dropdown-style anchoring. Use [`open`](/commands/open) instead if you
+want a modal dialog with a backdrop and focus trap (`showModal()`).
+
+{% endnote %}
 
 ### Filtering with `when`
 
