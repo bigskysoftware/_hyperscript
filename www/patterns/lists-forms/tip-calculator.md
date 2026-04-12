@@ -148,13 +148,13 @@ live                                                     -- on the total
   put '$' + total into me
 ~~~
 
-`bind $bill to me` is two-way binding: it keeps the global reactive variable
+[`bind`](/features/bind) `$bill to me` is two-way binding: it keeps the global reactive variable
 `$bill` and the input's `value` in sync in both directions. Type in the
 input, `$bill` updates. Set `$bill` from anywhere else, the input updates.
 
 Same for `$tip`.
 
-`live` evaluates its body once at install time and automatically tracks
+[`live`](/features/live) evaluates its body once at install time and automatically tracks
 which variables it reads. The total's `live` block reads both `$bill` and
 `$tip`. Whenever either variable changes, the body re-runs and the new value lands in the element.
 

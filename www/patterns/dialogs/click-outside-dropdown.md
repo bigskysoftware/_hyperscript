@@ -42,7 +42,7 @@ and using hyperscript's `elsewhere` modifier for the click-outside behavior.
 Three pieces of hyperscript do all the work:
 
 - **`on click show the next <dialog/> then halt`** on the trigger
-  button. `show` calls `dialog.show()` (non-modal), which leaves the dialog
+  button. [`show`](/commands/show) calls `dialog.show()` (non-modal), which leaves the dialog
   in the document flow so `position: absolute` anchors it to its parent. `halt` stops 
   the click from bubbling up to `document` to prevent the `on click from elsewhere` handler
   on the dialog from firing.

@@ -293,7 +293,7 @@ They are installed onto an element with `install`:
   </div>
   ~~~
 
-For a more substantial example, see the [Draggable behavior](/patterns/#75-draggable-behavior) pattern.
+For a more substantial example, see the [Drag to Reorder](/patterns/lists-forms/drag-to-reorder/) pattern.
 
 #### Behaviors vs. Components
 

@@ -84,7 +84,7 @@ bind $confirm to me                                  -- on the confirm input
 bind .mismatch to $confirm is not '' and $confirm is not $pw
 ~~~
 
-`bind .mismatch to <boolean>` adds the class when the expression is true and
+[`bind`](/features/bind) `.mismatch to <boolean>` adds the class when the expression is true and
 removes it when false. The runtime tracks both `$pw` and `$confirm` as
 dependencies, so the class re-evaluates whenever either field changes - even
 if the user goes back and edits the first field after typing the second.
@@ -172,7 +172,7 @@ live if $confirm is not '' and $confirm is not $pw
      end
 ~~~
 
-`live` re-runs every time `$pw` or `$confirm` changes, calling
+[`live`](/features/live) re-runs every time `$pw` or `$confirm` changes, calling
 `setCustomValidity` with either the error message or an empty string. An
 input with a non-empty validity message participates in form submission as
 "invalid" - the browser refuses to submit, focuses the field, and shows the

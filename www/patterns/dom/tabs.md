@@ -97,7 +97,7 @@ on click
 
 Four lines, in order:
 
-1. **`set tab to the closest <[role=tab]/> to the target`** - find the tab the user clicked. `the target` is the click event's `event.target`, and `closest` walks up to find the nearest ancestor (or self) matching the selector. If they clicked outside any tab, `tab` is `null`.
+1. **`set tab to the closest <[role=tab]/> to the target`** - find the tab the user clicked. `the target` is the click event's `event.target`, and [`closest`](/expressions/closest) walks up to find the nearest ancestor (or self) matching the selector. If they clicked outside any tab, `tab` is `null`.
 
 2. **`if no tab exit end`** - bail out cleanly when the click wasn't on a tab.
 
@@ -109,7 +109,7 @@ Four lines, in order:
    
    Net effect: every tab in this component gets `aria-selected="false"`, then the clicked tab gets `aria-selected="true"`. The browser styles it via `[aria-selected="true"]` in CSS - no `.active` class needed.
 
-4. **`add @hidden to <[role=tabpanel]/> in me when its @id is not (tab's @aria-controls)`** - for each tabpanel, add `@hidden` if its id doesn't match the active tab's `aria-controls`, and remove it if it does. `add ... when` toggles in both directions, so one statement handles all panels at once.
+4. **`add @hidden to <[role=tabpanel]/> in me when its @id is not (tab's @aria-controls)`** - for each tabpanel, [`add`](/commands/add) `@hidden` if its id doesn't match the active tab's `aria-controls`, and [`remove`](/commands/remove) it if it does. `add ... when` toggles in both directions, so one statement handles all panels at once.
 
 ## Why ARIA, not `.active`
 

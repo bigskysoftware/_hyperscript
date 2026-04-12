@@ -82,14 +82,14 @@ bind .over to $msg.length > 280
 bind @disabled to $msg.length > 280 or $msg is empty   -- on the button
 ~~~
 
-`bind $msg to me` two-way-binds the textarea's value to a global reactive
+[`bind`](/features/bind) `$msg to me` two-way-binds the textarea's value to a global reactive
 variable `$msg`. Type into the textarea, `$msg` updates. Set `$msg` from
 anywhere, the textarea updates. Now the counter and the button can both
 subscribe to it without ever touching the textarea directly.
 
 The counter combines one `live` and two `bind`s:
 
-- **`live put $msg.length + ' / 280' into me`** - auto-tracks `$msg.length`
+- **[`live`](/features/live) `put $msg.length + ' / 280' into me`** - auto-tracks `$msg.length`
   as a dependency and re-runs the `put` whenever it changes, so the text
   always reflects the current count.
 - **`bind .warn to $msg.length > 240`** - reactively binds the `.warn`

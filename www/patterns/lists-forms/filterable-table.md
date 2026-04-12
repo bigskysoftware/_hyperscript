@@ -80,7 +80,7 @@ on input
 ## How this works
 
 Each line is a single declarative assertion about the DOM after the input
-fires. The magic is that `add ... when` doesn't just *add* the attribute when
+fires. The magic is that [`add`](/commands/add) `... when` doesn't just *add* the attribute when
 the predicate is true: it also *removes* it when false. So one line covers
 both directions of the toggle, every time the input fires.
 

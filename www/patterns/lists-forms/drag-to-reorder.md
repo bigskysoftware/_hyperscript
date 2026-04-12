@@ -98,7 +98,7 @@ reorder list:
 - **`dragstart`** fires on the source when the user starts dragging. We
   stash the dragged element in `:dragged` (element-scoped on the `<ul>`,
   not a global, so multiple lists on the same page don't collide). Also
-  add an `.is-dragging` class for visual feedback.
+  [`add`](/commands/add) an `.is-dragging` class for visual feedback.
 
 - **`dragend`** fires on the source after the drag ends, regardless of
   whether the drop succeeded. We use it to clear the visual state.
@@ -118,7 +118,7 @@ reorder list:
 
 ## A few subtleties
 
-- **`closest <li/> to event.target`** is the right way to find the source
+- **[`closest`](/expressions/closest) `<li/> to event.target`** is the right way to find the source
   and target items. The drag event's `target` may be a child of the `<li>`
   (a span, a text node, etc.) - `closest` walks up to find the actual
   list item. Without it, dragging over an emoji or text would miss.

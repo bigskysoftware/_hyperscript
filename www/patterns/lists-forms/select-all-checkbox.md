@@ -71,7 +71,7 @@ th { background: #f5f5f5; }
 All the logic lives on the header checkbox with two event handlers:
 
 - **`on click`** bulk-sets every row checkbox to match the header using
-  `set checked of <input[type=checkbox]/> in the next <tbody/> to my checked`.
+  [`set`](/commands/set) `checked of <input[type=checkbox]/> in the next <tbody/> to my checked`.
 
 - **`on change from the next <tbody/>`** catches bubbled change events from
   any row checkbox. It grabs all the checkboxes with a query literal, then uses

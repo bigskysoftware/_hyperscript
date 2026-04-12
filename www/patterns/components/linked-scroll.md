@@ -101,8 +101,8 @@ behavior ScrollLock
 end
 ~~~
 
-The feature-level `set @data-locked-scroll to 'true'` marks each element
-on install so the `tell` query can find its peers without IDs or classes.
+The feature-level [`set`](/commands/set) `@data-locked-scroll to 'true'` marks each element
+on [`install`](/features/install) so the `tell` query can find its peers without IDs or classes.
 
 There's no re-entry guard because assigning `scrollTop` to its current
 value is a no-op and **doesn't fire a scroll event** - so the cascade

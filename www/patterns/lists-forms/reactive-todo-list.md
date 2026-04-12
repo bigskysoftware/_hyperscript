@@ -1,14 +1,14 @@
 ---
 layout: pattern.njk
 title: Reactive Todo List
-description: A reactive todo list with add, done, and remove -- using live templates, object arrays, and the new `remove` command for index-based splicing.
+description: A reactive todo list with add, done, and remove
 tags: [reactivity, list, remove, live-template]
 difficulty: intermediate
 ---
 
 A complete todo list: add items, mark them done, remove them, filter by
 text. State is a plain array of `{text, done}` objects, rendered by a
-`<script type="text/hyperscript-template" live>` that re-renders whenever the array changes.
+`<script type="text/hyperscript-template" live>` template that re-renders whenever the array changes.
 
 {% example "Todo List" %}
 <div class="todo-app"
@@ -93,71 +93,66 @@ text. State is a plain array of `{text, done}` objects, rendered by a
 
 All state lives in two global variables initialized on the wrapper div:
 
-```
+~~~ hyperscript
 init set $todos to [{text:'Learn hyperscript', done:true},
                      {text:'Build something cool', done:false},
                      {text:'Ship it', done:false}]
      set $search to ''
-```
+~~~
 
 `$todos` is a plain array of `{text, done}` objects. `$search` is the
-current filter string, two-way bound to the search input via `bind`.
+current filter string, two-way bound to the search input via [`bind`](/features/bind).
 
 ### Adding items
 
 The text input listens for Enter and has a named `add` event that the
 button can trigger:
 
-```
+~~~ hyperscript
 on keyup[key is 'Enter'] trigger add
 on add
   halt unless my value is not empty
   append {text: my value, done: false} to $todos
   clear me
-```
+~~~
 
 `append` pushes a new object onto `$todos`. The live template sees the
 mutation and re-renders.
 
 ### Rendering
 
-The `<script type="text/hyperscript-template" live>` block renders the list. `#for` iterates `$todos`
-with a `where` filter and an `index i` binding:
+The `<script type="text/hyperscript-template" live>` block renders the
+list. `#for` iterates `$todos` with a `where` filter:
 
-```
-#for todo in $todos where its text contains $search ignoring case index i
-  <li class="${'done' if todo.done else ''}">
+~~~ html
+#for todo in $todos where the todo's text contains $search ignoring case
+  <li class="${'done' if todo is done}">
     ...
   </li>
 #else
   <li class="empty">Nothing here.</li>
 #end
-```
-
-The `index i` gives us the position of each item in the original
-(unfiltered) array, which we need for the checkbox and remove button.
+~~~
 
 ### Toggling done
 
-Each checkbox writes back to the source array by index:
+Each checkbox writes back to the todo object directly:
 
 ```html
-<input type="checkbox" _="on click set $todos[${i}].done to my checked" />
+<input type="checkbox" _="on click set the todo's done to my checked" />
 ```
 
-`${i}` is interpolated at render time, so each checkbox targets its own
-item. Setting the property triggers re-render, which updates the
-`class="done"` and the strikethrough.
+Note that here we have inner hyperscript on the generated input, and it is able to reference `todo` as a normal variable.
+This is because hyperscript captures scopes/closures associated with looping in templates and makes the loop variables 
+available in generated scripts, making scripting with hyperscript templates natural.
 
 ### Removing items
 
-The remove button uses `remove` with an index expression:
+The remove button uses [`remove`](/commands/remove) with the captured object reference:
 
 ```html
-<button _="on click remove $todos[${i}]">x</button>
+<button _="on click remove todo from $todos">x</button>
 ```
 
-`remove $todos[${i}]` splices element `i` out of the array (a new feature
-in 0.9.90). Because the value at that index is a plain object, not a DOM
-node, `remove` dispatches to the array splice path instead of the DOM
-detach path. The live template re-renders after the splice.
+`remove todo from $todos` finds the object by reference in the array and
+splices it out. The live template reactively re-renders after the splice.

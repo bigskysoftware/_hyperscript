@@ -73,7 +73,7 @@ and pulls the *other* field's value into one of its constraint attributes.
 Open either picker after typing a value into the other and you'll see the
 out-of-range dates greyed out in the calendar UI.
 
-The fourth row of the [`bind`](/patterns/lists-forms/character-counter/)
+The fourth row of the [`bind`](/features/bind)
 table is the one in play here:
 
 | Form                              | Effect |
@@ -109,6 +109,6 @@ On first load, `$start` and `$end` haven't been written yet, so the bindings
 that pull from them set `@min`/`@max` to `undefined` - which the browser
 treats as "no constraint." Once the user types into either field, the
 constraint kicks in. If you want a constraint from the very first render,
-either initialize the variables in an `init` block or set the attributes
+either initialize the variables in an [`init`](/features/init) block or set the attributes
 in the markup as a default.
 {% endnote %}
