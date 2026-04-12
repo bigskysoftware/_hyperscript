@@ -367,7 +367,7 @@ test.describe('the live feature', () => {
 	test('property change on object in array triggers live re-render', async ({html, find, run, evaluate}) => {
 		await run("set $people to [{name: 'Alice'}, {name: 'Bob'}]")
 		await html(
-			`<template id="people-tmpl">#for p in people\n<span>\${p.name}</span>\n#end</template>` +
+			`<script type="text/hypertemplate" id="people-tmpl">#for p in people\n<span>\${p.name}</span>\n#end</script>` +
 			`<div _="live render #people-tmpl with people: $people then put it into my.innerHTML end"></div>`
 		)
 		await expect.poll(() => find('div').textContent()).toContain('Alice')
@@ -382,7 +382,7 @@ test.describe('the live feature', () => {
 	test('push object then modify its property both trigger live', async ({html, find, run, evaluate}) => {
 		await run("set $items to [{label: 'first'}]")
 		await html(
-			`<template id="items-tmpl">#for item in items\n<span>\${item.label}</span>\n#end</template>` +
+			`<script type="text/hypertemplate" id="items-tmpl">#for item in items\n<span>\${item.label}</span>\n#end</script>` +
 			`<div _="live render #items-tmpl with items: $items then put it into my.innerHTML end"></div>`
 		)
 		await expect.poll(() => find('div').textContent()).toContain('first')
