@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ## Components {#components}
 
-Components let you define reusable custom elements using a `<template>` tag.
+Components let you define reusable custom elements using a `<script type="text/hypertemplate">` tag.
 You write markup with `${}` interpolation, attach hyperscript with `_=`, and the
 runtime handles reactive re-rendering via morphing.
 
@@ -17,19 +17,19 @@ See the [component feature page](/features/components) for installation details.
 
 ### Defining a Component {#defining}
 
-A component is a `<template>` with a `component` attribute. The value is the
+A component is a `<script type="text/hypertemplate">` with a `component` attribute. The value is the
 tag name you will use (it must contain a dash, per the custom elements spec):
 
 {% example "A component" %}
-<template component="hello-world">
+<script type="text/hypertemplate" component="hello-world">
   <span>Hello World</span>
-</template>
+</script>
 
 <hello-world></hello-world>
 <hello-world></hello-world>
 {% endexample %}
 
-Place the `<template>` anywhere on the page. The tag becomes available from then on,
+Place the `<script type="text/hypertemplate">` anywhere on the page. The tag becomes available from then on,
 so you can use it multiple times. Each instance is independent.
 
 ### Template Body {#template-body}
@@ -38,7 +38,7 @@ Component templates use hyperscript's template syntax. `${expr}` interpolates an
 expression. `#for`, `#if`, `#else`, and `#end` give you loops and conditionals.
 
   ~~~ html
-  <template component="user-card" _="init set ^user to attrs.data">
+  <script type="text/hypertemplate" component="user-card" _="init set ^user to attrs.data">
     <h3>${^user.name}</h3>
     #if ^user.admin
       <span class="badge">admin</span>
@@ -48,7 +48,7 @@ expression. `#for`, `#if`, `#else`, and `#end` give you loops and conditionals.
         <li>${tag}</li>
       #end
     </ul>
-  </template>
+  </script>
   ~~~
 
 Interpolated values are HTML-escaped by default. Use `${unescaped expr}` when you
@@ -60,20 +60,20 @@ Use DOM-scoped variables (`^var`) for component state. Each component instance g
 its own isolated DOM scope, so two instances do not share state.
 
 {% example "Component state" %}
-<template component="click-counter" _="init set ^count to 0">
+<script type="text/hypertemplate" component="click-counter" _="init set ^count to 0">
   <style>
     .label { margin-left: 1em; }
   </style>
   <button _="on click increment ^count">+</button>
   <span class="label">Clicks: ${^count}</span>
-</template>
+</script>
 
 <click-counter></click-counter>
 <br>
 <click-counter></click-counter>
 {% endexample %}
 
-Clicking one counter does not affect the other. The `init` block on the template
+Clicking one counter does not affect the other. The `init` block on the component
 runs once per instance and is the usual place to set initial state.
 
 ### Reactive Rendering {#reactive-rendering}
@@ -83,10 +83,10 @@ re-renders. Rendering uses morphing, so focus, scroll position, and event handle
 are preserved across updates.
 
 {% example "Reactive rendering" %}
-<template component="live-greeter" _="init set ^name to 'World'">
+<script type="text/hypertemplate" component="live-greeter" _="init set ^name to 'World'">
   <input type="text" _="bind ^name to my value" />
   <p>Hello, ${^name}!</p>
-</template>
+</script>
 
 <live-greeter></live-greeter>
 {% endexample %}
@@ -103,13 +103,13 @@ An attribute access is lazily is parsed as a hyperscript expression in the *pare
 This allows you to pass variables and objects as naturally as you would any hyperscript expression:
 
 {% example "Passing data via attrs" %}
-<template component="user-card" _="init set ^user to attrs.data">
+<script type="text/hypertemplate" component="user-card" _="init set ^user to attrs.data">
   <style>
     h3, p { margin: 0; }
   </style>
   <h3>${^user.name}</h3>
   <p>${^user.email}</p>
-</template>
+</script>
 
 <div _="init set $currentUser to { name: 'Carson', email: 'carson@example.com' }">
   <user-card data="$currentUser"></user-card>
@@ -132,7 +132,7 @@ internal component state.
 is projected into the template at the slot position:
 
 {% example "Default slot" %}
-<template component="my-card">
+<script type="text/hypertemplate" component="my-card">
   <style>
     :scope { display: block; }
     .frame {
@@ -145,7 +145,7 @@ is projected into the template at the slot position:
   <div class="frame">
     <slot/>
   </div>
-</template>
+</script>
 
 <my-card>
   <p>This paragraph ends up inside the card.</p>
@@ -155,7 +155,7 @@ is projected into the template at the slot position:
 Named slots let you project multiple regions:
 
 {% example "Named slots" %}
-<template component="my-layout">
+<script type="text/hypertemplate" component="my-layout">
   <style>
     :scope { display: block; }
     .frame { border: 1px solid #ccc; border-radius: 4px; }
@@ -169,7 +169,7 @@ Named slots let you project multiple regions:
     <main><slot/></main>
     <footer><slot name="footer"/></footer>
   </div>
-</template>
+</script>
 
 <my-layout>
   <strong slot="title">Page Title</strong>
@@ -188,10 +188,10 @@ A `<style>` block placed inside a component definition is automatically
 scoped to the component's tag name. At registration time, hyperscript lifts
 the `<style>` out of the template, wraps its contents in a CSS
 [`@scope`](https://developer.mozilla.org/en-US/docs/Web/CSS/@scope) rule,
-and inserts a single `<style>` element immediately after the `<template>`.
+and inserts a single `<style>` element immediately after the component definition.
 
 {% example "Scoped styles" %}
-<template component="badge-pill">
+<script type="text/hypertemplate" component="badge-pill">
   <style>
     :scope {
       display: inline-block;
@@ -204,7 +204,7 @@ and inserts a single `<style>` element immediately after the `<template>`.
     .count { font-weight: 600; margin-left: 0.3em; }
   </style>
   <slot/><span class="count">${attrs.count}</span>
-</template>
+</script>
 
 <badge-pill count="3">Inbox</badge-pill>
 <badge-pill count="12">Drafts</badge-pill>
@@ -238,7 +238,7 @@ language docs for all the scoping options.
 A component with reactive state, `attrs` input, and two-way binding:
 
 {% example "Filterable List" %}
-<template component="filter-list"
+<script type="text/hypertemplate" component="filter-list"
         _="init set ^items to attrs.items
                    set ^query to ''">
   <input type="text" placeholder="Search..." _="bind ^query to my value" />
@@ -249,7 +249,7 @@ A component with reactive state, `attrs` input, and two-way binding:
       <li>No matches</li>
     #end
   </ul>
-</template>
+</script>
 
 <filter-list items="[{name:'Macintosh 128K'}, {name:'Macintosh Plus'}, {name:'Macintosh SE'},
                       {name:'Macintosh II'}, {name:'PowerBook 100'}, {name:'Quadra 700'}]"></filter-list>
@@ -301,7 +301,7 @@ Behaviors and components solve two different problems:
 
 |            | Behaviors                                      | Components                              |
 |------------|------------------------------------------------|-----------------------------------------|
-| Definition | A block of hyperscript                         | A `<template>` with markup and `_=`     |
+| Definition | A block of hyperscript                         | A `<script type="text/hypertemplate">` with markup and `_=` |
 | Use        | `install` on any existing element              | Place a custom tag in your HTML         |
 | Markup     | No, attaches to existing DOM                   | Yes, renders its own markup             |
 | State      | Shares the host element's scope                | Isolated DOM scope per instance         |

@@ -1,6 +1,91 @@
 import { Command, Expression } from '../base.js';
 import { Tokenizer } from '../../core/tokenizer.js';
 
+function getTemplateSource(el) {
+    return el.textContent;
+}
+
+var LIVE_SELECTOR = 'script[type="text/hypertemplate"][live]';
+
+/**
+ * LiveTemplate - Registers a before-process hook that finds <template live>
+ * and <script type="text/hypertemplate" live> elements, renders their content
+ * reactively, and morphs updates into a wrapper element.
+ */
+export function initLiveTemplates(runtime, tokenizer, Parser, kernel, reactivity) {
+    var processed = new WeakSet();
+
+    runtime.addBeforeProcessHook(function(elt) {
+        if (!elt || !elt.querySelectorAll) return;
+        elt.querySelectorAll(LIVE_SELECTOR).forEach(function(tmpl) {
+            if (processed.has(tmpl)) return;
+            processed.add(tmpl);
+
+            var source = getTemplateSource(tmpl);
+            var script = tmpl.getAttribute('_') || tmpl.getAttribute('data-script') || '';
+            tmpl.removeAttribute('_');
+            tmpl.removeAttribute('data-script');
+
+            var wrapper = document.createElement('div');
+            wrapper.style.display = 'contents';
+            wrapper.setAttribute('data-live-template', '');
+            tmpl.after(wrapper);
+
+            if (script) {
+                wrapper.setAttribute('_', script);
+                runtime.processNode(wrapper);
+            }
+
+            var stamped = false;
+            function stamp(html) {
+                if (!stamped) {
+                    wrapper.innerHTML = html;
+                    runtime.processNode(wrapper);
+                    stamped = true;
+                } else {
+                    runtime.morph(wrapper, html);
+                }
+            }
+
+            function render() {
+                var ctx = runtime.makeContext(wrapper, null, wrapper, null);
+                var buf = [];
+                ctx.meta.__ht_template_result = buf;
+                var tokens = tokenizer.tokenize(source, "lines");
+                var parser = new Parser(kernel, tokens);
+                var cmds;
+                try {
+                    cmds = parser.parseElement("commandList");
+                    parser.ensureTerminated(cmds);
+                } catch (e) {
+                    console.error("live-template parse error:", e.message || e);
+                    return "";
+                }
+                cmds.execute(ctx);
+                if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
+                var resolve;
+                var promise = new Promise(function(r) { resolve = r; });
+                ctx.meta.resolve = resolve;
+                return promise.then(function() { return buf.join(""); });
+            }
+
+            queueMicrotask(function() {
+                var result = render();
+                if (result && result.then) {
+                    result.then(function(html) { stamp(html); setupEffect(); });
+                } else {
+                    stamp(result);
+                    setupEffect();
+                }
+            });
+
+            function setupEffect() {
+                reactivity.createEffect(render, stamp, { element: wrapper });
+            }
+        });
+    });
+}
+
 function _stringifyTemplatePart(val, part) {
     if (part.type === 'literal') return val;
     if (val === undefined || val === null) return '';
@@ -72,6 +157,9 @@ export class TemplateTextCommand extends Command {
                 var exprParser = parser.createChildParser(exprTokens);
                 if (exprParser.matchToken("unescaped")) escape = false;
                 var valueNode = exprParser.requireElement("expression");
+                console.log(exprTokens)
+                console.log('AFTER EXPR:', exprStr, '→ next token:',
+                    exprParser.currentToken()?.value, exprParser.currentToken()?.type);
                 if (exprParser.matchToken("if")) {
                     var conditionNode = exprParser.requireElement("expression");
                     var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
@@ -98,8 +186,11 @@ export class TemplateTextCommand extends Command {
         var parts = this.parts;
         var vals = parts.map(part => {
             if (part.type === 'literal') return part.value;
+            console.log("Part:", part)
             if (part.type === 'conditional') {
                 var condition = part.conditionNode.evaluate(ctx);
+                console.log('COND:', part.conditionNode.sourceFor?.(), '→', condition,
+                    'val:', condition ? part.valueNode.evaluate(ctx) : undefined);
                 if (condition) {
                     return part.valueNode.evaluate(ctx);
                 } else if (part.elseNode) {
@@ -170,7 +261,7 @@ export class RenderCommand extends Command {
         renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
         renderCtx.meta.__ht_template_result = buf;
 
-        var tokens = new Tokenizer().tokenize(template.innerHTML, "lines");
+        var tokens = new Tokenizer().tokenize(getTemplateSource(template), "lines");
         var parser = this._parser.createChildParser(tokens);
         var commandList;
         try {

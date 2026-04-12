@@ -115,23 +115,26 @@ export default function componentPlugin(_hyperscript) {
             return;
         }
 
-        // Extract <style> blocks from the template, wrap them in @scope (tag-name),
-        // and insert a single combined <style> right after the template element.
-        // This gives component styles automatic encapsulation while keeping the
-        // styles co-located with the definition for debugging.
-        var styleEls = templateEl.content.querySelectorAll('style');
-        if (styleEls.length) {
-            var combined = '';
-            styleEls.forEach(function(s) {
-                combined += s.textContent + '\n';
-                s.remove();
-            });
+        // Extract <style> blocks from the raw text, wrap in @scope (tag-name),
+        // and insert a single combined <style> right after the definition element.
+        var raw = templateEl.textContent;
+        var combined = '';
+        var styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+        var match;
+        while ((match = styleRegex.exec(raw)) !== null) {
+            combined += match[1] + '\n';
+        }
+        if (combined) {
+            raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+            templateEl.textContent = raw;
+        }
+        if (combined) {
             var scopedStyle = document.createElement('style');
             scopedStyle.textContent = '@scope (' + tagName + ') {\n' + combined + '}';
             templateEl.insertAdjacentElement('afterend', scopedStyle);
         }
 
-        const templateSource = templateEl.innerHTML;
+        const templateSource = templateEl.textContent;
 
         // Parse template once to validate - actual rendering happens per instance
         // (We reuse the render command's approach: tokenize in "lines" mode at render time)
@@ -251,7 +254,7 @@ export default function componentPlugin(_hyperscript) {
 
     _hyperscript.addBeforeProcessHook(function(elt) {
         if (!elt || !elt.querySelectorAll) return;
-        elt.querySelectorAll('template[component]').forEach(function(tmpl) {
+        elt.querySelectorAll('script[type="text/hypertemplate"][component]').forEach(function(tmpl) {
             // Always strip _ to prevent normal processNode from running it on the template
             var script = tmpl.getAttribute('_') || '';
             tmpl.removeAttribute('_');

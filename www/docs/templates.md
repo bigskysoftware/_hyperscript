@@ -9,17 +9,17 @@ title: ///_hyperscript
 
 ### Templates {#templates}
 
-The [`render`](/commands/render) command lets you generate HTML strings from `<template>` elements with interpolation
+The [`render`](/commands/render) command lets you generate HTML strings from `<script type="text/hypertemplate">` elements with interpolation
 and control flow:
 
   ~~~ html
-  <template id="user-list">
+  <script type="text/hypertemplate" id="user-list">
   <ul>
   #for user in users
     <li>${user.name} (${user.role})</li>
   #end
   </ul>
-  </template>
+  </script>
   ~~~
 
   ~~~ hyperscript
@@ -33,17 +33,17 @@ Template lines are output as-is. `${expr}` interpolates hyperscript expressions 
 You can also use inline conditionals inside an expression:
 
   ~~~ html
-  <template id="status">
+  <script type="text/hypertemplate" id="status">
   <td>${user.name}</td>
   <td>${user.role if user.active else "Inactive"}</td>
-  </template>
+  </script>
   ~~~
 
 `#for` loops support an `#else` clause that renders when the collection is empty or null, and
 `#break` and `#continue` for loop control:
 
   ~~~ html
-  <template id="user-list">
+  <script type="text/hypertemplate" id="user-list">
   <ul>
   #for user in users
     #if user.hidden
@@ -54,7 +54,7 @@ You can also use inline conditionals inside an expression:
     <li>No users found</li>
   #end
   </ul>
-  </template>
+  </script>
   ~~~
 
 Named arguments passed via `with` become local variables in the template. See the
@@ -101,16 +101,16 @@ This forms the basis of [components](/docs/components/).
 
 ### Live Templates {#live-templates}
 
-You can use templates directly in your HTML by adding a `live` attribute to it. 
+You can use templates directly in your HTML by adding a `live` attribute to a `<script type="text/hypertemplate">`. 
 
 The output appears after the template element and re-renders automatically when dependencies change,
 using morphing to preserve focus and event handlers.
 
   ~~~ html
-  <template live _="init set ^count to 0">
+  <script type="text/hypertemplate" live _="init set ^count to 0">
     <button _="on click increment ^count">+</button>
     <p>Count: ${^count}</p>
-  </template>
+  </script>
   ~~~
 
 The template renders into a `display:contents` wrapper, so it has no effect on layout.

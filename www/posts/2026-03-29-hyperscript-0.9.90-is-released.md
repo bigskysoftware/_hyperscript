@@ -52,10 +52,10 @@ when elements are removed from the DOM.
 ### Templates in Core
 
 The [`render`](/commands/render) command and template language are now built into core - no extension script needed.
-Templates use `<template>` elements with `${}` interpolation and `#`-prefixed control flow:
+Templates use `<script type="text/hypertemplate">` elements with `${}` interpolation and `#`-prefixed control flow:
 
 ```html
-<template id="user-card">
+<script type="text/hypertemplate" id="user-card">
 #for user in users
   <div class="card">
     <h3>${user.name}</h3>
@@ -64,7 +64,7 @@ Templates use `<template>` elements with `${}` interpolation and `#`-prefixed co
     #end
   </div>
 #end
-</template>
+</script>
 
 <button _="on click
   render #user-card with users: userData
@@ -89,13 +89,13 @@ morph me with responseHtml
 ### Components
 
 A new components system (`component`) lets you define custom elements with reactive templates, slots,
-and scope isolation - all declared in a single `<template>`:
+and scope isolation - all declared in a single `<script type="text/hypertemplate">`:
 
 ```html
-<template component="my-counter">
+<script type="text/hypertemplate" component="my-counter">
   <button _="on click increment ^count">+1</button>
   <output _="live put ^count into me"></output>
-</template>
+</script>
 
 <my-counter></my-counter>
 ```

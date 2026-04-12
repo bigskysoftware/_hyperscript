@@ -12,7 +12,7 @@ their panels in the default slot - the component handles the click logic,
 ARIA wiring, and selection state automatically.
 
 {% example "A reusable tab-set component" %}
-<template component="tab-set"
+<script type="text/hypertemplate" component="tab-set"
   _="on click
        set tab to the closest <[role=tab]/> to the target
        if no tab exit end
@@ -24,7 +24,7 @@ ARIA wiring, and selection state automatically.
   <div class="ts-panels">
     <slot/>
   </div>
-</template>
+</script>
 
 <tab-set>
   <button slot="tab-bar" role="tab" aria-selected="true" aria-controls="ts-features">Features</button>
@@ -87,7 +87,7 @@ The component template defines two slot positions and attaches the click
 handler to the component itself:
 
 ~~~ html
-<template component="tab-set"
+<script type="text/hypertemplate" component="tab-set"
   _="on click
        set tab to the closest <[role=tab]/> to the target
        if no tab exit end
@@ -99,7 +99,7 @@ handler to the component itself:
   <div class="ts-panels">
     <slot/>
   </div>
-</template>
+</script>
 ~~~
 
 The handler is **identical** to the standalone tabs pattern. Wrapping it in
@@ -136,7 +136,7 @@ with `aria-selected="true"`) and the component takes over from there.
 A `<style>` block inside a component definition is **automatically scoped**
 to the component's tag name. At registration time, hyperscript lifts the
 `<style>` out of the template, wraps its contents in
-`@scope (tab-set) { ... }`, and inserts it right after the `<template>`
+`@scope (tab-set) { ... }`, and inserts it right after the component definition
 element (so the styles stay co-located with the definition for debugging).
 
 Inside the block:
@@ -145,7 +145,7 @@ Inside the block:
 - Use `:scope` to target the component root itself.
 
 That's why the styles above use `:scope { display: block; ... }` and
-`[role=tab] { ... }` instead of `tab-set` and `tab-set [role=tab]` - the
+`[role=tab] { ... }` instead of `tab-set` and `tab-set [role=tab]` -- the
 `@scope` wrapper does the prefixing for you.
 
 The wrapped style block is emitted **once per component definition**, not

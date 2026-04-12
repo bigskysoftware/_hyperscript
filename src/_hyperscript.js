@@ -42,6 +42,7 @@ import * as WhenFeatureModule from './parsetree/features/when.js';
 import * as BindFeatureModule from './parsetree/features/bind.js';
 import * as LiveFeatureModule from './parsetree/features/live.js';
 import * as TemplateCommands from './parsetree/commands/template.js';
+import { initLiveTemplates } from './parsetree/commands/template.js';
 
 const globalScope = typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this);
 
@@ -89,77 +90,7 @@ kernel.registerModule(LiveFeatureModule);
 kernel.registerModule(TemplateCommands);
 
 // ===== Live Templates =====
-// <template live> renders content reactively after the template element
-var liveTemplatesProcessed = new WeakSet();
-runtime.addBeforeProcessHook(function(elt) {
-    if (!elt || !elt.querySelectorAll) return;
-    elt.querySelectorAll('template[live]').forEach(function(tmpl) {
-        if (liveTemplatesProcessed.has(tmpl)) return;
-        liveTemplatesProcessed.add(tmpl);
-
-        var source = tmpl.innerHTML;
-        var script = tmpl.getAttribute('_') || tmpl.getAttribute('data-script') || '';
-        tmpl.removeAttribute('_');
-        tmpl.removeAttribute('data-script');
-
-        var wrapper = document.createElement('div');
-        wrapper.style.display = 'contents';
-        wrapper.setAttribute('data-live-template', '');
-        tmpl.after(wrapper);
-
-        if (script) {
-            wrapper.setAttribute('_', script);
-            runtime.processNode(wrapper);
-        }
-
-        var stamped = false;
-        function stamp(html) {
-            if (!stamped) {
-                wrapper.innerHTML = html;
-                runtime.processNode(wrapper);
-                stamped = true;
-            } else {
-                runtime.morph(wrapper, html);
-            }
-        }
-
-        function render() {
-            var ctx = runtime.makeContext(wrapper, null, wrapper, null);
-            var buf = [];
-            ctx.meta.__ht_template_result = buf;
-            var tokens = tokenizer.tokenize(source, "lines");
-            var parser = new Parser(kernel, tokens);
-            var cmds;
-            try {
-                cmds = parser.parseElement("commandList");
-                parser.ensureTerminated(cmds);
-            } catch (e) {
-                console.error("live-template parse error:", e.message || e);
-                return "";
-            }
-            cmds.execute(ctx);
-            if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
-            var resolve;
-            var promise = new Promise(function(r) { resolve = r; });
-            ctx.meta.resolve = resolve;
-            return promise.then(function() { return buf.join(""); });
-        }
-
-        queueMicrotask(function() {
-            var result = render();
-            if (result && result.then) {
-                result.then(function(html) { stamp(html); setupEffect(); });
-            } else {
-                stamp(result);
-                setupEffect();
-            }
-        });
-
-        function setupEffect() {
-            reactivity.createEffect(render, stamp, { element: wrapper });
-        }
-    });
-});
+initLiveTemplates(runtime, tokenizer, Parser, kernel, reactivity);
 
 // ===== Public API =====
 

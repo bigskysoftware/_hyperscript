@@ -10,7 +10,7 @@ The [Select All Checkbox](/patterns/lists-forms/select-all-checkbox/) pattern wr
 component. Drop a `<master-checkbox>` into any table header and it just works.
 
 {% example "Master checkbox component" %}
-<template component="master-checkbox">
+<script type="text/hypertemplate" component="master-checkbox">
   <input type="checkbox" _="set :checkboxes to <input[type=checkbox]/> in the closest <table/> where it is not me
             on change
                set checked of the :checkboxes to my checked
@@ -24,7 +24,7 @@ component. Drop a `<master-checkbox>` into any table header and it just works.
                else
                  set my indeterminate to true
                end">
-</template>
+</script>
 <table>
 <thead>
   <tr>
@@ -68,7 +68,7 @@ th { background: #f5f5f5; }
 </style>
 {% endexample %}
 
-The component extends `<input>` behavior - since `<master-checkbox>` has no template,
+The component extends `<input>` behavior -- since `<master-checkbox>` has no template body,
 it renders as an empty custom element, but the hyperscript on the component definition
 runs on each instance. It finds all checkboxes in `the closest <table/>`, excluding itself
 with `where it is not me`.

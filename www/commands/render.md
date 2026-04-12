@@ -4,7 +4,7 @@ title: render - ///_hyperscript
 
 ## The `render` Command
 
-The `render` command generates HTML strings from `<template>` elements using a simple template language. The result is placed into `it` / `the result`.
+The `render` command generates HTML strings from `<script type="text/hypertemplate">` elements using a simple template language. The result is placed into `it` / `the result`.
 
 Templates have three rules:
 
@@ -42,11 +42,11 @@ The `#for...#else` clause runs when the collection is empty or null - useful for
 Render a list of colors:
 
 ```html
-<template id="color-template">
+<script type="text/hypertemplate" id="color-template">
 #for color in colors
   <li style="background: ${color}">${color}</li>
 #end
-</template>
+</script>
 
 <button _="on click
   render #color-template with colors: ['red', 'green', 'blue']
@@ -59,13 +59,13 @@ Render a list of colors:
 Empty collection handling with `#for...#else`:
 
 ```html
-<template id="results">
+<script type="text/hypertemplate" id="results">
 #for item in items
   <li>${item.name}</li>
 #else
   <li class="empty">No results found</li>
 #end
-</template>
+</script>
 
 <button _="on click
   render #results with items: searchResults
@@ -78,13 +78,13 @@ Empty collection handling with `#for...#else`:
 Conditional rendering:
 
 ```html
-<template id="greeting">
+<script type="text/hypertemplate" id="greeting">
 #if name
   <p>Hello, ${name}!</p>
 #else
   <p>Hello, stranger!</p>
 #end
-</template>
+</script>
 
 <button _="on click
   render #greeting with name: 'World'
@@ -97,11 +97,11 @@ Conditional rendering:
 Inline conditional expressions:
 
 ```html
-<template id="user-row">
+<script type="text/hypertemplate" id="user-row">
   <td>${user.name}</td>
   <td>${user.role if user.active else "Inactive"}</td>
   <td>${user.email if user.showEmail}</td>
-</template>
+</script>
 ```
 
 `${value if condition}` renders the value only when the condition is truthy (empty string otherwise).
@@ -110,10 +110,10 @@ Inline conditional expressions:
 Escaping and unescaped output:
 
 ```html
-<template id="demo">
+<script type="text/hypertemplate" id="demo">
   Escaped: ${html}
   Raw: ${unescaped html}
-</template>
+</script>
 ```
 
 With `html` set to `"<b>bold</b>"`, this produces:

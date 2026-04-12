@@ -4,9 +4,9 @@ test.describe('live templates', () => {
 
 	test('renders static content after the template', async ({html, find}) => {
 		await html(`
-			<template live>
+			<script type="text/hypertemplate" live>
 				<span>Hello World</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('Hello World')
 	})
@@ -14,9 +14,9 @@ test.describe('live templates', () => {
 	test('renders template expressions', async ({html, find, run, evaluate}) => {
 		await run("set $ltName to 'hyperscript'")
 		await html(`
-			<template live>
+			<script type="text/hypertemplate" live>
 				<span>Hello ${"\x24"}{$ltName}!</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('Hello hyperscript!')
 		await evaluate(() => { delete window.$ltName })
@@ -24,19 +24,19 @@ test.describe('live templates', () => {
 
 	test('applies init script from _ attribute', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^msg to 'initialized'">
+			<script type="text/hypertemplate" live _="init set ^msg to 'initialized'">
 				<span>${"\x24"}{^msg}</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('initialized')
 	})
 
 	test('reactively updates when dependencies change', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^count to 0">
+			<script type="text/hypertemplate" live _="init set ^count to 0">
 				<button _="on click increment ^count">+</button>
 				<span>Count: ${"\x24"}{^count}</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('Count: 0')
 		await find('[data-live-template] button').click()
@@ -45,10 +45,10 @@ test.describe('live templates', () => {
 
 	test('processes hyperscript on inner elements', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^val to 0">
+			<script type="text/hypertemplate" live _="init set ^val to 0">
 				<button _="on click increment ^val then put ^val into the next <output/>">+</button>
 				<output>0</output>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] output').textContent()).toBe('0')
 		await find('[data-live-template] button').click()
@@ -57,13 +57,13 @@ test.describe('live templates', () => {
 
 	test('supports #for loops', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^items to ['a', 'b', 'c']">
+			<script type="text/hypertemplate" live _="init set ^items to ['a', 'b', 'c']">
 				<ul>
 				#for item in ^items
 					<li>${"\x24"}{item}</li>
 				#end
 				</ul>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] li').count()).toBe(3)
 		await expect.poll(() => find('[data-live-template] li').first().textContent()).toBe('a')
@@ -71,11 +71,11 @@ test.describe('live templates', () => {
 
 	test('supports #if conditionals', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^show to true">
+			<script type="text/hypertemplate" live _="init set ^show to true">
 				#if ^show
 					<span>visible</span>
 				#end
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('visible')
 	})
@@ -83,9 +83,9 @@ test.describe('live templates', () => {
 	test('reacts to global state without init script', async ({html, find, run, evaluate}) => {
 		await run("set $ltGlobal to 'World'")
 		await html(`
-			<template live>
+			<script type="text/hypertemplate" live>
 				<p>Hello, ${"\x24"}{$ltGlobal}!</p>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] p').textContent()).toBe('Hello, World!')
 		await run("set $ltGlobal to 'Carson'")
@@ -95,9 +95,9 @@ test.describe('live templates', () => {
 
 	test('wrapper has display:contents', async ({html, find, evaluate}) => {
 		await html(`
-			<template live>
+			<script type="text/hypertemplate" live>
 				<span>test</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('test')
 		var display = await evaluate(() =>
@@ -108,14 +108,47 @@ test.describe('live templates', () => {
 
 	test('multiple live templates are independent', async ({html, find}) => {
 		await html(`
-			<template live _="init set ^x to 'first'">
+			<script type="text/hypertemplate" live _="init set ^x to 'first'">
 				<span class="a">${"\x24"}{^x}</span>
-			</template>
-			<template live _="init set ^x to 'second'">
+			</script>
+			<script type="text/hypertemplate" live _="init set ^x to 'second'">
 				<span class="b">${"\x24"}{^x}</span>
-			</template>
+			</script>
 		`)
 		await expect.poll(() => find('[data-live-template] .a').textContent()).toBe('first')
 		await expect.poll(() => find('[data-live-template] .b').textContent()).toBe('second')
+	})
+
+	test('script type="text/hypertemplate" works as a live template source', async ({html, find}) => {
+		await html(`
+			<script type="text/hypertemplate" live _="init set ^stMsg to 'from script'">
+				<span>${"\x24"}{^stMsg}</span>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('from script')
+	})
+
+	test('script-based live template preserves ${} in bare attribute position', async ({html, find, page}) => {
+		await html(`
+			<script type="text/hypertemplate" live _="init set ^items to [{text:'A', done:true},{text:'B', done:false}]">
+				<ul>
+				#for item in ^items
+					<li class="${"\x24"}{'done' if item.done}" data-text="${"\x24"}{item.text}">
+						<input type="checkbox" ${"\x24"}{'checked' if item.done}>
+						<span>${"\x24"}{item.text}</span>
+					</li>
+				#end
+				</ul>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(2)
+		var firstChecked = await page.evaluate(() =>
+			document.querySelector('[data-live-template] li:nth-child(1) input').checked)
+		expect(firstChecked).toBe(true)
+		var secondChecked = await page.evaluate(() =>
+			document.querySelector('[data-live-template] li:nth-child(2) input').checked)
+		expect(secondChecked).toBe(false)
+		await expect(find('[data-live-template] li').first()).toHaveClass(/done/)
+		await expect(find('[data-live-template] li').last()).not.toHaveClass(/done/)
 	})
 })

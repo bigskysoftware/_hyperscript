@@ -4,7 +4,7 @@ title: components - ///_hyperscript
 
 ## Components
 
-Components let you define reusable custom elements using a `<template>` tag. You write your markup with `${}` interpolation, attach hyperscript with `_=`, and hyperscript handles reactive re-rendering automatically.
+Components let you define reusable custom elements using a `<script type="text/hypertemplate">` tag. You write your markup with `${}` interpolation, attach hyperscript with `_=`, and hyperscript handles reactive re-rendering automatically.
 
 ### Installing
 
@@ -19,7 +19,7 @@ Or if you're using npm: `import 'hyperscript.org/dist/ext/component.js'` after i
 
 ### Defining a Component
 
-To define a component, create a `<template>` with a `component` attribute set to your tag name (which must contain a dash, per the custom elements spec). Then use the component anywhere in your page like a normal HTML element.
+To define a component, create a `<script type="text/hypertemplate">` with a `component` attribute set to your tag name (which must contain a dash, per the custom elements spec). Then use the component anywhere in your page like a normal HTML element.
 
 Component-scoped variables use the `^` prefix (e.g. `^count`). These are local to each component instance -- multiple instances of the same component each get their own scope. The component's `_` attribute runs when the element connects, so `init` is the natural place to set up initial state.
 
@@ -28,12 +28,12 @@ Component-scoped variables use the `^` prefix (e.g. `^count`). These are local t
 Components support content projection through `<slot>` elements. Any children you put inside a component tag get inserted where `<slot/>` appears in the template. You can also use named slots by adding a `slot="name"` attribute to child elements and a `name="name"` attribute to the corresponding `<slot>` in the template.
 
 ```html
-<template component="my-card">
+<script type="text/hypertemplate" component="my-card">
   <div class="card">
     <h2><slot name="title"></slot></h2>
     <slot/>
   </div>
-</template>
+</script>
 
 <my-card>
   <span slot="title">Card Title</span>
@@ -46,9 +46,9 @@ Components support content projection through `<slot>` elements. Any children yo
 The `attrs` proxy gives you access to attribute values evaluated as hyperscript expressions in the *parent* scope. This lets a parent pass data into a component through HTML attributes, and the component can read them via `attrs.attributeName`.
 
 ```html
-<template component="my-display" _="init set ^val to attrs.initial">
+<script type="text/hypertemplate" component="my-display" _="init set ^val to attrs.initial">
   <span>${^val}</span>
-</template>
+</script>
 
 <my-display initial="$someGlobalVar"></my-display>
 ```
@@ -60,10 +60,10 @@ The attribute value (`$someGlobalVar`) is parsed and evaluated as a hyperscript 
 Template expressions (`${}`) are re-evaluated automatically whenever the reactive variables they depend on change. When a re-render happens, hyperscript uses DOM morphing to update only what changed, preserving element identity and event handlers.
 
 ```html
-<template component="my-counter" _="init set ^count to 0">
+<script type="text/hypertemplate" component="my-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Count: ${^count}</span>
-</template>
+</script>
 
 <my-counter></my-counter>
 ```
@@ -79,9 +79,9 @@ Each component instance gets `dom-scope="isolated"`, which means `^var` lookups 
 A simple greeting component:
 
 ```html
-<template component="hello-world">
+<script type="text/hypertemplate" component="hello-world">
   <span>Hello World</span>
-</template>
+</script>
 
 <hello-world></hello-world>
 ```
@@ -89,10 +89,10 @@ A simple greeting component:
 A counter with reactive template rendering:
 
 ```html
-<template component="click-counter" _="init set ^count to 0">
+<script type="text/hypertemplate" component="click-counter" _="init set ^count to 0">
   <button _="on click increment ^count">+</button>
   <span>Count: ${^count}</span>
-</template>
+</script>
 
 <click-counter></click-counter>
 ```
@@ -107,9 +107,9 @@ Multiple independent instances, each with their own state:
 Reading attributes at initialization:
 
 ```html
-<template component="start-at" _="init set ^val to @data-start as Int">
+<script type="text/hypertemplate" component="start-at" _="init set ^val to @data-start as Int">
   <span>${^val}</span>
-</template>
+</script>
 
 <start-at data-start="42"></start-at>
 ```
@@ -117,9 +117,9 @@ Reading attributes at initialization:
 ### Syntax
 
 ```html
-<template component="<tag-name>" [_="<hyperscript>"]>
+<script type="text/hypertemplate" component="<tag-name>" [_="<hyperscript>"]>
   <!-- template body with ${<expression>} interpolation -->
-</template>
+</script>
 
 <tag-name [attribute="value"]*>
   [slot content]
