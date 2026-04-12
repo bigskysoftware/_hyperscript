@@ -203,6 +203,79 @@ When a connection drops, hyperscript automatically reconnects with exponential b
 
 Calling `close()` stops reconnection.  Calling `open()` again resumes it.
 
+### `fetch` as Stream
+
+The SSE extension also adds a `Stream` conversion to the [`fetch`](/commands/fetch) command.
+
+This is useful for one-shot SSE streams (AI chat responses, progress updates, file processing) where you don't need the long-lived connection management of `eventsource`.
+
+~~~ hyperscript
+fetch /api/generate as Stream
+~~~
+
+The result is a stream object. Named events from the server are dispatched on the current element, and unnamed messages can be iterated with a `for` loop:
+
+#### Named events
+
+If the server sends named SSE events (with an `event:` field), they are dispatched
+as DOM events on the element that initiated the fetch. Handle them with `on`:
+
+~~~ hyperscript
+on click
+  fetch /api/process as Stream
+end
+on status -- from SSE stream
+  put event.detail.data into #progress
+end
+~~~
+
+#### Iterating messages
+
+Unnamed messages (plain `data:` lines with no `event:` field) are available as
+an async iterable. Use `for ... in the result` to process each message as it
+arrives:
+
+~~~ hyperscript
+on click
+  fetch /api/chat as Stream
+  for message in the result
+    put message at end of #output
+  end
+end
+~~~
+
+The loop body runs once per message, blocking until the next one arrives. When the stream closes, the loop exits normally.
+
+#### Waiting for the stream to end
+
+The stream fires a `streamEnd` event on the element when the server closes the
+connection:
+
+~~~ hyperscript
+on click
+  fetch /api/export as Stream
+  wait for streamEnd
+  put "Done!" into me
+end
+~~~
+
+#### Error handling
+
+If the stream encounters an error, a `streamError` event is dispatched on the element with an `error` property in the detail:
+
+~~~ hyperscript
+on click
+  fetch /api/generate as Stream
+  on streamError from me
+    put "Connection lost" into #status
+  end
+end
+~~~
+
+{% note %}
+Without the SSE extension loaded, `fetch ... as Stream` throws an error telling you to include the extension.
+{% endnote %}
+
 ### Syntax
 
 ```ebnf
@@ -210,6 +283,8 @@ eventsource <source-name> [from <source-url>]
     [with credentials] [with method <string>] [with headers <object>]
   (on <event-pattern> [as (JSON | string)] <command>+ end)*
 end
+
+fetch <url> as Stream    -- one-shot SSE via the Stream conversion
 ```
 
 Event patterns support `*` as a wildcard (e.g. `"user.*"`, `"*"`).

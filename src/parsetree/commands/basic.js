@@ -654,6 +654,12 @@ export class FetchCommand extends Command {
 
                 if (this.conversionType === "response") return complete(resp);
                 if (this.conversionType === "json") return resp.json().then(complete);
+                if (this.conversion) {
+                    var convFn = config.conversions[this.conversion];
+                    if (convFn && convFn._rawResponse) {
+                        return complete(convFn(resp, context.meta.runtime, context));
+                    }
+                }
                 return resp.text().then((result) => {
                     if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
                     if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");

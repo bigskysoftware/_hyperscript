@@ -363,11 +363,84 @@ function decode(data, encoding) {
 }
 
 // ========================================
+// STREAM CONVERSION (fetch ... as Stream)
+// ========================================
+
+function createStream(response, runtime, context) {
+	var element = context.me;
+	var reader = response.body.getReader();
+	var messages = [];
+	var waiting = null;
+	var done = false;
+
+	// Read SSE events in the background, dispatch named events on the
+	// element, and buffer unnamed messages for async iteration.
+	(async function () {
+		try {
+			for await (var msg of parseSSE(reader)) {
+				var eventType = msg.event || 'message';
+				if (msg.event) {
+					runtime.triggerEvent(element, eventType, {
+						data: msg.data,
+						lastEventId: msg.id || ''
+					});
+				} else {
+					messages.push(msg.data);
+					if (waiting) {
+						waiting.resolve({ value: msg.data, done: false });
+						waiting = null;
+					}
+				}
+			}
+		} catch (err) {
+			runtime.triggerEvent(element, 'stream-error', { error: err });
+		}
+		done = true;
+		if (waiting) {
+			waiting.resolve({ value: undefined, done: true });
+			waiting = null;
+		}
+		runtime.triggerEvent(element, 'streamEnd', {});
+	})();
+
+	var stream = {
+		element: element,
+		[Symbol.asyncIterator]: function () {
+			var index = 0;
+			return {
+				next: function () {
+					if (index < messages.length) {
+						return Promise.resolve({ value: messages[index++], done: false });
+					}
+					if (done) {
+						return Promise.resolve({ value: undefined, done: true });
+					}
+					return new Promise(function (resolve) {
+						waiting = { resolve: resolve };
+					}).then(function (result) {
+						if (!result.done) index++;
+						return result;
+					});
+				}
+			};
+		}
+	};
+
+	return stream;
+}
+
+var streamConversion = function (response, runtime, context) {
+	return createStream(response, runtime, context);
+};
+streamConversion._rawResponse = true;
+
+// ========================================
 // PLUGIN REGISTRATION
 // ========================================
 
 export default function eventsourcePlugin(_hyperscript) {
 	_hyperscript.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
+	_hyperscript.config.conversions.Stream = streamConversion;
 }
 
 if (typeof self !== 'undefined' && self._hyperscript) {

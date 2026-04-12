@@ -266,3 +266,60 @@ test.describe('eventsource extension', () => {
         await restoreFetch(page);
     });
 })
+
+test.describe('fetch as Stream', () => {
+
+    test('dispatches named SSE events on the element', async ({html, find, page}) => {
+        await mockSSE(page, '/stream-named', [
+            { event: 'status', data: 'loading', delay: 10 },
+            { event: 'status', data: 'done', delay: 10 },
+        ]);
+        await html(`
+            <div id="out"></div>
+            <button _="on click
+                          fetch /stream-named as Stream
+                          on status from me
+                            put event.detail.data into #out
+                          end">go</button>
+        `);
+        await find('button').click();
+        await expect.poll(() => find('#out').textContent()).toBe('done');
+        await restoreFetch(page);
+    });
+
+    test('iterates plain messages with for loop', async ({html, find, page}) => {
+        await mockSSE(page, '/stream-iter', [
+            { data: 'one', delay: 10 },
+            { data: 'two', delay: 10 },
+            { data: 'three', delay: 10 },
+        ]);
+        await html(`
+            <div id="out"></div>
+            <button _="on click
+                          fetch /stream-iter as Stream
+                          for message in the result
+                            put message + ' ' at end of #out
+                          end">go</button>
+        `);
+        await find('button').click();
+        await expect.poll(() => find('#out').textContent()).toBe('one two three ');
+        await restoreFetch(page);
+    });
+
+    test('fires streamEnd when the stream closes', async ({html, find, page}) => {
+        await mockSSE(page, '/streamEnd', [
+            { data: 'msg', delay: 50 },
+            { data: 'msg2', delay: 50 },
+        ]);
+        await html(`
+            <div id="out"></div>
+            <button _="on click
+                          fetch /streamEnd as Stream
+                          wait for streamEnd from me
+                          put 'finished' into #out">go</button>
+        `);
+        await find('button').click();
+        await expect.poll(() => find('#out').textContent()).toBe('finished');
+        await restoreFetch(page);
+    });
+})

@@ -149,6 +149,10 @@ export const conversions = {
         return Array.from(val).flat();
     },
     HTML: _toHTML,
+    Stream: function () {
+        throw new Error("The Stream conversion requires the SSE extension. " +
+            "Include dist/ext/sse.js or dist/ext/sse.esm.js after hyperscript.");
+    },
     Fragment: function (val, runtime) {
         var frag = document.createDocumentFragment();
         runtime.implicitLoop(val, (val) => {
