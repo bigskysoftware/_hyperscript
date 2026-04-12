@@ -1263,6 +1263,7 @@ class WhereExpression extends Expression {
         var items = Array.from(collection);
         for (var i = 0; i < items.length; i++) {
             context.beingTested = items[i];
+            if (this.varName) context.locals[this.varName] = items[i];
             if (this.condition.evaluate(context)) {
                 result.push(items[i]);
             }

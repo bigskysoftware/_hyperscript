@@ -64,6 +64,40 @@ test.describe("mapped to expression", () => {
 
 });
 
+test.describe("null safety", () => {
+
+	test("where on null returns null", async ({run}) => {
+		var result = await run(`set x to null then return x where it > 1`);
+		expect(result).toBeNull();
+	});
+
+	test("sorted by on null returns null", async ({run}) => {
+		var result = await run(`set x to null then return x sorted by it`);
+		expect(result).toBeNull();
+	});
+
+	test("mapped to on null returns null", async ({run}) => {
+		var result = await run(`set x to null then return x mapped to (it * 2)`);
+		expect(result).toBeNull();
+	});
+
+	test("split by on null returns null", async ({run}) => {
+		var result = await run(`set x to null then return x split by ','\n`);
+		expect(result).toBeNull();
+	});
+
+	test("joined by on null returns null", async ({run}) => {
+		var result = await run(`set x to null then return x joined by ','`);
+		expect(result).toBeNull();
+	});
+
+	test("where on undefined returns undefined", async ({run}) => {
+		var result = await run(`return doesNotExist where it > 1`);
+		expect(result).toBeUndefined();
+	});
+
+});
+
 test.describe("chaining collection expressions", () => {
 
 	test("where then mapped to", async ({run}) => {

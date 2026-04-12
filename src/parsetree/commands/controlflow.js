@@ -181,6 +181,12 @@ export class RepeatCommand extends Command {
             identifier = identifierToken.value;
             parser.requireToken("in");
             var expression = parser.requireElement("expression");
+            // Tag any `where` clause so the loop variable resolves inside it
+            var walk = expression;
+            while (walk) {
+                if (walk.condition) walk.varName = identifier;
+                walk = walk.root;
+            }
         } else if (parser.matchToken("in")) {
             identifier = "it";
             var expression = parser.requireElement("expression");
