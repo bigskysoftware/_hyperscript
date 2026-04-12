@@ -4,7 +4,7 @@ title: render - ///_hyperscript
 
 ## The `render` Command
 
-The `render` command generates HTML strings from `<script type="text/hypertemplate">` elements using a simple template language. The result is placed into `it` / `the result`.
+The `render` command generates HTML strings from `<script type="text/hyperscript-template">` elements using a simple template language. The result is placed into `it` / `the result`.
 
 Templates have three rules:
 
@@ -42,7 +42,7 @@ The `#for...#else` clause runs when the collection is empty or null - useful for
 Render a list of colors:
 
 ```html
-<script type="text/hypertemplate" id="color-template">
+<script type="text/hyperscript-template" id="color-template">
 #for color in colors
   <li style="background: ${color}">${color}</li>
 #end
@@ -59,7 +59,7 @@ Render a list of colors:
 Empty collection handling with `#for...#else`:
 
 ```html
-<script type="text/hypertemplate" id="results">
+<script type="text/hyperscript-template" id="results">
 #for item in items
   <li>${item.name}</li>
 #else
@@ -78,7 +78,7 @@ Empty collection handling with `#for...#else`:
 Conditional rendering:
 
 ```html
-<script type="text/hypertemplate" id="greeting">
+<script type="text/hyperscript-template" id="greeting">
 #if name
   <p>Hello, ${name}!</p>
 #else
@@ -97,7 +97,7 @@ Conditional rendering:
 Inline conditional expressions:
 
 ```html
-<script type="text/hypertemplate" id="user-row">
+<script type="text/hyperscript-template" id="user-row">
   <td>${user.name}</td>
   <td>${user.role if user.active else "Inactive"}</td>
   <td>${user.email if user.showEmail}</td>
@@ -110,7 +110,7 @@ Inline conditional expressions:
 Escaping and unescaped output:
 
 ```html
-<script type="text/hypertemplate" id="demo">
+<script type="text/hyperscript-template" id="demo">
   Escaped: ${html}
   Raw: ${unescaped html}
 </script>

@@ -5,11 +5,11 @@ function getTemplateSource(el) {
     return el.textContent;
 }
 
-var LIVE_SELECTOR = 'script[type="text/hypertemplate"][live]';
+var LIVE_SELECTOR = 'script[type="text/hyperscript-template"][live]';
 
 /**
  * LiveTemplate - Registers a before-process hook that finds <template live>
- * and <script type="text/hypertemplate" live> elements, renders their content
+ * and <script type="text/hyperscript-template" live> elements, renders their content
  * reactively, and morphs updates into a wrapper element.
  */
 export function initLiveTemplates(runtime, tokenizer, Parser, kernel, reactivity) {

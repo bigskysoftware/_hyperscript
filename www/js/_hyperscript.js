@@ -9959,7 +9959,7 @@
   function getTemplateSource(el) {
     return el.textContent;
   }
-  var LIVE_SELECTOR = 'script[type="text/hypertemplate"][live]';
+  var LIVE_SELECTOR = 'script[type="text/hyperscript-template"][live]';
   function initLiveTemplates(runtime2, tokenizer2, Parser2, kernel2, reactivity2) {
     var processed = /* @__PURE__ */ new WeakSet();
     runtime2.addBeforeProcessHook(function(elt) {

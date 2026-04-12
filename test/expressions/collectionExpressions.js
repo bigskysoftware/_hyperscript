@@ -189,7 +189,7 @@ test.describe("weak indirect binding", () => {
 	test("where in component init followed by on feature", async ({html, find}) => {
 		await html(`
 			<div id='box'><span class='a'>A</span><span class='b'>B</span></div>
-			<script type="text/hypertemplate" component="test-where-comp"
+			<script type="text/hyperscript-template" component="test-where-comp"
 				_="set :items to <span/> in #box where it matches .a
 				   on click put :items.length into me">
 				<slot/>
@@ -203,7 +203,7 @@ test.describe("weak indirect binding", () => {
 	test("where with is not me in component template", async ({html, find, evaluate}) => {
 		await html(`
 			<div id='box'><input type="checkbox" class="cb"><input type="checkbox" class="cb"></div>
-			<script type="text/hypertemplate" component="test-where-me">
+			<script type="text/hyperscript-template" component="test-where-me">
 				<input type="checkbox" _="set :checkboxes to <input[type=checkbox]/> in #box where it is not me on change set checked of the :checkboxes to my checked">
 			</script>
 			<test-where-me></test-where-me>

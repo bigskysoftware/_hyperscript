@@ -12,7 +12,7 @@ their panels in the default slot - the component handles the click logic,
 ARIA wiring, and selection state automatically.
 
 {% example "A reusable tab-set component" %}
-<script type="text/hypertemplate" component="tab-set"
+<script type="text/hyperscript-template" component="tab-set"
   _="on click
        set tab to the closest <[role=tab]/> to the target
        if no tab exit end
@@ -87,7 +87,7 @@ The component template defines two slot positions and attaches the click
 handler to the component itself:
 
 ~~~ html
-<script type="text/hypertemplate" component="tab-set"
+<script type="text/hyperscript-template" component="tab-set"
   _="on click
        set tab to the closest <[role=tab]/> to the target
        if no tab exit end

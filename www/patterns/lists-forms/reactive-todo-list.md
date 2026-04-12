@@ -8,7 +8,7 @@ difficulty: intermediate
 
 A complete todo list: add items, mark them done, remove them, filter by
 text. State is a plain array of `{text, done}` objects, rendered by a
-`<script type="text/hypertemplate" live>` that re-renders whenever the array changes.
+`<script type="text/hyperscript-template" live>` that re-renders whenever the array changes.
 
 {% example "Todo List" %}
 <div class="todo-app"
@@ -31,7 +31,7 @@ text. State is a plain array of `{text, done}` objects, rendered by a
          class="todo-filter"
          _="bind me to $search" />
 
-  <script type="text/hypertemplate" live>
+  <script type="text/hyperscript-template" live>
   <ul class="todo-list">
     #for todo in $todos where the todo's text contains $search ignoring case
       <li class="${'done' if todo is done}">
@@ -121,7 +121,7 @@ mutation and re-renders.
 
 ### Rendering
 
-The `<script type="text/hypertemplate" live>` block renders the list. `#for` iterates `$todos`
+The `<script type="text/hyperscript-template" live>` block renders the list. `#for` iterates `$todos`
 with a `where` filter and an `index i` binding:
 
 ```

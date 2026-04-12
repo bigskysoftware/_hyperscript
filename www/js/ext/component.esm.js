@@ -805,7 +805,7 @@ function componentPlugin(_hyperscript) {
   var registered = /* @__PURE__ */ new Set();
   _hyperscript.addBeforeProcessHook(function(elt) {
     if (!elt || !elt.querySelectorAll) return;
-    elt.querySelectorAll('script[type="text/hypertemplate"][component]').forEach(function(tmpl) {
+    elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
       var script = tmpl.getAttribute("_") || "";
       tmpl.removeAttribute("_");
       var tagName = tmpl.getAttribute("component");

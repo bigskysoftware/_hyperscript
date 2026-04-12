@@ -7,7 +7,7 @@ title: ///_hyperscript
 
 ## Components {#components}
 
-Components let you define reusable custom elements using a `<script type="text/hypertemplate">` tag.
+Components let you define reusable custom elements using a `<script type="text/hyperscript-template">` tag.
 You write markup with `${}` interpolation, attach hyperscript with `_=`, and the
 runtime handles reactive re-rendering via morphing.
 
@@ -17,11 +17,11 @@ See the [component feature page](/features/components) for installation details.
 
 ### Defining a Component {#defining}
 
-A component is a `<script type="text/hypertemplate">` with a `component` attribute. The value is the
+A component is a `<script type="text/hyperscript-template">` with a `component` attribute. The value is the
 tag name you will use (it must contain a dash, per the custom elements spec):
 
 {% example "A component" %}
-<script type="text/hypertemplate" component="hello-world">
+<script type="text/hyperscript-template" component="hello-world">
   <span>Hello World</span>
 </script>
 
@@ -29,7 +29,7 @@ tag name you will use (it must contain a dash, per the custom elements spec):
 <hello-world></hello-world>
 {% endexample %}
 
-Place the `<script type="text/hypertemplate">` anywhere on the page. The tag becomes available from then on,
+Place the `<script type="text/hyperscript-template">` anywhere on the page. The tag becomes available from then on,
 so you can use it multiple times. Each instance is independent.
 
 ### Template Body {#template-body}
@@ -38,7 +38,7 @@ Component templates use hyperscript's template syntax. `${expr}` interpolates an
 expression. `#for`, `#if`, `#else`, and `#end` give you loops and conditionals.
 
   ~~~ html
-  <script type="text/hypertemplate" component="user-card" _="init set ^user to attrs.data">
+  <script type="text/hyperscript-template" component="user-card" _="init set ^user to attrs.data">
     <h3>${^user.name}</h3>
     #if ^user.admin
       <span class="badge">admin</span>
@@ -60,7 +60,7 @@ Use DOM-scoped variables (`^var`) for component state. Each component instance g
 its own isolated DOM scope, so two instances do not share state.
 
 {% example "Component state" %}
-<script type="text/hypertemplate" component="click-counter" _="init set ^count to 0">
+<script type="text/hyperscript-template" component="click-counter" _="init set ^count to 0">
   <style>
     .label { margin-left: 1em; }
   </style>
@@ -83,7 +83,7 @@ re-renders. Rendering uses morphing, so focus, scroll position, and event handle
 are preserved across updates.
 
 {% example "Reactive rendering" %}
-<script type="text/hypertemplate" component="live-greeter" _="init set ^name to 'World'">
+<script type="text/hyperscript-template" component="live-greeter" _="init set ^name to 'World'">
   <input type="text" _="bind ^name to my value" />
   <p>Hello, ${^name}!</p>
 </script>
@@ -103,7 +103,7 @@ An attribute access is lazily is parsed as a hyperscript expression in the *pare
 This allows you to pass variables and objects as naturally as you would any hyperscript expression:
 
 {% example "Passing data via attrs" %}
-<script type="text/hypertemplate" component="user-card" _="init set ^user to attrs.data">
+<script type="text/hyperscript-template" component="user-card" _="init set ^user to attrs.data">
   <style>
     h3, p { margin: 0; }
   </style>
@@ -132,7 +132,7 @@ internal component state.
 is projected into the template at the slot position:
 
 {% example "Default slot" %}
-<script type="text/hypertemplate" component="my-card">
+<script type="text/hyperscript-template" component="my-card">
   <style>
     :scope { display: block; }
     .frame {
@@ -155,7 +155,7 @@ is projected into the template at the slot position:
 Named slots let you project multiple regions:
 
 {% example "Named slots" %}
-<script type="text/hypertemplate" component="my-layout">
+<script type="text/hyperscript-template" component="my-layout">
   <style>
     :scope { display: block; }
     .frame { border: 1px solid #ccc; border-radius: 4px; }
@@ -191,7 +191,7 @@ the `<style>` out of the template, wraps its contents in a CSS
 and inserts a single `<style>` element immediately after the component definition.
 
 {% example "Scoped styles" %}
-<script type="text/hypertemplate" component="badge-pill">
+<script type="text/hyperscript-template" component="badge-pill">
   <style>
     :scope {
       display: inline-block;
@@ -238,7 +238,7 @@ language docs for all the scoping options.
 A component with reactive state, `attrs` input, and two-way binding:
 
 {% example "Filterable List" %}
-<script type="text/hypertemplate" component="filter-list"
+<script type="text/hyperscript-template" component="filter-list"
         _="init set ^items to attrs.items
                    set ^query to ''">
   <input type="text" placeholder="Search..." _="bind ^query to my value" />
@@ -301,7 +301,7 @@ Behaviors and components solve two different problems:
 
 |            | Behaviors                                      | Components                              |
 |------------|------------------------------------------------|-----------------------------------------|
-| Definition | A block of hyperscript                         | A `<script type="text/hypertemplate">` with markup and `_=` |
+| Definition | A block of hyperscript                         | A `<script type="text/hyperscript-template">` with markup and `_=` |
 | Use        | `install` on any existing element              | Place a custom tag in your HTML         |
 | Markup     | No, attaches to existing DOM                   | Yes, renders its own markup             |
 | State      | Shares the host element's scope                | Isolated DOM scope per instance         |

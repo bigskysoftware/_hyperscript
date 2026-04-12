@@ -9,11 +9,11 @@ title: ///_hyperscript
 
 ### Templates {#templates}
 
-The [`render`](/commands/render) command lets you generate HTML strings from `<script type="text/hypertemplate">` elements with interpolation
+The [`render`](/commands/render) command lets you generate HTML strings from `<script type="text/hyperscript-template">` elements with interpolation
 and control flow:
 
   ~~~ html
-  <script type="text/hypertemplate" id="user-list">
+  <script type="text/hyperscript-template" id="user-list">
   <ul>
   #for user in users
     <li>${user.name} (${user.role})</li>
@@ -33,7 +33,7 @@ Template lines are output as-is. `${expr}` interpolates hyperscript expressions 
 You can also use inline conditionals inside an expression:
 
   ~~~ html
-  <script type="text/hypertemplate" id="status">
+  <script type="text/hyperscript-template" id="status">
   <td>${user.name}</td>
   <td>${user.role if user.active else "Inactive"}</td>
   </script>
@@ -43,7 +43,7 @@ You can also use inline conditionals inside an expression:
 `#break` and `#continue` for loop control:
 
   ~~~ html
-  <script type="text/hypertemplate" id="user-list">
+  <script type="text/hyperscript-template" id="user-list">
   <ul>
   #for user in users
     #if user.hidden
@@ -101,13 +101,13 @@ This forms the basis of [components](/docs/components/).
 
 ### Live Templates {#live-templates}
 
-You can use templates directly in your HTML by adding a `live` attribute to a `<script type="text/hypertemplate">`. 
+You can use templates directly in your HTML by adding a `live` attribute to a `<script type="text/hyperscript-template">`. 
 
 The output appears after the template element and re-renders automatically when dependencies change,
 using morphing to preserve focus and event handlers.
 
   ~~~ html
-  <script type="text/hypertemplate" live _="init set ^count to 0">
+  <script type="text/hyperscript-template" live _="init set ^count to 0">
     <button _="on click increment ^count">+</button>
     <p>Count: ${^count}</p>
   </script>

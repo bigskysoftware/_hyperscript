@@ -4,7 +4,7 @@ test.describe('live templates', () => {
 
 	test('renders static content after the template', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<span>Hello World</span>
 			</script>
 		`)
@@ -14,7 +14,7 @@ test.describe('live templates', () => {
 	test('renders template expressions', async ({html, find, run, evaluate}) => {
 		await run("set $ltName to 'hyperscript'")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<span>Hello ${"\x24"}{$ltName}!</span>
 			</script>
 		`)
@@ -24,7 +24,7 @@ test.describe('live templates', () => {
 
 	test('applies init script from _ attribute', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^msg to 'initialized'">
+			<script type="text/hyperscript-template" live _="init set ^msg to 'initialized'">
 				<span>${"\x24"}{^msg}</span>
 			</script>
 		`)
@@ -33,7 +33,7 @@ test.describe('live templates', () => {
 
 	test('reactively updates when dependencies change', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^count to 0">
+			<script type="text/hyperscript-template" live _="init set ^count to 0">
 				<button _="on click increment ^count">+</button>
 				<span>Count: ${"\x24"}{^count}</span>
 			</script>
@@ -45,7 +45,7 @@ test.describe('live templates', () => {
 
 	test('processes hyperscript on inner elements', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^val to 0">
+			<script type="text/hyperscript-template" live _="init set ^val to 0">
 				<button _="on click increment ^val then put ^val into the next <output/>">+</button>
 				<output>0</output>
 			</script>
@@ -57,7 +57,7 @@ test.describe('live templates', () => {
 
 	test('supports #for loops', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^items to ['a', 'b', 'c']">
+			<script type="text/hyperscript-template" live _="init set ^items to ['a', 'b', 'c']">
 				<ul>
 				#for item in ^items
 					<li>${"\x24"}{item}</li>
@@ -71,7 +71,7 @@ test.describe('live templates', () => {
 
 	test('supports #if conditionals', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^show to true">
+			<script type="text/hyperscript-template" live _="init set ^show to true">
 				#if ^show
 					<span>visible</span>
 				#end
@@ -83,7 +83,7 @@ test.describe('live templates', () => {
 	test('reacts to global state without init script', async ({html, find, run, evaluate}) => {
 		await run("set $ltGlobal to 'World'")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<p>Hello, ${"\x24"}{$ltGlobal}!</p>
 			</script>
 		`)
@@ -95,7 +95,7 @@ test.describe('live templates', () => {
 
 	test('wrapper has display:contents', async ({html, find, evaluate}) => {
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<span>test</span>
 			</script>
 		`)
@@ -108,10 +108,10 @@ test.describe('live templates', () => {
 
 	test('multiple live templates are independent', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^x to 'first'">
+			<script type="text/hyperscript-template" live _="init set ^x to 'first'">
 				<span class="a">${"\x24"}{^x}</span>
 			</script>
-			<script type="text/hypertemplate" live _="init set ^x to 'second'">
+			<script type="text/hyperscript-template" live _="init set ^x to 'second'">
 				<span class="b">${"\x24"}{^x}</span>
 			</script>
 		`)
@@ -119,9 +119,9 @@ test.describe('live templates', () => {
 		await expect.poll(() => find('[data-live-template] .b').textContent()).toBe('second')
 	})
 
-	test('script type="text/hypertemplate" works as a live template source', async ({html, find}) => {
+	test('script type="text/hyperscript-template" works as a live template source', async ({html, find}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^stMsg to 'from script'">
+			<script type="text/hyperscript-template" live _="init set ^stMsg to 'from script'">
 				<span>${"\x24"}{^stMsg}</span>
 			</script>
 		`)
@@ -131,7 +131,7 @@ test.describe('live templates', () => {
 	test('loop variables are captured and available in _= handlers', async ({html, find, page, run}) => {
 		await run("set $captureItems to [{name:'Alice'},{name:'Bob'},{name:'Charlie'}]")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<ul>
 				#for item in $captureItems index i
 					<li _="on click put item.name into me">${"\x24"}{item.name}</li>
@@ -147,7 +147,7 @@ test.describe('live templates', () => {
 	test('loop index variable is captured alongside loop variable', async ({html, find, run}) => {
 		await run("set $idxItems to ['A','B','C']")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<ul>
 				#for item in $idxItems index i
 					<li _="on click put i + ':' + item into me">${"\x24"}{item}</li>
@@ -163,7 +163,7 @@ test.describe('live templates', () => {
 	test('loop variable capture works with remove for live list', async ({html, find, page, run}) => {
 		await run("set $removeItems to [{name:'A'},{name:'B'},{name:'C'}]")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<ul>
 				#for item in $removeItems
 					<li><span>${"\x24"}{item.name}</span><button _="on click remove item from $removeItems">x</button></li>
@@ -182,7 +182,7 @@ test.describe('live templates', () => {
 	test('scope is refreshed after morph so surviving elements get updated indices', async ({html, find, run}) => {
 		await run("set $morphItems to [{name:'A'},{name:'B'},{name:'C'}]")
 		await html(`
-			<script type="text/hypertemplate" live>
+			<script type="text/hyperscript-template" live>
 				<ul>
 				#for item in $morphItems index i
 					<li _="on click put i + ':' + item.name into me">${"\x24"}{item.name}</li>
@@ -204,7 +204,7 @@ test.describe('live templates', () => {
 
 	test('script-based live template preserves ${} in bare attribute position', async ({html, find, page}) => {
 		await html(`
-			<script type="text/hypertemplate" live _="init set ^items to [{text:'A', done:true},{text:'B', done:false}]">
+			<script type="text/hyperscript-template" live _="init set ^items to [{text:'A', done:true},{text:'B', done:false}]">
 				<ul>
 				#for item in ^items
 					<li class="${"\x24"}{'done' if item.done}" data-text="${"\x24"}{item.text}">

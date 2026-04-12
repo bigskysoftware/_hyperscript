@@ -9958,7 +9958,7 @@
   function getTemplateSource(el) {
     return el.textContent;
   }
-  var LIVE_SELECTOR = 'script[type="text/hypertemplate"][live]';
+  var LIVE_SELECTOR = 'script[type="text/hyperscript-template"][live]';
   function initLiveTemplates(runtime2, tokenizer2, Parser2, kernel2, reactivity2) {
     var processed = /* @__PURE__ */ new WeakSet();
     runtime2.addBeforeProcessHook(function(elt) {
@@ -11081,7 +11081,7 @@
     var registered = /* @__PURE__ */ new Set();
     _hyperscript2.addBeforeProcessHook(function(elt) {
       if (!elt || !elt.querySelectorAll) return;
-      elt.querySelectorAll('script[type="text/hypertemplate"][component]').forEach(function(tmpl) {
+      elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
         var script = tmpl.getAttribute("_") || "";
         tmpl.removeAttribute("_");
         var tagName = tmpl.getAttribute("component");

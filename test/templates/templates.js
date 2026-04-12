@@ -4,9 +4,9 @@ import _hyperscript from "../../src/_hyperscript.js";
 test.describe('Templating', () => {
 
     test('can render correctly', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for x in stuff\n<p>Hello ${x}</p>\n#end</script>')
+        await html('<script type="text/hyperscript-template">#for x in stuff\n<p>Hello ${x}</p>\n#end</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with stuff: stuff then put it into window.res", {
                 locals: { stuff: [1,2,3], tmpl }
             })
@@ -16,9 +16,9 @@ test.describe('Templating', () => {
     })
 
 	test('can render', async ({html, evaluate}) => {
-		await html('<script type="text/hypertemplate">render ${x}</script>')
+		await html('<script type="text/hyperscript-template">render ${x}</script>')
 		await evaluate(() => {
-			const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+			const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
 			_hyperscript("render tmpl with x: x then put it into window.res", {
 				locals: { x: ":)", tmpl }
 			})
@@ -28,9 +28,9 @@ test.describe('Templating', () => {
 	})
 
 	test('escapes html, with opt-out', async ({html, evaluate}) => {
-		await html('<script type="text/hypertemplate">render ${x} ${unescaped x}</script>')
+		await html('<script type="text/hyperscript-template">render ${x} ${unescaped x}</script>')
 		await evaluate(() => {
-			const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+			const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
 			_hyperscript("render tmpl with x: x then put it into window.res", {
 				locals: { x: "<br>", tmpl }
 			})
@@ -40,9 +40,9 @@ test.describe('Templating', () => {
 	})
 
 	test('supports repeat', async ({html, evaluate}) => {
-		await html('<script type="text/hypertemplate">begin\n#for it in [1, 2, 3]\n${it}\n#end\nend\n</script>')
+		await html('<script type="text/hyperscript-template">begin\n#for it in [1, 2, 3]\n${it}\n#end\nend\n</script>')
 		await evaluate(() => {
-			const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+			const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
 			_hyperscript("render tmpl then put it into window.res", {
 				locals: { tmpl }
 			})
@@ -52,9 +52,9 @@ test.describe('Templating', () => {
 	})
 
 	test('supports if', async ({html, evaluate}) => {
-		await html('<script type="text/hypertemplate">begin\n#if true\na\n#else\nb\n#end\nend\n</script>')
+		await html('<script type="text/hyperscript-template">begin\n#if true\na\n#else\nb\n#end\nend\n</script>')
 		await evaluate(() => {
-			const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+			const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
 			_hyperscript("render tmpl then put it into window.res", {
 				locals: { tmpl }
 			})
@@ -64,9 +64,9 @@ test.describe('Templating', () => {
 	})
 
     test ('supports nested operations', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for x in stuff\n#if x === 2\n<p>Should be 2 -> ${x}</p>\n#end\n#end</script>')
+        await html('<script type="text/hyperscript-template">#for x in stuff\n#if x === 2\n<p>Should be 2 -> ${x}</p>\n#end\n#end</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with stuff: stuff then put it into window.res", {
                 locals: { stuff: [0,1,2,2,3,4], tmpl }
             })
@@ -76,10 +76,10 @@ test.describe('Templating', () => {
     })
 
     test ('handles async expressions', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">result: ${asyncFn()}</script>')
+        await html('<script type="text/hyperscript-template">result: ${asyncFn()}</script>')
         await evaluate(() => {
             window.asyncFn = () => Promise.resolve(10)
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             return _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -89,10 +89,10 @@ test.describe('Templating', () => {
     })
 
     test('async expressions in a loop resolve correctly', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for x in items\n${asyncFn(x)}\n#end</script>')
+        await html('<script type="text/hyperscript-template">#for x in items\n${asyncFn(x)}\n#end</script>')
         await evaluate(() => {
             window.asyncFn = (v) => Promise.resolve("got:" + v)
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             return _hyperscript("render tmpl with items: items, asyncFn: asyncFn then put it into window.res", {
                 locals: { items: [1, 2, 3], asyncFn: window.asyncFn, tmpl }
             })
@@ -102,13 +102,13 @@ test.describe('Templating', () => {
     })
 
     test('recovers from bad expression in ${}', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">before ${!!!} after</script>')
+        await html('<script type="text/hyperscript-template">before ${!!!} after</script>')
         var errors = []
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -122,12 +122,12 @@ test.describe('Templating', () => {
     })
 
     test('recovers from unterminated ${}', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">before ${x after</script>')
+        await html('<script type="text/hyperscript-template">before ${x after</script>')
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -141,11 +141,11 @@ test.describe('Templating', () => {
     })
 
     test('good expressions still render alongside bad ones', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${x} ${!!!} ${y}</script>')
+        await html('<script type="text/hyperscript-template">${x} ${!!!} ${y}</script>')
         await evaluate(() => {
             var origError = console.error
             console.error = function() {}
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
                 locals: { x: "hello", y: "world", tmpl }
             })
@@ -156,9 +156,9 @@ test.describe('Templating', () => {
     })
 
     test('multiple expressions on one line', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${a} + ${b} = ${c}</script>')
+        await html('<script type="text/hyperscript-template">${a} + ${b} = ${c}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with a: a, b: b, c: c then put it into window.res", {
                 locals: { a: 1, b: 2, c: 3, tmpl }
             })
@@ -168,9 +168,9 @@ test.describe('Templating', () => {
     })
 
     test('expression with nested braces', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${obj["key"]}</script>')
+        await html('<script type="text/hyperscript-template">${obj["key"]}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with obj: obj then put it into window.res", {
                 locals: { obj: { key: "val" }, tmpl }
             })
@@ -180,9 +180,9 @@ test.describe('Templating', () => {
     })
 
     test('null and undefined render as empty', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">[${x}][${y}]</script>')
+        await html('<script type="text/hyperscript-template">[${x}][${y}]</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
                 locals: { x: null, y: undefined, tmpl }
             })
@@ -192,9 +192,9 @@ test.describe('Templating', () => {
     })
 
     test('empty template renders empty string', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate"></script>')
+        await html('<script type="text/hyperscript-template"></script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -204,9 +204,9 @@ test.describe('Templating', () => {
     })
 
     test('plain text with no expressions', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">just plain text\n</script>')
+        await html('<script type="text/hyperscript-template">just plain text\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -216,9 +216,9 @@ test.describe('Templating', () => {
     })
 
     test('blank lines are consumed as whitespace', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">a\n\nb\n</script>')
+        await html('<script type="text/hyperscript-template">a\n\nb\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -228,9 +228,9 @@ test.describe('Templating', () => {
     })
 
     test('renders into DOM element', async ({html, find, evaluate}) => {
-        await html('<script type="text/hypertemplate"><b>${x}</b></script><div id="target"></div>')
+        await html('<script type="text/hyperscript-template"><b>${x}</b></script><div id="target"></div>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             const target = document.querySelector('#target')
             _hyperscript("render tmpl with x: x then put it into window.res", {
                 locals: { x: "hello", tmpl }
@@ -241,9 +241,9 @@ test.describe('Templating', () => {
     })
 
     test('expression with math', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${x + y}</script>')
+        await html('<script type="text/hyperscript-template">${x + y}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x, y: y then put it into window.res", {
                 locals: { x: 10, y: 20, tmpl }
             })
@@ -253,10 +253,10 @@ test.describe('Templating', () => {
     })
 
     test('expression with function call', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${fn()}</script>')
+        await html('<script type="text/hyperscript-template">${fn()}</script>')
         await evaluate(() => {
             window.testFn = () => "called"
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with fn: fn then put it into window.res", {
                 locals: { fn: window.testFn, tmpl }
             })
@@ -266,9 +266,9 @@ test.describe('Templating', () => {
     })
 
     test('if false takes else branch', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#if false\nyes\n#else\nno\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#if false\nyes\n#else\nno\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", {
                 locals: { tmpl }
             })
@@ -278,9 +278,9 @@ test.describe('Templating', () => {
     })
 
     test('if with expression condition', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#if x is greater than 5\nbig\n#else\nsmall\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#if x is greater than 5\nbig\n#else\nsmall\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x then put it into window.res", {
                 locals: { x: 10, tmpl }
             })
@@ -290,9 +290,9 @@ test.describe('Templating', () => {
     })
 
     test('for loop with index', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for x in items\n${x}\n#end</script>')
+        await html('<script type="text/hyperscript-template">#for x in items\n${x}\n#end</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: ["a", "b", "c"], tmpl }
             })
@@ -302,9 +302,9 @@ test.describe('Templating', () => {
     })
 
     test('for loop over empty array', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">before\n#for x in items\n${x}\n#end\nafter\n</script>')
+        await html('<script type="text/hyperscript-template">before\n#for x in items\n${x}\n#end\nafter\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [], tmpl }
             })
@@ -314,9 +314,9 @@ test.describe('Templating', () => {
     })
 
     test('all html entities escaped', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${x}</script>')
+        await html('<script type="text/hyperscript-template">${x}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x then put it into window.res", {
                 locals: { x: '<div class="a" data-x=\'b\'>&', tmpl }
             })
@@ -326,9 +326,9 @@ test.describe('Templating', () => {
     })
 
     test('null values render as empty string, not "null"', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">[${x}]</script>')
+        await html('<script type="text/hyperscript-template">[${x}]</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with x: x then put it into window.res", {
                 locals: { x: null, tmpl }
             })
@@ -338,9 +338,9 @@ test.describe('Templating', () => {
     })
 
     test('supports for...else with non-empty collection', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [1, 2, 3], tmpl }
             })
@@ -350,9 +350,9 @@ test.describe('Templating', () => {
     })
 
     test('supports for...else with empty collection', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [], tmpl }
             })
@@ -362,9 +362,9 @@ test.describe('Templating', () => {
     })
 
     test('supports for...else with null collection', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\nFound: ${item}\n#else\nNothing to show\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\nFound: ${item}\n#else\nNothing to show\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: null, tmpl }
             })
@@ -374,9 +374,9 @@ test.describe('Templating', () => {
     })
 
     test('supports conditional expressions with if', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">Result: ${value if condition}</script>')
+        await html('<script type="text/hyperscript-template">Result: ${value if condition}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with value: value, condition: condition then put it into window.res", {
                 locals: { value: 'Hello', condition: true, tmpl }
             })
@@ -386,9 +386,9 @@ test.describe('Templating', () => {
     })
 
     test('supports conditional expressions with if (false condition)', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">Result: ${value if condition}</script>')
+        await html('<script type="text/hyperscript-template">Result: ${value if condition}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with value: value, condition: condition then put it into window.res", {
                 locals: { value: 'Hello', condition: false, tmpl }
             })
@@ -398,9 +398,9 @@ test.describe('Templating', () => {
     })
 
     test('supports conditional expressions with if...else', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">Result: ${value if condition else fallback}</script>')
+        await html('<script type="text/hyperscript-template">Result: ${value if condition else fallback}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with value: value, condition: condition, fallback: fallback then put it into window.res", {
                 locals: { value: 'Hello', condition: false, fallback: 'Goodbye', tmpl }
             })
@@ -410,9 +410,9 @@ test.describe('Templating', () => {
     })
 
     test('supports conditional expressions with complex expressions', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">Status: ${user.name if user.active else "Inactive"}</script>')
+        await html('<script type="text/hyperscript-template">Status: ${user.name if user.active else "Inactive"}</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with user: user then put it into window.res", {
                 locals: { user: { name: 'Alice', active: true }, tmpl }
             })
@@ -422,9 +422,9 @@ test.describe('Templating', () => {
     })
 
     test('supports conditional expressions in loops', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\n${item.name if item.show else "Hidden"}\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\n${item.name if item.show else "Hidden"}\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: {
                     items: [
@@ -441,9 +441,9 @@ test.describe('Templating', () => {
     })
 
     test('supports continue in template for loops', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\n#if item === 2\n#continue\n#end\n${item}\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\n#if item === 2\n#continue\n#end\n${item}\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [1, 2, 3, 4], tmpl }
             })
@@ -453,9 +453,9 @@ test.describe('Templating', () => {
     })
 
     test('supports break in template for loops', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\n#if item === 3\n#break\n#end\n${item}\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\n#if item === 3\n#break\n#end\n${item}\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [1, 2, 3, 4, 5], tmpl }
             })
@@ -465,34 +465,34 @@ test.describe('Templating', () => {
     })
 
     test('render into sets innerHTML of target element', async ({html, find, evaluate}) => {
-        await html('<script type="text/hypertemplate" id="tmpl"><b>hello</b></script><div id="target"></div><button _="on click render #tmpl into #target">go</button>')
+        await html('<script type="text/hyperscript-template" id="tmpl"><b>hello</b></script><div id="target"></div><button _="on click render #tmpl into #target">go</button>')
         await evaluate(() => document.querySelector('button').click())
         await expect(find('#target b')).toHaveText('hello')
     })
 
     test('render into with args', async ({html, find, evaluate}) => {
-        await html('<script type="text/hypertemplate" id="tmpl"><b>${x}</b></script><div id="target"></div><button _="on click render #tmpl with x: \'world\' into #target">go</button>')
+        await html('<script type="text/hyperscript-template" id="tmpl"><b>${x}</b></script><div id="target"></div><button _="on click render #tmpl with x: \'world\' into #target">go</button>')
         await evaluate(() => document.querySelector('button').click())
         await expect(find('#target b')).toHaveText('world')
     })
 
     test('render here sets innerHTML of me', async ({html, find, evaluate}) => {
-        await html('<div id="target" _="on click render #tmpl here"><script type="text/hypertemplate" id="tmpl"><b>hello</b></script></div>')
+        await html('<div id="target" _="on click render #tmpl here"><script type="text/hyperscript-template" id="tmpl"><b>hello</b></script></div>')
         await evaluate(() => document.querySelector('#target').click())
         await expect(find('#target b')).toHaveText('hello')
     })
 
     test('render here with args', async ({html, find, evaluate}) => {
-        await html('<div id="target" _="on click render #tmpl with x: \'world\' here"><script type="text/hypertemplate" id="tmpl"><b>${x}</b></script></div>')
+        await html('<div id="target" _="on click render #tmpl with x: \'world\' here"><script type="text/hyperscript-template" id="tmpl"><b>${x}</b></script></div>')
         await evaluate(() => document.querySelector('#target').click())
         await expect(find('#target b')).toHaveText('world')
     })
 
     test('conditional with nested parens in value does not false-trigger on inner if', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${fn(x) if condition}</script>')
+        await html('<script type="text/hyperscript-template">${fn(x) if condition}</script>')
         await evaluate(() => {
             window.testFn = (v) => 'called:' + v
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with fn: fn, x: x, condition: condition then put it into window.res", {
                 locals: { fn: window.testFn, x: 42, condition: true, tmpl }
             })
@@ -502,12 +502,12 @@ test.describe('Templating', () => {
     })
 
     test('error inside for body is reported', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for x in items\n${!!!}\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for x in items\n${!!!}\n#end\n</script>')
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [1, 2], tmpl }
             })
@@ -519,9 +519,9 @@ test.describe('Templating', () => {
     })
 
     test('content after for...else still renders', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\n${item}\n#else\nnothing\n#end\nafter\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\n${item}\n#else\nnothing\n#end\nafter\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [], tmpl }
             })
@@ -531,9 +531,9 @@ test.describe('Templating', () => {
     })
 
     test('break prevents else clause from executing', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">#for item in items\n#if item === 2\n#break\n#end\n${item}\n#else\nNo items\n#end\n</script>')
+        await html('<script type="text/hyperscript-template">#for item in items\n#if item === 2\n#break\n#end\n${item}\n#else\nNo items\n#end\n</script>')
         await evaluate(() => {
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with items: items then put it into window.res", {
                 locals: { items: [1, 2, 3], tmpl }
             })
@@ -543,12 +543,12 @@ test.describe('Templating', () => {
     })
 
     test('error in top-level expression is reported', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">before ${!!!} after</script>')
+        await html('<script type="text/hyperscript-template">before ${!!!} after</script>')
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", { locals: { tmpl } })
             console.error = origError
         })
@@ -558,12 +558,12 @@ test.describe('Templating', () => {
     })
 
     test('error in conditional expression is reported', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${value if !!!}</script>')
+        await html('<script type="text/hyperscript-template">${value if !!!}</script>')
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with value: 'hi' then put it into window.res", { locals: { tmpl } })
             console.error = origError
         })
@@ -573,12 +573,12 @@ test.describe('Templating', () => {
     })
 
     test('multiple errors in one template are all reported', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">${!!!}\n${---}\n</script>')
+        await html('<script type="text/hyperscript-template">${!!!}\n${---}\n</script>')
         await evaluate(() => {
             var origError = console.error
             window.__capturedErrors = []
             console.error = function() { window.__capturedErrors.push(Array.from(arguments).join(' ')) }
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl then put it into window.res", { locals: { tmpl } })
             console.error = origError
         })
@@ -587,11 +587,11 @@ test.describe('Templating', () => {
     })
 
     test('good expressions render despite errors in other expressions', async ({html, evaluate}) => {
-        await html('<script type="text/hypertemplate">good: ${value} bad: ${!!!}</script>')
+        await html('<script type="text/hyperscript-template">good: ${value} bad: ${!!!}</script>')
         await evaluate(() => {
             var origError = console.error
             console.error = function() {}
-            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            const tmpl = document.querySelector('#work-area script[type="text/hyperscript-template"]')
             _hyperscript("render tmpl with value: value then put it into window.res", {
                 locals: { value: 'ok', tmpl }
             })

@@ -10,7 +10,7 @@ The [Select All Checkbox](/patterns/lists-forms/select-all-checkbox/) pattern wr
 component. Drop a `<master-checkbox>` into any table header and it just works.
 
 {% example "Master checkbox component" %}
-<script type="text/hypertemplate" component="master-checkbox">
+<script type="text/hyperscript-template" component="master-checkbox">
   <input type="checkbox" _="set :checkboxes to <input[type=checkbox]/> in the closest <table/> where it is not me
             on change
                set checked of the :checkboxes to my checked

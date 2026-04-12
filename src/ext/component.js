@@ -255,7 +255,7 @@ export default function componentPlugin(_hyperscript) {
 
     _hyperscript.addBeforeProcessHook(function(elt) {
         if (!elt || !elt.querySelectorAll) return;
-        elt.querySelectorAll('script[type="text/hypertemplate"][component]').forEach(function(tmpl) {
+        elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
             // Always strip _ to prevent normal processNode from running it on the template
             var script = tmpl.getAttribute('_') || '';
             tmpl.removeAttribute('_');

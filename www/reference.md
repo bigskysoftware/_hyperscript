@@ -22,7 +22,7 @@ These features are available via extension scripts:
 
 | name                                     | description                                                           | example                             |
 |------------------------------------------|-----------------------------------------------------------------------|-------------------------------------|
-| **[components](/features/components)**   | Reusable custom elements with reactive templates                      | `<script type="text/hypertemplate" component="my-card">`    |
+| **[components](/features/components)**   | Reusable custom elements with reactive templates                      | `<script type="text/hyperscript-template" component="my-card">`    |
 | **[eventsource](/features/eventsource)** | Subscribe to Server Sent Events (SSE)                                 |                                     |
 | **[intercept](/features/intercept)**     | Service-worker DSL for caching, offline fallback, and request routing | `intercept precache /, /styles.css` |
 | **[socket](/features/socket)**           | Create a Web Socket                                                   |                                     |
