@@ -696,6 +696,17 @@ function componentPlugin(_hyperscript) {
       console.error("component name must contain a dash: '" + tagName + "'");
       return;
     }
+    var styleEls = templateEl.content.querySelectorAll("style");
+    if (styleEls.length) {
+      var combined = "";
+      styleEls.forEach(function(s) {
+        combined += s.textContent + "\n";
+        s.remove();
+      });
+      var scopedStyle = document.createElement("style");
+      scopedStyle.textContent = "@scope (" + tagName + ") {\n" + combined + "}";
+      templateEl.insertAdjacentElement("afterend", scopedStyle);
+    }
     const templateSource = templateEl.innerHTML;
     const ComponentClass = class extends HTMLElement {
       connectedCallback() {
