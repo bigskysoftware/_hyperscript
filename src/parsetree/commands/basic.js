@@ -499,6 +499,7 @@ export class PickCommand extends Command {
     }
 
     resolve(ctx, { root, from, to, re, count }) {
+        if (root == null) { ctx.result = root; return this.findNext(ctx); }
         if (this.variant === "first") {
             ctx.result = root.slice(0, count);
         } else if (this.variant === "last") {

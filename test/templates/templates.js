@@ -325,6 +325,18 @@ test.describe('Templating', () => {
         expect(res).toBe('&lt;div class=&quot;a&quot; data-x=&#039;b&#039;&gt;&amp;')
     })
 
+    test('null values render as empty string, not "null"', async ({html, evaluate}) => {
+        await html('<script type="text/hypertemplate">[${x}]</script>')
+        await evaluate(() => {
+            const tmpl = document.querySelector('#work-area script[type="text/hypertemplate"]')
+            _hyperscript("render tmpl with x: x then put it into window.res", {
+                locals: { x: null, tmpl }
+            })
+        })
+        const res = await evaluate(() => window.res)
+        expect(res).toBe('[]')
+    })
+
     test('supports for...else with non-empty collection', async ({html, evaluate}) => {
         await html('<script type="text/hypertemplate">#for item in items\nFound: ${item}\n#else\nNo items found\n#end\n</script>')
         await evaluate(() => {

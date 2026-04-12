@@ -331,7 +331,7 @@ export class EscapeExpression extends Expression {
 
     resolve(ctx, { value }) {
         if (this.unescaped) return value;
-        if (value === undefined) return "";
+        if (value == null) return "";
         switch (this.escapeType) {
             case "html":
                 return escapeHTML(value);

@@ -156,4 +156,24 @@ test.describe("the pick command", () => {
 		expect(result).toEqual(["32"]);
 	});
 
+	test("pick first from null returns null", async ({run}) => {
+		var result = await run("set x to null then pick first 3 from x then return it");
+		expect(result).toBeNull();
+	});
+
+	test("pick last from null returns null", async ({run}) => {
+		var result = await run("set x to null then pick last 2 from x then return it");
+		expect(result).toBeNull();
+	});
+
+	test("pick random from null returns null", async ({run}) => {
+		var result = await run("set x to null then pick random from x then return it");
+		expect(result).toBeNull();
+	});
+
+	test("pick match from null returns null", async ({run}) => {
+		var result = await run(String.raw`set x to null then pick match of "\\d+" from x then return it`);
+		expect(result).toBeNull();
+	});
+
 });
