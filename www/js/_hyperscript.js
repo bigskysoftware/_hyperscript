@@ -3954,6 +3954,15 @@
         runtime2.setProperty(elt, this.prop.value, value);
       });
     }
+    delete(ctx, lhs) {
+      ctx.meta.runtime.nullCheck(lhs.root, this.root);
+      var runtime2 = ctx.meta.runtime;
+      var prop = this.prop.value;
+      runtime2.implicitLoop(lhs.root, (elt) => {
+        delete elt[prop];
+        runtime2.notifyMutation(elt);
+      });
+    }
   };
   var OfExpression = class _OfExpression extends Expression {
     static grammarName = "ofExpression";
@@ -4037,6 +4046,21 @@
         var runtime2 = ctx.meta.runtime;
         runtime2.implicitLoop(lhs.root, (elt) => {
           runtime2.setProperty(elt, this._prop, value);
+        });
+      }
+    }
+    delete(ctx, lhs) {
+      ctx.meta.runtime.nullCheck(lhs.root, this.root);
+      var runtime2 = ctx.meta.runtime;
+      var prop = this._prop;
+      if (this._isAttribute) {
+        runtime2.implicitLoop(lhs.root, (elt) => elt.removeAttribute(prop));
+      } else if (this._isStyle) {
+        runtime2.implicitLoop(lhs.root, (elt) => elt.style.removeProperty(prop));
+      } else {
+        runtime2.implicitLoop(lhs.root, (elt) => {
+          delete elt[prop];
+          runtime2.notifyMutation(elt);
         });
       }
     }
@@ -4331,6 +4355,22 @@
     set(ctx, lhs, value) {
       ctx.meta.runtime.nullCheck(lhs.root, this.root);
       lhs.root[lhs.index] = value;
+    }
+    delete(ctx, lhs) {
+      if (this.andBefore || this.andAfter) {
+        throw new Error("Cannot remove a slice - use a single index");
+      }
+      ctx.meta.runtime.nullCheck(lhs.root, this.root);
+      var runtime2 = ctx.meta.runtime;
+      var root = lhs.root;
+      var idx = lhs.index;
+      if (Array.isArray(root)) {
+        if (idx < 0) idx = root.length + idx;
+        root.splice(idx, 1);
+      } else {
+        delete root[idx];
+      }
+      runtime2.notifyMutation(root);
     }
   };
   var MathOperator = class _MathOperator extends Expression {
@@ -4718,6 +4758,7 @@
       this.args = { root };
     }
     resolve(context, { root: collection }) {
+      if (!collection) return collection;
       var result = [];
       var items = Array.from(collection);
       for (var i = 0; i < items.length; i++) {
@@ -4739,6 +4780,7 @@
       this.args = { root };
     }
     resolve(context, { root: collection }) {
+      if (!collection) return collection;
       var items = Array.from(collection);
       var keys = [];
       for (var i = 0; i < items.length; i++) {
@@ -4768,6 +4810,7 @@
       this.args = { root };
     }
     resolve(context, { root: collection }) {
+      if (!collection) return collection;
       var items = Array.from(collection);
       var result = [];
       for (var i = 0; i < items.length; i++) {
@@ -4784,6 +4827,7 @@
       this.args = { root, delimiter };
     }
     resolve(context, { root, delimiter }) {
+      if (!root) return root;
       return String(root).split(delimiter);
     }
   };
@@ -4793,6 +4837,7 @@
       this.args = { root, delimiter };
     }
     resolve(context, { root, delimiter }) {
+      if (!root) return root;
       return Array.from(root).join(delimiter);
     }
   };
@@ -7289,6 +7334,16 @@
       } else {
         element.style.opacity = "1";
       }
+    },
+    hidden: function(op, element) {
+      if (op === "toggle") {
+        op = element.hasAttribute("hidden") ? "show" : "hide";
+      }
+      if (op === "hide") {
+        element.setAttribute("hidden", "");
+      } else {
+        element.removeAttribute("hidden");
+      }
     }
   };
   function _cssPropertyNames(css) {
@@ -7545,6 +7600,19 @@
       var cmd = this;
       var result;
       if (this.variant === "element") {
+        if (from == null && typeof this.elementExpr.delete === "function") {
+          var isDomTarget = this.isDOMTarget(element);
+          if (!isDomTarget) {
+            var lhsExprs = this.elementExpr.lhs;
+            var lhs = {};
+            for (var key in lhsExprs) {
+              var sub = lhsExprs[key];
+              lhs[key] = sub && sub.evaluate ? sub.evaluate(context) : sub;
+            }
+            this.elementExpr.delete(context, lhs);
+            return this.findNext(context);
+          }
+        }
         runtime2.nullCheck(element, this.elementExpr);
         if (from != null && Array.isArray(from)) {
           var idx = from.indexOf(element);
@@ -7618,6 +7686,9 @@
         });
       }
       return runtime2.findNext(this, context);
+    }
+    isDOMTarget(element) {
+      return element instanceof Node || element instanceof NodeList || element instanceof HTMLCollection;
     }
   };
   var ToggleCommand = class _ToggleCommand extends VisibilityCommand {
@@ -9820,8 +9891,85 @@
   __export(template_exports, {
     EscapeExpression: () => EscapeExpression,
     RenderCommand: () => RenderCommand,
-    TemplateTextCommand: () => TemplateTextCommand
+    TemplateTextCommand: () => TemplateTextCommand,
+    initLiveTemplates: () => initLiveTemplates
   });
+  function getTemplateSource(el) {
+    return el.textContent;
+  }
+  var LIVE_SELECTOR = 'script[type="text/hypertemplate"][live]';
+  function initLiveTemplates(runtime2, tokenizer2, Parser2, kernel2, reactivity2) {
+    var processed = /* @__PURE__ */ new WeakSet();
+    runtime2.addBeforeProcessHook(function(elt) {
+      if (!elt || !elt.querySelectorAll) return;
+      elt.querySelectorAll(LIVE_SELECTOR).forEach(function(tmpl) {
+        if (processed.has(tmpl)) return;
+        processed.add(tmpl);
+        var source = getTemplateSource(tmpl);
+        var script = tmpl.getAttribute("_") || tmpl.getAttribute("data-script") || "";
+        tmpl.removeAttribute("_");
+        tmpl.removeAttribute("data-script");
+        var wrapper = document.createElement("div");
+        wrapper.style.display = "contents";
+        wrapper.setAttribute("data-live-template", "");
+        tmpl.after(wrapper);
+        if (script) {
+          wrapper.setAttribute("_", script);
+          runtime2.processNode(wrapper);
+        }
+        var stamped = false;
+        function stamp(html) {
+          if (!stamped) {
+            wrapper.innerHTML = html;
+            runtime2.processNode(wrapper);
+            stamped = true;
+          } else {
+            runtime2.morph(wrapper, html);
+          }
+        }
+        function render() {
+          var ctx = runtime2.makeContext(wrapper, null, wrapper, null);
+          var buf = [];
+          ctx.meta.__ht_template_result = buf;
+          var tokens = tokenizer2.tokenize(source, "lines");
+          var parser = new Parser2(kernel2, tokens);
+          var cmds;
+          try {
+            cmds = parser.parseElement("commandList");
+            parser.ensureTerminated(cmds);
+          } catch (e) {
+            console.error("live-template parse error:", e.message || e);
+            return "";
+          }
+          cmds.execute(ctx);
+          if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
+          var resolve;
+          var promise = new Promise(function(r) {
+            resolve = r;
+          });
+          ctx.meta.resolve = resolve;
+          return promise.then(function() {
+            return buf.join("");
+          });
+        }
+        queueMicrotask(function() {
+          var result = render();
+          if (result && result.then) {
+            result.then(function(html) {
+              stamp(html);
+              setupEffect();
+            });
+          } else {
+            stamp(result);
+            setupEffect();
+          }
+        });
+        function setupEffect() {
+          reactivity2.createEffect(render, stamp, { element: wrapper });
+        }
+      });
+    });
+  }
   function _stringifyTemplatePart(val, part) {
     if (part.type === "literal") return val;
     if (val === void 0 || val === null) return "";
@@ -9874,6 +10022,14 @@
           var exprParser = parser.createChildParser(exprTokens);
           if (exprParser.matchToken("unescaped")) escape = false;
           var valueNode = exprParser.requireElement("expression");
+          console.log(exprTokens);
+          console.log(
+            "AFTER EXPR:",
+            exprStr,
+            "\u2192 next token:",
+            exprParser.currentToken()?.value,
+            exprParser.currentToken()?.type
+          );
           if (exprParser.matchToken("if")) {
             var conditionNode = exprParser.requireElement("expression");
             var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
@@ -9898,8 +10054,17 @@
       var parts = this.parts;
       var vals = parts.map((part) => {
         if (part.type === "literal") return part.value;
+        console.log("Part:", part);
         if (part.type === "conditional") {
           var condition = part.conditionNode.evaluate(ctx);
+          console.log(
+            "COND:",
+            part.conditionNode.sourceFor?.(),
+            "\u2192",
+            condition,
+            "val:",
+            condition ? part.valueNode.evaluate(ctx) : void 0
+          );
           if (condition) {
             return part.valueNode.evaluate(ctx);
           } else if (part.elseNode) {
@@ -9955,7 +10120,7 @@
       var renderCtx = runtime2.makeContext(ctx.me, null, ctx.me, null);
       renderCtx.locals = Object.assign({}, ctx.locals, templateArgs);
       renderCtx.meta.__ht_template_result = buf;
-      var tokens = new Tokenizer().tokenize(template.innerHTML, "lines");
+      var tokens = new Tokenizer().tokenize(getTemplateSource(template), "lines");
       var parser = this._parser.createChildParser(tokens);
       var commandList;
       try {
@@ -10056,76 +10221,7 @@
   kernel.registerModule(bind_exports);
   kernel.registerModule(live_exports);
   kernel.registerModule(template_exports);
-  var liveTemplatesProcessed = /* @__PURE__ */ new WeakSet();
-  runtime.addBeforeProcessHook(function(elt) {
-    if (!elt || !elt.querySelectorAll) return;
-    elt.querySelectorAll("template[live]").forEach(function(tmpl) {
-      if (liveTemplatesProcessed.has(tmpl)) return;
-      liveTemplatesProcessed.add(tmpl);
-      var source = tmpl.innerHTML;
-      var script = tmpl.getAttribute("_") || tmpl.getAttribute("data-script") || "";
-      tmpl.removeAttribute("_");
-      tmpl.removeAttribute("data-script");
-      var wrapper = document.createElement("div");
-      wrapper.style.display = "contents";
-      wrapper.setAttribute("data-live-template", "");
-      tmpl.after(wrapper);
-      if (script) {
-        wrapper.setAttribute("_", script);
-        runtime.processNode(wrapper);
-      }
-      var stamped = false;
-      function stamp(html) {
-        if (!stamped) {
-          wrapper.innerHTML = html;
-          runtime.processNode(wrapper);
-          stamped = true;
-        } else {
-          runtime.morph(wrapper, html);
-        }
-      }
-      function render() {
-        var ctx = runtime.makeContext(wrapper, null, wrapper, null);
-        var buf = [];
-        ctx.meta.__ht_template_result = buf;
-        var tokens = tokenizer.tokenize(source, "lines");
-        var parser = new Parser(kernel, tokens);
-        var cmds;
-        try {
-          cmds = parser.parseElement("commandList");
-          parser.ensureTerminated(cmds);
-        } catch (e) {
-          console.error("live-template parse error:", e.message || e);
-          return "";
-        }
-        cmds.execute(ctx);
-        if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
-        var resolve;
-        var promise = new Promise(function(r) {
-          resolve = r;
-        });
-        ctx.meta.resolve = resolve;
-        return promise.then(function() {
-          return buf.join("");
-        });
-      }
-      queueMicrotask(function() {
-        var result = render();
-        if (result && result.then) {
-          result.then(function(html) {
-            stamp(html);
-            setupEffect();
-          });
-        } else {
-          stamp(result);
-          setupEffect();
-        }
-      });
-      function setupEffect() {
-        reactivity.createEffect(render, stamp, { element: wrapper });
-      }
-    });
-  });
+  initLiveTemplates(runtime, tokenizer, Parser, kernel, reactivity);
   function evaluate(src, ctx, args) {
     let body;
     if ("document" in globalScope) {

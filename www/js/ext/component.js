@@ -697,18 +697,23 @@
         console.error("component name must contain a dash: '" + tagName + "'");
         return;
       }
-      var styleEls = templateEl.content.querySelectorAll("style");
-      if (styleEls.length) {
-        var combined = "";
-        styleEls.forEach(function(s) {
-          combined += s.textContent + "\n";
-          s.remove();
-        });
+      var raw = templateEl.textContent;
+      var combined = "";
+      var styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+      var match;
+      while ((match = styleRegex.exec(raw)) !== null) {
+        combined += match[1] + "\n";
+      }
+      if (combined) {
+        raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+        templateEl.textContent = raw;
+      }
+      if (combined) {
         var scopedStyle = document.createElement("style");
         scopedStyle.textContent = "@scope (" + tagName + ") {\n" + combined + "}";
         templateEl.insertAdjacentElement("afterend", scopedStyle);
       }
-      const templateSource = templateEl.innerHTML;
+      const templateSource = templateEl.textContent;
       const ComponentClass = class extends HTMLElement {
         connectedCallback() {
           if (this._hypercomp_initialized) return;
@@ -800,7 +805,7 @@
     var registered = /* @__PURE__ */ new Set();
     _hyperscript.addBeforeProcessHook(function(elt) {
       if (!elt || !elt.querySelectorAll) return;
-      elt.querySelectorAll("template[component]").forEach(function(tmpl) {
+      elt.querySelectorAll('script[type="text/hypertemplate"][component]').forEach(function(tmpl) {
         var script = tmpl.getAttribute("_") || "";
         tmpl.removeAttribute("_");
         var tagName = tmpl.getAttribute("component");
