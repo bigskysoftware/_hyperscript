@@ -74,14 +74,32 @@ class RepeatLoopCommand extends Command {
         }
 
         if (keepLooping) {
+            var currentIndex = iteratorInfo.index;
             if (iteratorInfo.value) {
                 context.result = context.locals[this.identifier] = loopVal;
             } else {
-                context.result = iteratorInfo.index;
+                context.result = currentIndex;
             }
             if (this.indexIdentifier) {
-                context.locals[this.indexIdentifier] = iteratorInfo.index;
+                context.locals[this.indexIdentifier] = currentIndex;
             }
+
+            // In template mode, emit a scope marker so processNode can
+            // resolve loop variables on elements with _= attributes
+            if (context.meta.__ht_template_result && iteratorInfo.value) {
+                var scopes = context.meta.__ht_scopes || (context.meta.__ht_scopes = {});
+                if (!scopes[this.slot]) {
+                    scopes[this.slot] = {
+                        identifier: this.identifier,
+                        indexIdentifier: this.indexIdentifier,
+                        source: iteratorInfo.value
+                    };
+                }
+                context.meta.__ht_template_result.push(
+                    '<!--hs-scope:' + this.slot + ':' + currentIndex + '-->'
+                );
+            }
+
             iteratorInfo.didIterate = true;
             iteratorInfo.index++;
             return this.loop;

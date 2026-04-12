@@ -62,6 +62,7 @@ export function initLiveTemplates(runtime, tokenizer, Parser, kernel, reactivity
                     return "";
                 }
                 cmds.execute(ctx);
+                wrapper.__hs_scopes = ctx.meta.__ht_scopes || null;
                 if (ctx.meta.returned || !ctx.meta.resolve) return buf.join("");
                 var resolve;
                 var promise = new Promise(function(r) { resolve = r; });
@@ -287,10 +288,18 @@ export class RenderCommand extends Command {
 
         commandList.execute(renderCtx);
 
+        var scopes = renderCtx.meta.__ht_scopes || null;
+        var SCOPE_MARKER_RE = /<!--hs-scope:[^>]*-->/g;
         var finish = (result) => {
-            ctx.result = result;
-            if (this.insertHere) ctx.me.innerHTML = result;
-            if (target) target.innerHTML = result;
+            ctx.result = result.replace(SCOPE_MARKER_RE, '');
+            if (this.insertHere) {
+                ctx.me.__hs_scopes = scopes;
+                ctx.me.innerHTML = result;
+            }
+            if (target) {
+                target.__hs_scopes = scopes;
+                target.innerHTML = result;
+            }
             return runtime.findNext(this, ctx);
         };
 

@@ -221,6 +221,7 @@ export default function componentPlugin(_hyperscript) {
                 var promise = new Promise(function(res, rej) { resolve = res; reject = rej; });
 
                 commandList.execute(ctx);
+                this.__hs_scopes = ctx.meta.__ht_scopes || null;
 
                 // Sync case - command list completed without going async
                 if (ctx.meta.returned || !ctx.meta.resolve) {

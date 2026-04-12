@@ -849,6 +849,7 @@ export class Runtime {
                     return;
                 }
 
+                this.#resolveTemplateScopes(elt);
                 hyperScript.apply(target || elt, elt, null, this);
                 elt.setAttribute('data-hyperscript-powered', 'true');
                 this.triggerEvent(elt, "hyperscript:after:init");
@@ -868,6 +869,44 @@ export class Runtime {
                     e.message,
                     e.stack
                 );
+            }
+        }
+
+        #resolveTemplateScopes(elt) {
+            var root = elt.closest('[data-live-template], [dom-scope="isolated"]');
+            if (!root || !root.__hs_scopes) return;
+
+            var matches = [];
+            var node = elt;
+            while (node && node !== root) {
+                var prev = node.previousSibling;
+                while (prev) {
+                    if (prev.nodeType === 8) {
+                        var text = prev.data;
+                        if (text.startsWith('hs-scope:')) {
+                            matches.push(text);
+                            break;
+                        }
+                    }
+                    prev = prev.previousSibling;
+                }
+                node = node.parentElement;
+            }
+            if (!matches.length) return;
+
+            var internalData = this.getInternalData(elt);
+            if (!internalData.elementScope) internalData.elementScope = {};
+
+            for (var i = 0; i < matches.length; i++) {
+                var parts = matches[i].split(':');
+                var loopId = parts[1];
+                var iter = parseInt(parts[2]);
+                var scope = root.__hs_scopes[loopId];
+                if (!scope) continue;
+                internalData.elementScope[scope.identifier] = scope.source[iter];
+                if (scope.indexIdentifier) {
+                    internalData.elementScope[scope.indexIdentifier] = iter;
+                }
             }
         }
 

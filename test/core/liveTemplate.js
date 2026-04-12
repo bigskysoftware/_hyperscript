@@ -128,6 +128,57 @@ test.describe('live templates', () => {
 		await expect.poll(() => find('[data-live-template] span').textContent()).toBe('from script')
 	})
 
+	test('loop variables are captured and available in _= handlers', async ({html, find, page, run}) => {
+		await run("set $captureItems to [{name:'Alice'},{name:'Bob'},{name:'Charlie'}]")
+		await html(`
+			<script type="text/hypertemplate" live>
+				<ul>
+				#for item in $captureItems index i
+					<li _="on click put item.name into me">${"\x24"}{item.name}</li>
+				#end
+				</ul>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(3)
+		await find('[data-live-template] li').nth(1).click()
+		await expect(find('[data-live-template] li').nth(1)).toHaveText('Bob')
+	})
+
+	test('loop index variable is captured alongside loop variable', async ({html, find, run}) => {
+		await run("set $idxItems to ['A','B','C']")
+		await html(`
+			<script type="text/hypertemplate" live>
+				<ul>
+				#for item in $idxItems index i
+					<li _="on click put i + ':' + item into me">${"\x24"}{item}</li>
+				#end
+				</ul>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(3)
+		await find('[data-live-template] li').nth(1).click()
+		await expect(find('[data-live-template] li').nth(1)).toHaveText('1:B')
+	})
+
+	test('loop variable capture works with remove for live list', async ({html, find, page, run}) => {
+		await run("set $removeItems to [{name:'A'},{name:'B'},{name:'C'}]")
+		await html(`
+			<script type="text/hypertemplate" live>
+				<ul>
+				#for item in $removeItems
+					<li><span>${"\x24"}{item.name}</span><button _="on click remove item from $removeItems">x</button></li>
+				#end
+				</ul>
+			</script>
+		`)
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(3)
+		// Remove the middle item "B"
+		await find('[data-live-template] li').nth(1).locator('button').click()
+		await expect.poll(() => find('[data-live-template] li').count()).toBe(2)
+		await expect(find('[data-live-template] li').first().locator('span')).toHaveText('A')
+		await expect(find('[data-live-template] li').last().locator('span')).toHaveText('C')
+	})
+
 	test('script-based live template preserves ${} in bare attribute position', async ({html, find, page}) => {
 		await html(`
 			<script type="text/hypertemplate" live _="init set ^items to [{text:'A', done:true},{text:'B', done:false}]">
@@ -143,10 +194,10 @@ test.describe('live templates', () => {
 		`)
 		await expect.poll(() => find('[data-live-template] li').count()).toBe(2)
 		var firstChecked = await page.evaluate(() =>
-			document.querySelector('[data-live-template] li:nth-child(1) input').checked)
+			document.querySelector('[data-live-template] li:first-of-type input').checked)
 		expect(firstChecked).toBe(true)
 		var secondChecked = await page.evaluate(() =>
-			document.querySelector('[data-live-template] li:nth-child(2) input').checked)
+			document.querySelector('[data-live-template] li:last-of-type input').checked)
 		expect(secondChecked).toBe(false)
 		await expect(find('[data-live-template] li').first()).toHaveClass(/done/)
 		await expect(find('[data-live-template] li').last()).not.toHaveClass(/done/)
