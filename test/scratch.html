@@ -274,12 +274,12 @@ var cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
 cm.setValue(DEFAULT_HTML);
 
 // ============================================================
-// Preview — loads from src/ with all extensions
+// Preview - loads from src/ with all extensions
 // ============================================================
 var lastErrors = [];
 var replLocals = {};
 
-// Use the test bundle — IIFE, includes all extensions, works with doc.write()
+// Use the test bundle - IIFE, includes all extensions, works with doc.write()
 var scriptPath = new URL('.bundle/_hyperscript.js', window.location.href).href;
 
 function run() {
@@ -382,7 +382,7 @@ function consoleEval(input) {
 	var iframe = document.getElementById('preview');
 	var hs = iframe.contentWindow && iframe.contentWindow._hyperscript;
 	if (!hs) {
-		consoleAppend('error', 'No preview running — press Run first');
+		consoleAppend('error', 'No preview running - press Run first');
 		return;
 	}
 	try {

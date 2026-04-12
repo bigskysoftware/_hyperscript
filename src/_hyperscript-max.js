@@ -1,4 +1,4 @@
-// _hyperscript-max — core + all extensions in a single bundle
+// _hyperscript-max - core + all extensions in a single bundle
 export { _hyperscript } from './_hyperscript.js';
 import './ext/hdb.js';
 import './ext/component.js';

@@ -39,7 +39,7 @@ Toggle an attribute:
 <button _="on click toggle [@disabled='true']">Toggle Disabled!</button>
 ```
 
-Toggle with a timeout — reverts after the duration:
+Toggle with a timeout - reverts after the duration:
 
 ```html
 <div _="on click toggle .toggled for 2s">Toggle for 2 seconds</div>

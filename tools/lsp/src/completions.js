@@ -1,5 +1,5 @@
 /**
- * Completion provider — thin wrapper around shared completions.js
+ * Completion provider - thin wrapper around shared completions.js
  */
 const parser = require('./parser');
 

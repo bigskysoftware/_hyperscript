@@ -2,7 +2,7 @@ import {test, expect} from '../fixtures.js'
 
 test.describe("the breakpoint command", () => {
 
-	// Note: the resolve path (`debugger;`) is not exercised at runtime — Playwright
+	// Note: the resolve path (`debugger;`) is not exercised at runtime - Playwright
 	// uses the Chrome DevTools Protocol and treats `debugger;` as a real pause point,
 	// so any test that actually dispatches a handler containing `breakpoint` hangs.
 	// We only test that the command parses and installs; resolve is two lines

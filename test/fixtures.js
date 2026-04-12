@@ -12,7 +12,7 @@ export const COVERAGE = !!process.env.COVERAGE
 
 /**
  * Merge per-test coverage from `window.__coverage__` into the given
- * worker-scoped coverage map. Uses istanbul-lib-coverage's built-in merge —
+ * worker-scoped coverage map. Uses istanbul-lib-coverage's built-in merge -
  * fast enough to call once per test without tripping teardown timeouts.
  */
 export function accumulateCoverage(accMap, cov) {

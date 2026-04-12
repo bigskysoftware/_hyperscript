@@ -82,7 +82,7 @@ private class HyperscriptCompletionProvider : CompletionProvider<CompletionParam
                 result.addElement(PrioritizedLookupElement.withPriority(el, priority))
             }
         } catch (_: Exception) {
-            // Silently fail — no completions is better than crashing
+            // Silently fail - no completions is better than crashing
         }
     }
 }

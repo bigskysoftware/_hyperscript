@@ -236,7 +236,7 @@ test.describe('the component extension', () => {
 		await expect.poll(() => find('test-args-bind span').textContent()).toBe('11')
 	})
 
-	test('attrs bind is bidirectional — inner changes flow outward', async ({html, find, run, evaluate}) => {
+	test('attrs bind is bidirectional - inner changes flow outward', async ({html, find, run, evaluate}) => {
 		await run("set $count to 10")
 		await html(`
 			<template component="test-args-bidir" _="bind ^count to attrs.count">

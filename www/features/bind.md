@@ -78,7 +78,7 @@ query), the bound property is detected automatically:
 <!-- auto-detects 'checked' on the checkbox -->
 <input type="checkbox" _="bind $darkMode to me" />
 
-<!-- bind to an element by id — auto-detects 'value' -->
+<!-- bind to an element by id - auto-detects 'value' -->
 <div _="bind $search to #search-input" />
 
 <!-- both sides auto-detect -->

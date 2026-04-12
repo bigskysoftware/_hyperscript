@@ -45,16 +45,16 @@ intercept <scope-path>
 end
 ```
 
-- **`intercept <scope-path>`** — the URL scope the service worker controls.
+- **`intercept <scope-path>`** - the URL scope the service worker controls.
   `intercept /` covers the whole site; `intercept /app` scopes to everything
   under `/app`.
-- **`precache <path-list>`** — paths to cache when the service worker installs.
+- **`precache <path-list>`** - paths to cache when the service worker installs.
   The optional `as "<version>"` names the cache; changing it on your next
   deploy triggers an update and clears old caches.
-- **`on <pattern> use <strategy>`** — route rules. Patterns are glob-like
+- **`on <pattern> use <strategy>`** - route rules. Patterns are glob-like
   (`/api/*`, `*.css`, `*`), multiple patterns separated by commas. Rules are
-  evaluated in order — first match wins.
-- **`offline fallback <path>`** — page to serve when the network fails and
+  evaluated in order - first match wins.
+- **`offline fallback <path>`** - page to serve when the network fails and
   no cache match exists.
 
 Only GET requests are cached. Paths can be naked (no quotes) if they start

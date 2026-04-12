@@ -69,7 +69,7 @@ test.describe('the when feature', () => {
 		await run("set $dedup to 'value1'")
 		await expect(find('div')).toHaveText('1')
 
-		// Same value — should NOT re-trigger
+		// Same value - should NOT re-trigger
 		await run("set $dedup to 'value1'")
 		await new Promise(r => setTimeout(r, 50))
 		await expect(find('div')).toHaveText('1')
@@ -98,7 +98,7 @@ test.describe('the when feature', () => {
 		await expect(find('div')).toHaveText('original')
 
 		await evaluate(() => document.querySelector('#work-area div').setAttribute('data-title', 'updated'))
-		// MutationObserver + effect pipeline is async — poll for the update
+		// MutationObserver + effect pipeline is async - poll for the update
 		await expect.poll(() => find('div').textContent(), { timeout: 5000 }).toBe('updated')
 	})
 
@@ -143,7 +143,7 @@ test.describe('the when feature', () => {
 		await run("set $dispose to 'after'")
 		await new Promise(r => setTimeout(r, 50))
 
-		// Element was removed — should still show old value
+		// Element was removed - should still show old value
 		const textAfter = await evaluate(() => {
 			// The div is detached, check it still has old content
 			return true

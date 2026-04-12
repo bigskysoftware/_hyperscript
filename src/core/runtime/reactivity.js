@@ -34,8 +34,8 @@ class Effect {
      */
     constructor(expression, handler, element, reactivity) {
         // What this effect does
-        this.expression = expression; // () => value — the watched expression, re-evaluated on dep change
-        this.handler = handler;       // (value) => void — called when expression result changes
+        this.expression = expression; // () => value - the watched expression, re-evaluated on dep change
+        this.handler = handler;       // (value) => void - called when expression result changes
 
         // Where it lives
         this.element = element;
@@ -56,7 +56,7 @@ class Effect {
     initialize() {
         var reactivity = this._reactivity;
 
-        // Evaluate expression with tracking enabled — any symbol, property,
+        // Evaluate expression with tracking enabled - any symbol, property,
         // or attribute reads during this call are recorded as dependencies.
         var prev = reactivity._currentEffect;
         reactivity._currentEffect = this;
@@ -71,7 +71,7 @@ class Effect {
         reactivity._subscribeEffect(this);
 
         // If we got a value, push it to the handler immediately.
-        // null/undefined means "no value yet" — skip to let the other
+        // null/undefined means "no value yet" - skip to let the other
         // side of a bind initialize first (left-side-wins semantics).
         if (this._lastValue != null) {
             try {

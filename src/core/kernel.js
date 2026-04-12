@@ -191,9 +191,9 @@ export class LanguageKernel {
                         }
                     }
                 } else if (parser.currentToken().value === "end") {
-                    break; // scope terminator (e.g. behavior body) — leave for outer parser
+                    break; // scope terminator (e.g. behavior body) - leave for outer parser
                 } else {
-                    // Unconsumed token between features — report and sync
+                    // Unconsumed token between features - report and sync
                     try {
                         parser.raiseError();
                     } catch (e) {

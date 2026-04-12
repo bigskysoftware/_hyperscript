@@ -24,8 +24,8 @@ node test/manual/server.js
 ```
 
 The server provides:
-- `GET /sse` — SSE stream: one `message` event, five `tick` events (JSON), one `done` event
-- `GET /sse-named` — SSE stream: `greeting` and `farewell` events (JSON)
-- `WS /ws` — WebSocket: echo + RPC (`add`, `greet`, `failPlease`)
+- `GET /sse` - SSE stream: one `message` event, five `tick` events (JSON), one `done` event
+- `GET /sse-named` - SSE stream: `greeting` and `farewell` events (JSON)
+- `WS /ws` - WebSocket: echo + RPC (`add`, `greet`, `failPlease`)
 
 Both pages run tests automatically and show pass/fail results.

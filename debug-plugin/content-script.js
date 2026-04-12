@@ -1,6 +1,6 @@
 (function () {
     if (globalThis._hyperscript) {
-        // hyperscript already loaded — register directly
+        // hyperscript already loaded - register directly
         registerCommands(globalThis._hyperscript);
         return;
     }
@@ -8,7 +8,7 @@
     // Intercept _hyperscript being set on window so we can register
     // custom commands before browserInit() processes the DOM.
 
-    // Not yet loaded — intercept assignment
+    // Not yet loaded - intercept assignment
     Object.defineProperty(globalThis, "_hyperscript", {
         configurable: true,
         enumerable: true,

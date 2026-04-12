@@ -51,7 +51,7 @@ when elements are removed from the DOM.
 
 ### Templates in Core
 
-The [`render`](/commands/render) command and template language are now built into core — no extension script needed.
+The [`render`](/commands/render) command and template language are now built into core - no extension script needed.
 Templates use `<template>` elements with `${}` interpolation and `#`-prefixed control flow:
 
 ```html
@@ -77,7 +77,7 @@ Interpolated expressions are HTML-escaped by default. Use `${unescaped expr}` fo
 
 ### Morph
 
-The [`morph`](/commands/morph) command by @Latent22 brings DOM morphing to hyperscript — powered by
+The [`morph`](/commands/morph) command by @Latent22 brings DOM morphing to hyperscript - powered by
 [idiomorph](https://github.com/bigskysoftware/idiomorph), it intelligently patches the DOM while preserving
 focus, scroll position, and form state:
 
@@ -89,7 +89,7 @@ morph me with responseHtml
 ### Components
 
 A new components system (`component`) lets you define custom elements with reactive templates, slots,
-and scope isolation — all declared in a single `<template>`:
+and scope isolation - all declared in a single `<template>`:
 
 ```html
 <template component="my-counter">
@@ -141,7 +141,7 @@ on submit blur me
 #### empty / clear
 
 [`empty`](/commands/empty) (or its alias `clear`) clears an element's content. It's smart about what it
-clears — inputs get their values reset, checkboxes get unchecked, selects get deselected, forms get all
+clears - inputs get their values reset, checkboxes get unchecked, selects get deselected, forms get all
 their fields cleared, and regular elements get their children removed. It also works on arrays, sets,
 and maps:
 
@@ -162,7 +162,7 @@ on click reset #name-input
 
 #### swap
 
-[`swap`](/commands/swap) exchanges the values of two assignable expressions — variables, properties, array
+[`swap`](/commands/swap) exchanges the values of two assignable expressions - variables, properties, array
 elements, or any combination:
 
 ```hyperscript
@@ -196,7 +196,7 @@ if it is "Yes" ...
 
 #### speak
 
-Text-to-speech via the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) — a
+Text-to-speech via the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) - a
 nod to [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf). The command waits for the utterance
 to finish before continuing:
 
@@ -221,7 +221,7 @@ scroll #panel left by 100px
 
 #### breakpoint
 
-Pause execution in the browser DevTools. Now built in to core — no hdb extension required:
+Pause execution in the browser DevTools. Now built in to core - no hdb extension required:
 
 ```hyperscript
 on click
@@ -244,7 +244,7 @@ toggle $mode between 'edit' and 'preview'
 toggle $theme between 'light', 'dark' and 'auto'
 ```
 
-This works with any [assignable expression](/commands/set) — variables, properties, style refs — and
+This works with any [assignable expression](/commands/set) - variables, properties, style refs - and
 supports any number of values, not just two.
 
 ### New Expressions & Syntax
@@ -517,7 +517,7 @@ The `[@attr]` bracket-style attribute access has been deprecated in favor of the
 
 #### 8. go to url and scroll form deprecated
 
-The `url` keyword in [`go to`](/commands/go) `url X` is no longer needed — `go to` now accepts naked URLs
+The `url` keyword in [`go to`](/commands/go) `url X` is no longer needed - `go to` now accepts naked URLs
 directly.
 
 The scroll form `go to the top of ...` continues to work but has been superseded by the dedicated

@@ -84,7 +84,7 @@ test.describe('the dom scope (^var)', () => {
 			`</div>`
 		)
 		await find('button').click()
-		// read from a sibling — should see the ancestor's updated value
+		// read from a sibling - should see the ancestor's updated value
 		await find('span').click()
 		await expect(find('span')).toHaveText('10')
 	})
@@ -259,7 +259,7 @@ test.describe('the dom scope (^var)', () => {
 		await expect(find('output')).toHaveText('hello')
 		await evaluate(() => document.querySelector('#work-area output').remove())
 		await find('button').click()
-		// Output was removed — no error, effect is disposed
+		// Output was removed - no error, effect is disposed
 		await new Promise(r => setTimeout(r, 100))
 	})
 

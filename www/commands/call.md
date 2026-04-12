@@ -4,7 +4,7 @@ title: call - ///_hyperscript
 
 ## The `call` Command
 
-The `call` command evaluates an expression and stores its value in the `it` variable. `get` is an alias for `call` — use whichever reads more naturally in context.
+The `call` command evaluates an expression and stores its value in the `it` variable. `get` is an alias for `call` - use whichever reads more naturally in context.
 
 ### Examples
 

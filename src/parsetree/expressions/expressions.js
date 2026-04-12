@@ -292,6 +292,16 @@ export class PropertyAccess extends Expression {
             runtime.setProperty(elt, this.prop.value, value);
         });
     }
+
+    delete(ctx, lhs) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        var runtime = ctx.meta.runtime;
+        var prop = this.prop.value;
+        runtime.implicitLoop(lhs.root, elt => {
+            delete elt[prop];
+            runtime.notifyMutation(elt);
+        });
+    }
 }
 
 /**
@@ -386,6 +396,22 @@ export class OfExpression extends Expression {
             var runtime = ctx.meta.runtime;
             runtime.implicitLoop(lhs.root, elt => {
                 runtime.setProperty(elt, this._prop, value);
+            });
+        }
+    }
+
+    delete(ctx, lhs) {
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        var runtime = ctx.meta.runtime;
+        var prop = this._prop;
+        if (this._isAttribute) {
+            runtime.implicitLoop(lhs.root, elt => elt.removeAttribute(prop));
+        } else if (this._isStyle) {
+            runtime.implicitLoop(lhs.root, elt => elt.style.removeProperty(prop));
+        } else {
+            runtime.implicitLoop(lhs.root, elt => {
+                delete elt[prop];
+                runtime.notifyMutation(elt);
             });
         }
     }
@@ -747,6 +773,23 @@ export class ArrayIndex extends Expression {
     set(ctx, lhs, value) {
         ctx.meta.runtime.nullCheck(lhs.root, this.root);
         lhs.root[lhs.index] = value;
+    }
+
+    delete(ctx, lhs) {
+        if (this.andBefore || this.andAfter) {
+            throw new Error("Cannot remove a slice - use a single index");
+        }
+        ctx.meta.runtime.nullCheck(lhs.root, this.root);
+        var runtime = ctx.meta.runtime;
+        var root = lhs.root;
+        var idx = lhs.index;
+        if (Array.isArray(root)) {
+            if (idx < 0) idx = root.length + idx;
+            root.splice(idx, 1);
+        } else {
+            delete root[idx];
+        }
+        runtime.notifyMutation(root);
     }
 }
 

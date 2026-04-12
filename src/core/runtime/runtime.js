@@ -305,7 +305,7 @@ export class Runtime {
                 this.#trackMutation(fromContext);
                 return fromContext;
             }
-            // global scope (or not found — track as global so we catch the first write)
+            // global scope (or not found - track as global so we catch the first write)
             if (this.reactivity.isTracking) this.reactivity.trackGlobalSymbol(str);
             var val = this.#globalScope[str];
             this.#trackMutation(val);
@@ -375,13 +375,13 @@ export class Runtime {
                     if (domScope === 'isolated') {
                         return { value: undefined, element: null };
                     }
-                    // "closest <selector>" — jump to matching ancestor
+                    // "closest <selector>" - jump to matching ancestor
                     var match = domScope.match(/^closest\s+(.+)/);
                     if (match) {
                         elt = elt.parentElement && elt.parentElement.closest(match[1]);
                         continue;
                     }
-                    // "parent of <selector>" — jump to the parent of the nearest matching ancestor
+                    // "parent of <selector>" - jump to the parent of the nearest matching ancestor
                     match = domScope.match(/^parent\s+of\s+(.+)/);
                     if (match) {
                         var target = elt.closest(match[1]);
@@ -823,7 +823,7 @@ export class Runtime {
             var hash = this.#hashScript(src);
             if (internalData.initialized) {
                 if (internalData.scriptHash === hash) return;
-                // Script changed (e.g. morph swap) — clean up and reinitialize
+                // Script changed (e.g. morph swap) - clean up and reinitialize
                 this.cleanup(elt);
                 internalData = this.getInternalData(elt);
             }

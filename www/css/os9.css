@@ -1,5 +1,5 @@
 /* ============================================================
-   _hyperscript Theme — Modern with OS9/HyperCard touches
+   _hyperscript Theme - Modern with OS9/HyperCard touches
    ============================================================ */
 
 /* ---- Vendored Fonts ---- */
@@ -84,7 +84,7 @@
     --main-font:    var(--font);
     --font-size:    17px;
 
-    /* Spacing — keep compat with existing content */
+    /* Spacing - keep compat with existing content */
     --radius:      5px;
     --gap:         10px;
     --rhythm:      1.4rem;
@@ -413,7 +413,7 @@ a code {
 
 pre { margin: 0; overflow-x: auto; }
 
-/* Code blocks — dark (Nord) */
+/* Code blocks - dark (Nord) */
 pre[class*="language-"] {
     background: #1e2228;
     border: 1px solid #3b4252;

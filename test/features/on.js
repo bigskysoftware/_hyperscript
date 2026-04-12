@@ -766,7 +766,7 @@ test.describe('the on feature', () => {
 			el.dispatchEvent(new Event('click'))
 			el.dispatchEvent(new Event('click'))
 		})
-		// Still empty immediately after — debounce is pending
+		// Still empty immediately after - debounce is pending
 		await expect(find('#d')).toHaveText('')
 		// After the debounce window the handler runs exactly once
 		await expect(find('#d')).toHaveText('1')
@@ -785,7 +785,7 @@ test.describe('the on feature', () => {
 			el.dispatchEvent(new Event('click'))
 			setTimeout(() => { el.dispatchEvent(new Event('click')); r() }, 40)
 		}))
-		// 40ms in — still pending because second click reset the timer
+		// 40ms in - still pending because second click reset the timer
 		await evaluate(() => new Promise(r => setTimeout(r, 50)))
 		await expect(find('#d')).toHaveText('')
 		// Eventually fires exactly once

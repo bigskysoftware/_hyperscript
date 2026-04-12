@@ -260,7 +260,7 @@ test.describe('eventsource extension', () => {
                 end
             </script>
         `);
-        // Not connected yet — open manually
+        // Not connected yet - open manually
         await evaluate(() => DynSSE.open('/sse-a'));
         await expect.poll(() => find('#out').textContent()).toBe('from-a');
         await restoreFetch(page);

@@ -96,7 +96,7 @@ test.describe("the _hyperscript parser", () => {
 		await html(
 			"<div id='d1' _='on click blargh end on mouseenter also_bad end on focus put \"focused\" into my.innerHTML'></div>"
 		);
-		// Element should not execute — errors prevent all features
+		// Element should not execute - errors prevent all features
 		var powered = await evaluate(() => document.querySelector('#d1').hasAttribute('data-hyperscript-powered'));
 		expect(powered).toBe(false);
 	});

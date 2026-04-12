@@ -1,6 +1,6 @@
 # Effective _hyperscript
 
-A practical reference for writing _hyperscript — a scripting language for the web designed to be embedded in HTML.
+A practical reference for writing _hyperscript - a scripting language for the web designed to be embedded in HTML.
 
 ## Core Concepts
 
@@ -16,7 +16,7 @@ The language reads like English. Prefer natural phrasing over terse syntax.
 
 ## Style: Write English, Not Code
 
-### `the` — Semantic Sugar
+### `the` - Semantic Sugar
 
 The word `the` can be inserted almost anywhere for readability. It has no semantic meaning and is ignored by the parser:
 
@@ -35,7 +35,7 @@ Always use `the` when it makes the line read more naturally.
 
 _hyperscript offers three ways to access properties. Prefer the most readable form:
 
-**Possessives** — the standard form. Use `'s` for named elements, and `my`, `its`, `your` for the special implicit targets:
+**Possessives** - the standard form. Use `'s` for named elements, and `my`, `its`, `your` for the special implicit targets:
 
 ```hyperscript
 set #output's innerHTML to "done"
@@ -47,7 +47,7 @@ put its name into me                 -- "its" refers to it (the result)
 log your style.color                 -- "your" refers to you (in tell blocks)
 ```
 
-**`of` expressions** — an alternative form that is particularly useful when you want to avoid the tight binding of possessives, since `of` binds more loosely:
+**`of` expressions** - an alternative form that is particularly useful when you want to avoid the tight binding of possessives, since `of` binds more loosely:
 
 ```hyperscript
 -- without "of", you'd need parentheses:
@@ -57,7 +57,7 @@ get (the closest <ul/>)'s children
 get the children of the closest <ul/>
 ```
 
-**Dot notation** — good for method invocation and acceptable in general, although the other forms are preferred for readability:
+**Dot notation** - good for method invocation and acceptable in general, although the other forms are preferred for readability:
 
 ```hyperscript
 element.classList.add('active')      -- method calls: dot is natural
@@ -114,7 +114,7 @@ instance gets its own isolated DOM scope via `dom-scope="isolated"`.
 
 ## Features
 
-### Event Handlers — `on`
+### Event Handlers - `on`
 
 ```hyperscript
 on click ...
@@ -129,7 +129,7 @@ on click throttled at 500ms ...
 on click queue all ...                  -- queue: all, first, last (default), none
 ```
 
-Observers — mutation, intersection, and resize:
+Observers - mutation, intersection, and resize:
 
 ```hyperscript
 on mutation of @class from #target ...
@@ -138,7 +138,7 @@ on intersection(intersecting) having threshold 0.5 ...
 on resize put detail.width into #size ...   -- ResizeObserver, detail has width/height
 ```
 
-### Function Definitions — `def`
+### Function Definitions - `def`
 
 ```hyperscript
 def greet(name)
@@ -163,7 +163,7 @@ finally
 end
 ```
 
-### Behaviors — `behavior` / `install`
+### Behaviors - `behavior` / `install`
 
 Reusable bundles of features:
 
@@ -182,7 +182,7 @@ end
 </div>
 ```
 
-### Init Blocks — `init`
+### Init Blocks - `init`
 
 ```hyperscript
 init
@@ -194,13 +194,13 @@ init immediately    -- runs before other features are installed
 end
 ```
 
-### Element Variables — `set` (feature level)
+### Element Variables - `set` (feature level)
 
 ```hyperscript
 set :count to 0     -- element-scoped, available to all handlers
 ```
 
-### Inline JavaScript — `js` (feature level)
+### Inline JavaScript - `js` (feature level)
 
 ```hyperscript
 js
@@ -444,7 +444,7 @@ fetch /api/data as JSON do not throw     -- returns null on error
 fetch /api/data as JSON don't throw      -- same thing
 ```
 
-The `as Response` form never throws — you get the raw Response and handle it yourself.
+The `as Response` form never throws - you get the raw Response and handle it yourself.
 
 ### Templates & Morphing
 
@@ -469,12 +469,12 @@ morph #container to it                   -- or morph for DOM-preserving update
 ```
 
 Template syntax:
-- `${expr}` — interpolate a hyperscript expression (HTML-escaped by default)
-- `${unescaped expr}` — raw HTML output
-- `${expr1 if condition else expr2}` — inline conditional
-- `#for item in collection` ... `#else` ... `#end` — loop with optional empty fallback
-- `#if condition` ... `#else` ... `#end` — conditional blocks
-- `#break`, `#continue` — loop control
+- `${expr}` - interpolate a hyperscript expression (HTML-escaped by default)
+- `${unescaped expr}` - raw HTML output
+- `${expr1 if condition else expr2}` - inline conditional
+- `#for item in collection` ... `#else` ... `#end` - loop with optional empty fallback
+- `#if condition` ... `#else` ... `#end` - conditional blocks
+- `#break`, `#continue` - loop control
 
 The `morph` command updates existing DOM to match new content, preserving focus, scroll position, and event handlers:
 
@@ -975,7 +975,7 @@ end">
 Hyperscript tracks reads and writes of reactive variables (`$x`, `:x`, `^x`, attributes, and mutating array methods).
 Regular local variables (`set x to ...`) are **not** reactive.
 
-### `live` — Reactive DOM Updates
+### `live` - Reactive DOM Updates
 
 Declares commands that re-run whenever their dependencies change:
 
@@ -992,7 +992,7 @@ live
 end
 ```
 
-### `when` — React to Changes with Side Effects
+### `when` - React to Changes with Side Effects
 
 Runs commands when a value changes, with access to the new value via `it`:
 
@@ -1002,7 +1002,7 @@ when ($price * $qty) changes
 end
 ```
 
-### `bind` — Two-Way Sync
+### `bind` - Two-Way Sync
 
 Keeps two values in sync bidirectionally:
 
@@ -1088,14 +1088,14 @@ Components read parent-scope values through the `attrs` proxy:
 
 Load after the core script:
 
-- **component.js** — components: custom elements with reactive templates and slots
-- **template.js** — `render` command for HTML templates with `${}` interpolation
-- **hdb.js** — hyperscript debugger (breakpoint UI)
-- **socket.js** — WebSocket support with RPC
-- **worker.js** — Web Worker support
-- **eventsource.js** — Server-Sent Events
-- **intercept.js** — service worker DSL for caching and offline support
-- **tailwind.js** — Tailwind CSS show/hide strategies
+- **component.js** - components: custom elements with reactive templates and slots
+- **template.js** - `render` command for HTML templates with `${}` interpolation
+- **hdb.js** - hyperscript debugger (breakpoint UI)
+- **socket.js** - WebSocket support with RPC
+- **worker.js** - Web Worker support
+- **eventsource.js** - Server-Sent Events
+- **intercept.js** - service worker DSL for caching and offline support
+- **tailwind.js** - Tailwind CSS show/hide strategies
 
 ## Syntax That Does Not Exist
 

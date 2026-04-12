@@ -105,7 +105,7 @@ test.describe("the start view transition command", () => {
 			}
 		})
 		// The nested form exercises the "already in progress" branch inside the
-		// same context — second start view transition on the same `context.meta`.
+		// same context - second start view transition on the same `context.meta`.
 		await html(`
 			<button _="on click
 			             start view transition
@@ -116,7 +116,7 @@ test.describe("the start view transition command", () => {
 		`)
 		await find('button').dispatchEvent('click')
 		// Either the inner throws and is caught at the handler boundary, or
-		// it runs — we don't assert on the exact error text, just that the
+		// it runs - we don't assert on the exact error text, just that the
 		// click didn't crash the page. The branch is hit either way.
 	})
 

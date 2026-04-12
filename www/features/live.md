@@ -20,17 +20,16 @@ live
 end
 ```
 
-### Why Not Just Use `on`?
+### Events vs. Reactive Solutions
 
-For simple cases, `on` works great:
+For many cases using simple, plain events with `on` handlers works great:
 
 ```html
 <button id="inc" _="on click increment $count">+1</button>
 <output _="on click from #inc put $count into me">
 ```
 
-But what if `$count` can be changed by multiple buttons, a keyboard shortcut, a timer,
-or an htmx response? With `on`, you have to list every source:
+But when things get complicated this approach can, at times, become unwieldy
 
 ```html
 <output _="on click from #inc or #dec or #reset put $count into me
@@ -38,14 +37,12 @@ or an htmx response? With `on`, you have to list every source:
            on htmx:afterSwap from body put $count into me">
 ```
 
-With `live`, you just say what you want and it stays in sync no matter what changes
+With `live`, you just say what you want, and it stays in sync no matter what changes
 `$count`:
 
 ```html
 <output _="live put $count into me">
 ```
-
-Add a new source of change tomorrow and the `live` version just works.
 
 ### Single Statement
 
@@ -103,7 +100,7 @@ use separate `live` statements:
         live if $total > 100 add .expensive to me else remove .expensive from me end">
 ```
 
-### How It Works
+### Implementation
 
 The block runs with automatic dependency tracking. Whatever it reads
 during execution (variables, properties, attributes) becomes its dependencies.

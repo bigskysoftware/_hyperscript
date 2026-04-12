@@ -121,4 +121,54 @@ test.describe("the remove command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("2");
 	});
+
+	test("can splice an array element by index", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2,3,4]
+		                      remove :arr[1]
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,3,4");
+	});
+
+	test("can splice an array with a negative index", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :arr to [1,2,3,4]
+		                      remove :arr[-1]
+		                      put :arr as String into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,2,3");
+	});
+
+	test("can delete a property via dot notation", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :obj to { a: 1, b: 2, c: 3 }
+		                      remove :obj.b
+		                      put :obj.a + ',' + (:obj.b is undefined) + ',' + :obj.c into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,true,3");
+	});
+
+	test("can delete a property via 'of' form", async ({html, find}) => {
+		await html(`<div _="on click
+		                      set :obj to { a: 1, b: 2, c: 3 }
+		                      remove b of :obj
+		                      put :obj.a + ',' + (:obj.b is undefined) + ',' + :obj.c into me"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("1,true,3");
+	});
+
+	test("remove on a property whose value is a DOM node still detaches the node", async ({html, find}) => {
+		await html(`
+			<div id="parent">
+				<span id="child">kept</span>
+			</div>
+			<button _="on click
+			             set :wrapper to { el: #child }
+			             remove :wrapper.el">go</button>
+		`);
+		await expect(find('#child')).toHaveCount(1);
+		await find('button').dispatchEvent('click');
+		await expect(find('#child')).toHaveCount(0);
+	});
 });

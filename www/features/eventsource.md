@@ -53,7 +53,7 @@ eventsource Feed from /events
 end
 ```
 
-The `*` character matches any sequence of characters.  Exact matches take no priority over wildcards — all matching handlers fire.
+The `*` character matches any sequence of characters.  Exact matches take no priority over wildcards - all matching handlers fire.
 
 #### Decoding Messages
 

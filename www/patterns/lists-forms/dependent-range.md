@@ -73,8 +73,6 @@ and pulls the *other* field's value into one of its constraint attributes.
 Open either picker after typing a value into the other and you'll see the
 out-of-range dates greyed out in the calendar UI.
 
-## How `bind @attr to <expression>` works
-
 The fourth row of the [`bind`](/patterns/lists-forms/character-counter/)
 table is the one in play here:
 

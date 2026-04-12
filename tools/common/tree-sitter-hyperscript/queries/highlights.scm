@@ -7,7 +7,7 @@
 ; Control flow
 (control_keyword) @keyword
 
-; Modifiers (contextual keywords — slightly muted)
+; Modifiers (contextual keywords - slightly muted)
 (modifier) @keyword.modifier
 
 ; Type names

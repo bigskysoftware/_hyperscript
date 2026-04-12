@@ -96,7 +96,7 @@ class InterceptFeature extends Feature {
 		}
 
 		if (InterceptFeature.installed) {
-			console.warn("hyperscript: only one intercept declaration is allowed per app — ignoring subsequent declarations");
+			console.warn("hyperscript: only one intercept declaration is allowed per app - ignoring subsequent declarations");
 			return;
 		}
 		InterceptFeature.installed = true;

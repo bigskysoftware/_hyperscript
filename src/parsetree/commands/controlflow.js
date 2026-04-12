@@ -307,7 +307,7 @@ export class RepeatCommand extends Command {
                 iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
             }
         } else if (this.repeatLoopCommand.elseBranch) {
-            // Null/undefined collection with an else clause — use empty iterator so else triggers
+            // Null/undefined collection with an else clause - use empty iterator so else triggers
             iteratorInfo.iterator = [][Symbol.iterator]();
         }
 

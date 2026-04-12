@@ -81,7 +81,7 @@ test.describe('the live feature', () => {
 		await expect.poll(() => find('#w').textContent()).toBe('200')
 		await expect.poll(() => find('#h').textContent()).toBe('400')
 
-		// Change $height — both commands re-run, but $doubleWidth stays the same (dedup)
+		// Change $height - both commands re-run, but $doubleWidth stays the same (dedup)
 		await run("set $height to 300")
 		await expect.poll(() => find('#h').textContent()).toBe('600')
 		await expect(find('#w')).toHaveText('200') // unchanged because dedup
@@ -104,7 +104,7 @@ test.describe('the live feature', () => {
 		await expect.poll(() => find('#w').textContent()).toBe('200')
 		await expect.poll(() => find('#h').textContent()).toBe('400')
 
-		// Change only $height — only $doubleHeight updates
+		// Change only $height - only $doubleHeight updates
 		await run("set $height to 300")
 		await expect.poll(() => find('#h').textContent()).toBe('600')
 		await expect(find('#w')).toHaveText('200')
@@ -301,7 +301,7 @@ test.describe('the live feature', () => {
 			el.textContent = 'cleaned'
 		})
 
-		// Change the variable — the effect should NOT fire since we cleaned up
+		// Change the variable - the effect should NOT fire since we cleaned up
 		await run("set $count to 99")
 		await evaluate(() => new Promise(r => setTimeout(r, 50)))
 

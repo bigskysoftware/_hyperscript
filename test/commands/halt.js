@@ -9,7 +9,7 @@ test.describe("the halt command", () => {
 			"</div>"
 		);
 		await find('#inner').dispatchEvent('click');
-		// halt stops propagation — outer should NOT get the click
+		// halt stops propagation - outer should NOT get the click
 		await expect(find('#outer')).not.toHaveClass(/outer-clicked/);
 	});
 
@@ -51,7 +51,7 @@ test.describe("the halt command", () => {
 			"</div>"
 		);
 		await find('#inner').dispatchEvent('click');
-		// bubbling stopped — outer should NOT get click
+		// bubbling stopped - outer should NOT get click
 		await expect(find('#outer')).not.toHaveClass(/outer-clicked/);
 		// but execution halts (no keepExecuting)
 		await expect(find('#inner')).not.toHaveClass(/continued/);
@@ -81,7 +81,7 @@ test.describe("the halt command", () => {
 			"</div>"
 		);
 		await find('#inner').dispatchEvent('click');
-		// default halted but propagation NOT stopped — outer SHOULD get click
+		// default halted but propagation NOT stopped - outer SHOULD get click
 		await expect(find('#outer')).toHaveClass(/outer-clicked/);
 	});
 

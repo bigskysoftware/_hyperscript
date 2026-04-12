@@ -133,7 +133,7 @@ test.describe('reactivity engine', () => {
 			document.querySelector('#work-area #doomed').remove()
 		})
 
-		// Trigger a change — only the surviving effect should run
+		// Trigger a change - only the surviving effect should run
 		await run("set $rxDcVal to 'y'")
 		await expect(find('#persist')).toHaveText('y')
 
@@ -152,7 +152,7 @@ test.describe('reactivity engine', () => {
 		page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
 
 		await evaluate(() => { window.$rxLoop = 0 })
-		// Handler mutates the variable it watches — cascade must be bounded
+		// Handler mutates the variable it watches - cascade must be bounded
 		await html(`<div _="when $rxLoop changes increment $rxLoop"></div>`)
 
 		await run("set $rxLoop to 1")
@@ -188,10 +188,10 @@ test.describe('reactivity engine', () => {
 		await expect(find('#a')).toHaveText('0')
 		await expect(find('#b')).toHaveText('0')
 
-		// Click a — only #a updates
+		// Click a - only #a updates
 		await find('#a').dispatchEvent('click')
 		await expect(find('#a')).toHaveText('1')
-		// b's count is untouched — its effect did not run
+		// b's count is untouched - its effect did not run
 		await evaluate(() => new Promise(r => setTimeout(r, 20)))
 		await expect(find('#b')).toHaveText('0')
 	})

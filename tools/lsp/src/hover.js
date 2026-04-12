@@ -1,5 +1,5 @@
 /**
- * Hover documentation provider — thin wrapper around shared hover.js
+ * Hover documentation provider - thin wrapper around shared hover.js
  */
 const parser = require('./parser');
 

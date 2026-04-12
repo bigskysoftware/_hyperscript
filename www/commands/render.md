@@ -34,7 +34,7 @@ Named arguments passed via `with` are available as local variables inside the te
 #end
 ```
 
-The `#for...#else` clause runs when the collection is empty or null — useful for
+The `#for...#else` clause runs when the collection is empty or null - useful for
 "no results" messages without a separate `#if` check.
 
 ### Examples

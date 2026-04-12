@@ -134,7 +134,7 @@ export class EventSourceFeature extends Feature {
 			}
 		}
 
-		// Evaluate headers at parse time — keys and values must be static literals
+		// Evaluate headers at parse time - keys and values must be static literals
 		var staticHeaders = null;
 		if (headers) {
 			staticHeaders = {};
@@ -306,7 +306,7 @@ async function readStream(stub, reader, ac) {
 
 	stub.reader = null;
 
-	// Stream ended — reconnect unless explicitly closed
+	// Stream ended - reconnect unless explicitly closed
 	if (!stub.closed && !ac.signal.aborted) {
 		scheduleReconnect(stub, baseDelay);
 	}

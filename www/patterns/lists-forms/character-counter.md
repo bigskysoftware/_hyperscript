@@ -82,8 +82,6 @@ bind .over to $msg.length > 280
 bind @disabled to $msg.length > 280 or $msg is empty   -- on the button
 ~~~
 
-## How this works
-
 `bind $msg to me` two-way-binds the textarea's value to a global reactive
 variable `$msg`. Type into the textarea, `$msg` updates. Set `$msg` from
 anywhere, the textarea updates. Now the counter and the button can both

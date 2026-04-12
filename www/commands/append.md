@@ -8,9 +8,9 @@ The `append` command adds a value to the end of a string, array, or HTML element
 
 The behavior depends on the target type:
 
-- **String** — uses `+=` to concatenate to the end of the variable.
-- **Array** — uses `Array.push()` to add a new item.
-- **HTML Element** — appends to the element's `innerHTML`.
+- **String** - uses `+=` to concatenate to the end of the variable.
+- **Array** - uses `Array.push()` to add a new item.
+- **HTML Element** - appends to the element's `innerHTML`.
 
 ### Examples
 
@@ -40,7 +40,7 @@ append "<i>More HTML here</i>" to #myDIV
 
 #### Use `append` to collect content
 
-If no target variable is provided, `append` writes to the standard `result` variable by default. This can help you write more compact code — but be careful, many other commands also write to `result` (or `it`), which can overwrite your work.
+If no target variable is provided, `append` writes to the standard `result` variable by default. This can help you write more compact code - but be careful, many other commands also write to `result` (or `it`), which can overwrite your work.
 
 ```hyperscript
 set result to "<div>"

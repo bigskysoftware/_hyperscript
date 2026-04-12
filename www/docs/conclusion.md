@@ -244,7 +244,7 @@ npx hyperscript.org --validate --quiet
 
 ### What It Checks
 
-The validator catches **syntax errors** — misspelled commands, missing expressions, unterminated
+The validator catches **syntax errors** - misspelled commands, missing expressions, unterminated
 strings, unbalanced braces, and anything else the parser rejects. It does not execute your
 hyperscript, so runtime concerns like missing DOM elements or undefined variables are not reported.
 
@@ -350,7 +350,7 @@ Hyperscript has built-in htmx integration.  When htmx is detected on the page, h
 * Processes hyperscript on htmx-swapped content (listens for `htmx:load` and `htmx:after:process`)
 * Notifies htmx about DOM content inserted by hyperscript (calls `htmx.process()`)
 
-No configuration needed — just include both scripts on the page.
+No configuration needed - just include both scripts on the page.
 
 ### hs-include (htmx 4+) {#hs-include}
 

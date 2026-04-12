@@ -9,7 +9,7 @@ test.describe('the set feature', () => {
 	})
 
 	test('supports DOM-scoped (^) variables at the element level', async ({html, find}) => {
-		// ^foo is "inherited" (DOM) scope — allowed at feature level
+		// ^foo is "inherited" (DOM) scope - allowed at feature level
 		await html("<div _='set ^foo to 42 on click put ^foo into me'></div>")
 		await find('div').dispatchEvent('click')
 		await expect(find('div')).toHaveText('42')

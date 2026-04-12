@@ -366,7 +366,7 @@ test.describe('the bind feature', () => {
 	// Initialization: right side (Y in "bind X to Y") wins
 	// ================================================================
 
-	test('init: right side wins — input value (Y) overwrites variable (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - input value (Y) overwrites variable (X)', async ({html, find, run, evaluate}) => {
 		await run("set $name to 'Alice'")
 		await html(`<input type="text" value="Bob" _="bind $name to my value" />`)
 		await new Promise(r => setTimeout(r, 100))
@@ -375,7 +375,7 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$name })
 	})
 
-	test('init: right side wins — variable (Y) overwrites input value (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - variable (Y) overwrites input value (X)', async ({html, find, run, evaluate}) => {
 		await run("set $name to 'Alice'")
 		await html(`<input type="text" value="Bob" _="bind my value to $name" />`)
 		await new Promise(r => setTimeout(r, 100))
@@ -384,14 +384,14 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$name })
 	})
 
-	test('init: right side wins — attribute (Y) initializes variable (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - attribute (Y) initializes variable (X)', async ({html, find, run, evaluate}) => {
 		await html(`<div data-color="red" _="bind $color to @data-color"></div>`)
 		await new Promise(r => setTimeout(r, 100))
 		expect(await evaluate(() => window.$color)).toBe('red')
 		await evaluate(() => { delete window.$color })
 	})
 
-	test('init: right side wins — variable (Y) initializes attribute (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - variable (Y) initializes attribute (X)', async ({html, find, run, evaluate}) => {
 		await run("set $theme to 'dark'")
 		await html(`<div _="bind @data-theme to $theme"></div>`)
 		await new Promise(r => setTimeout(r, 100))
@@ -399,7 +399,7 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$theme })
 	})
 
-	test('init: right side wins — variable (Y) drives class (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - variable (Y) drives class (X)', async ({html, find, run, evaluate}) => {
 		await run("set $isDark to true")
 		await html(`<div _="bind .dark to $isDark"></div>`)
 		await new Promise(r => setTimeout(r, 100))
@@ -407,7 +407,7 @@ test.describe('the bind feature', () => {
 		await evaluate(() => { delete window.$isDark })
 	})
 
-	test('init: right side wins — class (Y) drives variable (X)', async ({html, find, run, evaluate}) => {
+	test('init: right side wins - class (Y) drives variable (X)', async ({html, find, run, evaluate}) => {
 		await run("set $isDark to false")
 		await html(`<div class="dark" _="bind $isDark to .dark"></div>`)
 		await new Promise(r => setTimeout(r, 100))
@@ -635,7 +635,7 @@ test.describe('the bind feature', () => {
 			return true
 		})
 
-		// Click the cleaned-up blue radio — $color should NOT change
+		// Click the cleaned-up blue radio - $color should NOT change
 		await evaluate(() => {
 			var blue = document.querySelector('#work-area input[value=blue]')
 			blue.checked = true
@@ -665,7 +665,7 @@ test.describe('the bind feature', () => {
 			_hyperscript.internals.runtime.cleanup(input)
 		})
 
-		// Reset the form — $val should NOT revert since listener was removed
+		// Reset the form - $val should NOT revert since listener was removed
 		await evaluate(() => {
 			document.querySelector('#work-area form').reset()
 		})

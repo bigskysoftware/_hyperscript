@@ -1,5 +1,5 @@
 /**
- * HtmxCompat — hyperscript/htmx integration layer
+ * HtmxCompat - hyperscript/htmx integration layer
  *
  * Handles bidirectional processing (htmx content → hyperscript, hyperscript content → htmx)
  * and the hs-include extension for bridging element variables into htmx requests.

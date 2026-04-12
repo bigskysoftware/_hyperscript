@@ -226,15 +226,6 @@ The wrapped style block is emitted once per component definition, not
 per instance, so a hundred `<badge-pill>` elements on the page still share
 a single stylesheet.
 
-#### Why `@scope` and not Shadow DOM
-
-`@scope` is a one-way mirror: component styles can't leak out and
-clobber the rest of the page, but the page's styles still flow in. Fonts,
-colors, CSS variables, and theme tokens set on an ancestor still cascade
-into the component as you'd expect, and the component's elements remain
-normal participants in the document - forms submit, focus navigation works,
-querySelectors from outside still find them.
-
 ### DOM Isolation {#dom-isolation}
 
 Each component instance gets `dom-scope="isolated"`, which stops `^var` lookups at

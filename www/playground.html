@@ -97,7 +97,7 @@ title: Try it! - ///_hyperscript
     }
     .playground-status .error { color: #c00; }
 
-    /* Hyperscript overlay tokens — must beat cm-string when both apply */
+    /* Hyperscript overlay tokens - must beat cm-string when both apply */
     .cm-hs-keyword { color: #6cb6ff !important; font-weight: bold; }
     .cm-hs-symbol-global { color: #5bc4e0 !important; }
     .cm-hs-symbol-element { color: #e6994a !important; }
@@ -537,7 +537,7 @@ function consoleEval(input) {
     var iframe = document.getElementById('preview');
     var hs = iframe.contentWindow && iframe.contentWindow._hyperscript;
     if (!hs) {
-        consoleAppend('error', 'No preview running — press Run first');
+        consoleAppend('error', 'No preview running - press Run first');
         return;
     }
     try {
@@ -565,11 +565,11 @@ consoleInput.addEventListener('keydown', function (e) {
         var src = this.value.trim();
         if (!src) return;
         if (needsMoreInput(src) && !e.shiftKey) {
-            // Block incomplete — insert newline naturally
+            // Block incomplete - insert newline naturally
             return;
         }
         if (!needsMoreInput(src)) {
-            // Complete — submit
+            // Complete - submit
             e.preventDefault();
             var input = this.value;
             this.value = '';

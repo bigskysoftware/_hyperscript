@@ -8,11 +8,11 @@ The `close` command closes an element by automatically detecting its type and ca
 
 The element type determines the behavior:
 
-- `<dialog>` — calls `close()`
-- `<details>` — removes the `open` attribute
-- Elements with a `popover` attribute — calls `hidePopover()`
-- `fullscreen` — calls `document.exitFullscreen()`
-- Other elements — calls `.close()` as a fallback
+- `<dialog>` - calls `close()`
+- `<details>` - removes the `open` attribute
+- Elements with a `popover` attribute - calls `hidePopover()`
+- `fullscreen` - calls `document.exitFullscreen()`
+- Other elements - calls `.close()` as a fallback
 
 ### Examples
 

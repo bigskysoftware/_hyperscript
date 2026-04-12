@@ -128,7 +128,7 @@ test.describe("_hyperscript bootstrapping", () => {
 
 	test("skips reinitialization if script unchanged", async ({html, find, evaluate}) => {
 		await html("<div _='on click add .foo'></div>");
-		// Process again — should be a no-op
+		// Process again - should be a no-op
 		var clickCount = await evaluate(() => {
 			var div = document.querySelector('#work-area div');
 			var count = 0;

@@ -165,7 +165,7 @@ export class AddCommand extends Command {
                 if (cssDeclaration == null) {
                     // Fall through to general expression for collection support:
                     // add item to myArray, add item to mySet
-                    // Only if "to" follows — otherwise it's a parse error
+                    // Only if "to" follows - otherwise it's a parse error
                     parser.pushFollow("to");
                     try { valueExpr = parser.parseElement("expression"); }
                     finally { parser.popFollow(); }
@@ -348,6 +348,23 @@ export class RemoveCommand extends Command {
         var cmd = this;
         var result;
         if (this.variant === "element") {
+            // When no `from` clause is given and the target expression is an
+            // assignable indirect (a.b, a[i], a of b), dispatch to its
+            // `delete` method unless the value happens to be a DOM node
+            // (in which case the user meant "detach this element").
+            if (from == null && typeof this.elementExpr.delete === "function") {
+                var isDomTarget = this.isDOMTarget(element);
+                if (!isDomTarget) {
+                    var lhsExprs = this.elementExpr.lhs;
+                    var lhs = {};
+                    for (var key in lhsExprs) {
+                        var sub = lhsExprs[key];
+                        lhs[key] = sub && sub.evaluate ? sub.evaluate(context) : sub;
+                    }
+                    this.elementExpr.delete(context, lhs);
+                    return this.findNext(context);
+                }
+            }
             runtime.nullCheck(element, this.elementExpr);
             if (from != null && Array.isArray(from)) {
                 var idx = from.indexOf(element);
@@ -406,6 +423,12 @@ export class RemoveCommand extends Command {
         }
         return runtime.findNext(this, context);
     }
+
+    isDOMTarget(element) {
+        return element instanceof Node ||
+               element instanceof NodeList ||
+               element instanceof HTMLCollection;
+    }
 }
 
 /**
@@ -456,7 +479,7 @@ export class ToggleCommand extends VisibilityCommand {
         var toggleExpr = null;
         var styleProp = null;
 
-        // Branch 1: style ref — toggle *display [of <expr>]
+        // Branch 1: style ref - toggle *display [of <expr>]
         if (parser.currentToken().type === "STYLE_REF") {
             let styleRef = parser.consumeToken();
             styleProp = styleRef.value.slice(1);
@@ -473,7 +496,7 @@ export class ToggleCommand extends VisibilityCommand {
                 onExpr = parser.requireElement("implicitMeTarget");
             }
         }
-        // Branch 2: between class/attr — toggle between .x and .y
+        // Branch 2: between class/attr - toggle between .x and .y
         else if (parser.matchToken("between")) {
             classRef = parser.parseElement("classRef");
             if (classRef != null) {
@@ -490,18 +513,18 @@ export class ToggleCommand extends VisibilityCommand {
                 attributeRef2 = parser.requireElement("attributeRef");
             }
         }
-        // Branch 3: class ref(s) — toggle .foo [.bar ...]
+        // Branch 3: class ref(s) - toggle .foo [.bar ...]
         else if ((classRef = parser.parseElement("classRef"))) {
             classRefs = [classRef];
             while ((classRef = parser.parseElement("classRef"))) {
                 classRefs.push(classRef);
             }
         }
-        // Branch 4: attribute ref — toggle @attr
+        // Branch 4: attribute ref - toggle @attr
         else if ((attributeRef = parser.parseElement("attributeRef"))) {
             // single attribute toggle
         }
-        // Branch 5: assignable expression — toggle <expr> between ...
+        // Branch 5: assignable expression - toggle <expr> between ...
         else {
             parser.pushFollow("between");
             toggleExpr = parser.parseElement("assignableExpression");
@@ -949,11 +972,11 @@ export class MeasureCommand extends Command {
         } else {
             var expr = parser.requireElement("expression");
             if (expr.type === "symbol" && MEASURE_PROPS.includes(expr.name)) {
-                // bare identifier like "top" — it's a measurement property, target is me
+                // bare identifier like "top" - it's a measurement property, target is me
                 targetExpr = parser.parseElement("implicitMeTarget");
                 propsToMeasure.push(expr.name);
             } else if (expr.type === "possessive" && expr.prop) {
-                // "my top" or "#el's top" — root is target, prop is first measurement
+                // "my top" or "#el's top" - root is target, prop is first measurement
                 targetExpr = expr.root;
                 propsToMeasure.push(expr.prop.value);
             } else if (expr.type === "ofExpression" && expr.prop) {

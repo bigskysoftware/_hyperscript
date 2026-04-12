@@ -249,7 +249,7 @@ class GraalParserTest {
     }
 
     @Test fun multipleErrorsCollected() {
-        // Two bad commands in sequence — parser should recover and report both
+        // Two bad commands in sequence - parser should recover and report both
         val result = parseJson("on click togg then blargh")
         val errors = result.getMember("errors")
         assertTrue("Should have at least one error: ${errors.arraySize}", errors.arraySize >= 1)

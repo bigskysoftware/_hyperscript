@@ -36,7 +36,7 @@ Common options:
 |--------|-------------|
 | `method` | HTTP method (`"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, etc.). Defaults to `"GET"` |
 | `headers` | An object of request headers |
-| `body` | Request body — a string, `FormData`, `Blob`, etc. |
+| `body` | Request body - a string, `FormData`, `Blob`, etc. |
 | `credentials` | `"omit"`, `"same-origin"`, or `"include"` |
 | `cache` | `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, `"only-if-cached"` |
 | `mode` | `"cors"`, `"no-cors"`, `"same-origin"` |
@@ -61,7 +61,7 @@ By default the response body is returned as a string. You can change this with t
 | Form | Result |
 |------|--------|
 | _(no `as`)_ | Response body as a string |
-| `as Text` | Same as the default — response body as a string |
+| `as Text` | Same as the default - response body as a string |
 | `as JSON` | Parse the body as JSON and return the resulting object |
 | `as HTML` | Parse the body as HTML and return a `DocumentFragment` |
 | `as Response` | Return the raw [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object; you handle body parsing and errors yourself |
@@ -96,7 +96,7 @@ fetch /api/users as JSON don't throw
 -- it contains whatever the server sent, even on 404/500
 ```
 
-`fetch X as Response` never throws — you get the raw Response and handle it yourself:
+`fetch X as Response` never throws - you get the raw Response and handle it yourself:
 
 ```hyperscript
 fetch /api/users as Response

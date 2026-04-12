@@ -8,8 +8,8 @@ SolidJS (and most JS reactive frameworks) use explicit signal primitives:
 
 ```js
 const [count, setCount] = createSignal(0);
-count()      // read — registers a subscription
-setCount(5)  // write — notifies subscribers
+count()      // read - registers a subscription
+setCount(5)  // write - notifies subscribers
 ```
 
 This is necessary because JavaScript has no way to intercept plain variable

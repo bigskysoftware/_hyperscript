@@ -304,13 +304,13 @@ export class Parser {
     parseURLOrExpression() {
         var cur = this.currentToken();
         if (cur.value === "/" && cur.type === "DIVIDE") {
-            // starts with / — naked URL
+            // starts with / - naked URL
             var tokens = this.consumeUntilWhitespace();
             this.matchTokenType("WHITESPACE");
             return new NakedString(tokens);
         }
         if (cur.type === "IDENTIFIER" && (cur.value === "http" || cur.value === "https" || cur.value === "ws" || cur.value === "wss")) {
-            // starts with http/https — naked URL
+            // starts with http/https - naked URL
             var tokens = this.consumeUntilWhitespace();
             this.matchTokenType("WHITESPACE");
             return new NakedString(tokens);

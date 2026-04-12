@@ -37,8 +37,8 @@ clicked tab and `add ... when` toggles the `hidden` attribute on the panels.
         </ul>
     </div>
     <div class="panel" id="panel-reviews" role="tabpanel" hidden>
-        <p><strong>★★★★★</strong> "My new daily driver." — Jamie</p>
-        <p><strong>★★★★☆</strong> "Bright, clean, lovely finish." — Riley</p>
+        <p><strong>★★★★★</strong> "My new daily driver." - Jamie</p>
+        <p><strong>★★★★☆</strong> "Bright, clean, lovely finish." - Riley</p>
     </div>
 </div>
 <style>
@@ -97,11 +97,11 @@ on click
 
 Four lines, in order:
 
-1. **`set tab to the closest <[role=tab]/> to the target`** — find the tab the user clicked. `the target` is the click event's `event.target`, and `closest` walks up to find the nearest ancestor (or self) matching the selector. If they clicked outside any tab, `tab` is `null`.
+1. **`set tab to the closest <[role=tab]/> to the target`** - find the tab the user clicked. `the target` is the click event's `event.target`, and `closest` walks up to find the nearest ancestor (or self) matching the selector. If they clicked outside any tab, `tab` is `null`.
 
-2. **`if no tab exit end`** — bail out cleanly when the click wasn't on a tab.
+2. **`if no tab exit end`** - bail out cleanly when the click wasn't on a tab.
 
-3. **`take @aria-selected='true' from <[role=tab]/> in me giving 'false' for tab`** — the `take` shibboleth, in its richest form:
+3. **`take @aria-selected='true' from <[role=tab]/> in me giving 'false' for tab`** - the `take` shibboleth, in its richest form:
     - **`@aria-selected='true'`** is what gets added to the `for` target
     - **`from <[role=tab]/> in me`** is the source set, scoped to descendants of this tablist
     - **`giving 'false'`** is what the `from` elements get instead of having the attribute removed (`giving` is an alias for `with`, and reads more naturally in this position)
@@ -109,7 +109,7 @@ Four lines, in order:
    
    Net effect: every tab in this component gets `aria-selected="false"`, then the clicked tab gets `aria-selected="true"`. The browser styles it via `[aria-selected="true"]` in CSS - no `.active` class needed.
 
-4. **`add @hidden to <[role=tabpanel]/> in me when its @id is not (tab's @aria-controls)`** — for each tabpanel, add `@hidden` if its id doesn't match the active tab's `aria-controls`, and remove it if it does. `add ... when` toggles in both directions, so one statement handles all panels at once.
+4. **`add @hidden to <[role=tabpanel]/> in me when its @id is not (tab's @aria-controls)`** - for each tabpanel, add `@hidden` if its id doesn't match the active tab's `aria-controls`, and remove it if it does. `add ... when` toggles in both directions, so one statement handles all panels at once.
 
 ## Why ARIA, not `.active`
 

@@ -40,11 +40,34 @@ The `when` clause lets you filter which elements are affected. The expression is
 
 `remove` also works with arrays, sets, and maps:
 
-```hyperscript
+```
 remove item from myArray                 -- finds by value, splices
 remove item from mySet                   -- set.delete(item)
 remove key from myMap                    -- map.delete(key)
 ```
+
+### Properties and indices
+
+Without a `from` clause, `remove` on an assignable expression (a property
+access or indexed access) deletes the target in place:
+
+```
+remove :arr[1]         -- splices index 1 out of the array
+remove :arr[-1]        -- splices the last element (negative indices allowed)
+remove :obj.field      -- delete obj.field
+remove field of :obj   -- same, using the `of` form
+```
+
+For arrays the index form uses `splice`, so subsequent indices shift
+down. For plain objects the property form uses JavaScript `delete`.
+
+{% note "DOM fallthrough" %}
+If the expression's value happens to be a DOM node (e.g.
+`remove :wrapper.el` where `.el` holds an element), `remove` falls
+through to the usual "detach from the DOM" behavior instead of deleting
+the property. This keeps the common case `remove firstChild of me`
+doing what you'd expect.
+{% endnote %}
 
 ### Syntax
 

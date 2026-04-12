@@ -8,7 +8,7 @@ The `add` command lets you add a CSS class, an HTML attribute, or inline CSS pro
 
 You can add classes via a [class ref](/expressions/class-reference), attributes via an [attribute ref](/expressions/attribute-ref), or CSS properties via an object literal.
 
-The `when` clause lets you filter which elements in the target actually get the addition. The expression is evaluated for each element in the target — if it returns true, the value is added; if false, the value is removed. The `it` symbol is set to the current element being evaluated, so you can express conditions against each element.
+The `when` clause lets you filter which elements in the target actually get the addition. The expression is evaluated for each element in the target - if it returns true, the value is added; if false, the value is removed. The `it` symbol is set to the current element being evaluated, so you can express conditions against each element.
 
 ### Examples
 

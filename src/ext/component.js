@@ -133,7 +133,7 @@ export default function componentPlugin(_hyperscript) {
 
         const templateSource = templateEl.innerHTML;
 
-        // Parse template once to validate — actual rendering happens per instance
+        // Parse template once to validate - actual rendering happens per instance
         // (We reuse the render command's approach: tokenize in "lines" mode at render time)
 
         const ComponentClass = class extends HTMLElement {
@@ -142,7 +142,7 @@ export default function componentPlugin(_hyperscript) {
                 if (this._hypercomp_initialized) return;
                 this._hypercomp_initialized = true;
 
-                // Isolate component scope — ^var resolution stops here
+                // Isolate component scope - ^var resolution stops here
                 this.setAttribute('dom-scope', 'isolated');
 
                 // Capture slot content and clear children immediately,
@@ -165,7 +165,7 @@ export default function componentPlugin(_hyperscript) {
                 var source = substituteSlots(templateSource, self._slotContent, tagName);
 
                 queueMicrotask(function() {
-                    // Initial render — may return a promise if template has async expressions
+                    // Initial render - may return a promise if template has async expressions
                     var result = self._renderTemplate(source);
                     if (result && result.then) {
                         result.then(function(html) {
@@ -219,12 +219,12 @@ export default function componentPlugin(_hyperscript) {
 
                 commandList.execute(ctx);
 
-                // Sync case — command list completed without going async
+                // Sync case - command list completed without going async
                 if (ctx.meta.returned || !ctx.meta.resolve) {
                     return buf.join("");
                 }
 
-                // Async case — stash resolve/reject, return promise
+                // Async case - stash resolve/reject, return promise
                 ctx.meta.resolve = resolve;
                 ctx.meta.reject = reject;
                 return promise.then(function() { return buf.join(""); });
@@ -232,12 +232,12 @@ export default function componentPlugin(_hyperscript) {
 
             _stampTemplate(html) {
                 if (!this._hypercomp_stamped) {
-                    // First render — just set innerHTML and process
+                    // First render - just set innerHTML and process
                     this.innerHTML = html;
                     _hyperscript.process(this);
                     this._hypercomp_stamped = true;
                 } else {
-                    // Subsequent renders — morph to preserve DOM identity
+                    // Subsequent renders - morph to preserve DOM identity
                     runtime.morph(this, html);
                 }
             }

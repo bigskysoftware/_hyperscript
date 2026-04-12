@@ -161,7 +161,7 @@ function validateFile(filePath, extensions, attrPattern, scriptPattern) {
         // Entire file is hyperscript
         parseAndCollect(content, 0, null);
     } else {
-        // HTML-like file — extract regions
+        // HTML-like file - extract regions
         const regions = extractRegions(content, attrPattern, scriptPattern);
         for (const region of regions) {
             if (!region.source.trim()) continue;

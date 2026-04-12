@@ -47,7 +47,7 @@
   "close": {
     "category": "commands",
     "syntax": "close [fullscreen] [<expression>]",
-    "description": "The `close` command closes an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` — calls `close()`\n- `<details>` — removes the `open` attribute\n- Elements wit..."
+    "description": "The `close` command closes an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` - calls `close()`\n- `<details>` - removes the `open` attribute\n- Elements wit..."
   },
   "continue": {
     "category": "commands",
@@ -132,7 +132,7 @@
   "open": {
     "category": "commands",
     "syntax": "open [fullscreen] [<expression>]",
-    "description": "The `open` command opens an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` — calls `showModal()`\n- `<details>` — sets the `open` attribute\n- Elements with..."
+    "description": "The `open` command opens an element. It automatically detects the element type and calls the right API:\n\n- `<dialog>` - calls `showModal()`\n- `<details>` - sets the `open` attribute\n- Elements with..."
   },
   "pick": {
     "category": "commands",
@@ -202,7 +202,7 @@
   "speak": {
     "category": "commands",
     "syntax": "speak <expression> [with voice <expression>] [with rate <expression>] [with pitch <expression>] [with volume <expression>]",
-    "description": "The `speak` command uses the Web Speech API\nto speak text aloud — a nod to HyperTalk. The command is async-transparent: it waits for the utterance to finish before continuing to the next command."
+    "description": "The `speak` command uses the Web Speech API\nto speak text aloud - a nod to HyperTalk. The command is async-transparent: it waits for the utterance to finish before continuing to the next command."
   },
   "swap": {
     "category": "commands",

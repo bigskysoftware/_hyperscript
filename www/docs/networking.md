@@ -59,7 +59,7 @@ By default the response body is returned as a string. You can change this with t
 | Form | Result |
 |------|--------|
 | _(no `as`)_ | Response body as a string |
-| `as Text` | Same as the default — response body as a string |
+| `as Text` | Same as the default - response body as a string |
 | `as JSON` | Parse the body as JSON and return the resulting object |
 | `as HTML` | Parse the body as HTML and return a `DocumentFragment` |
 | `as Response` | Return the raw [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object; you handle body parsing and errors yourself |
@@ -89,7 +89,7 @@ If you want to pass through non-2xx responses without throwing, add `do not thro
   -- result contains whatever the server sent, even on 404
   ~~~
 
-The `as Response` form never throws on status codes — you get the raw `Response` object:
+The `as Response` form never throws on status codes - you get the raw `Response` object:
 
   ~~~ hyperscript
   fetch /api/users as Response
@@ -163,10 +163,10 @@ The `intercept` scope controls which URLs the service worker handles (`intercept
 the whole site). Each `on <pattern> use <strategy>` rule matches request paths against a glob
 pattern and applies a caching strategy:
 
-- **cache-first** — try cache, fall back to network (good for static assets)
-- **network-first** — try network, fall back to cache (good for APIs and HTML pages)
-- **stale-while-revalidate** — serve from cache, update in the background
-- **cache-only** / **network-only** — self-explanatory
+- **cache-first** - try cache, fall back to network (good for static assets)
+- **network-first** - try network, fall back to cache (good for APIs and HTML pages)
+- **stale-while-revalidate** - serve from cache, update in the background
+- **cache-only** / **network-only** - self-explanatory
 
 Only GET requests are cached. This is a separate extension that ships with hyperscript.
 

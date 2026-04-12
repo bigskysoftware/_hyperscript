@@ -23,7 +23,7 @@ const shared = {
 
 function builds(entryPoints, outOptions) {
   return [
-    // IIFE (default — plain <script> tag)
+    // IIFE (default - plain <script> tag)
     {
       ...shared,
       format: 'iife',
@@ -102,7 +102,7 @@ function copyPlatformScripts() {
 }
 
 if (dev) {
-  // Watch mode — just build IIFE for speed
+  // Watch mode - just build IIFE for speed
   const ctx = await esbuild.context({
     ...shared,
     format: 'iife',

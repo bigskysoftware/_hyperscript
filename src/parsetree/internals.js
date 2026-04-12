@@ -58,7 +58,7 @@ export class HyperscriptProgram extends ParseElement {
 /**
  * FailedFeature - Placeholder for a feature that failed to parse.
  * Allows the parser to continue and collect more errors.
- * Never executed — element won't apply() if errors exist.
+ * Never executed - element won't apply() if errors exist.
  */
 export class FailedFeature extends Feature {
     constructor(error, keyword) {
@@ -74,7 +74,7 @@ export class FailedFeature extends Feature {
 /**
  * FailedCommand - Placeholder for a command that failed to parse.
  * Allows the parser to continue and collect more errors.
- * Never executed — element won't apply() if errors exist.
+ * Never executed - element won't apply() if errors exist.
  */
 export class FailedCommand extends Command {
     constructor(error, keyword) {

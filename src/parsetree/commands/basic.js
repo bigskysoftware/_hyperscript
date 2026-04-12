@@ -719,7 +719,7 @@ function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions, container) 
     ctx.meta.runtime.implicitLoop(to, function (target) {
         if (target === window) target = document.body;
 
-        // "scroll to #item in #container" — scroll within a specific container
+        // "scroll to #item in #container" - scroll within a specific container
         if (container) {
             var ctr = container instanceof Element ? container : container;
             var top = target.offsetTop - ctr.offsetTop;
