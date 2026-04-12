@@ -4762,6 +4762,7 @@
       var items = Array.from(collection);
       for (var i = 0; i < items.length; i++) {
         context.beingTested = items[i];
+        if (this.varName) context.locals[this.varName] = items[i];
         if (this.condition.evaluate(context)) {
           result.push(items[i]);
         }
@@ -5923,6 +5924,10 @@
       }
     }
     resolve(ctx, { root, from, to, re, count }) {
+      if (root == null) {
+        ctx.result = root;
+        return this.findNext(ctx);
+      }
       if (this.variant === "first") {
         ctx.result = root.slice(0, count);
       } else if (this.variant === "last") {
@@ -6865,6 +6870,11 @@
         identifier = identifierToken.value;
         parser.requireToken("in");
         var expression = parser.requireElement("expression");
+        var walk = expression;
+        while (walk) {
+          if (walk.condition) walk.varName = identifier;
+          walk = walk.root;
+        }
       } else if (parser.matchToken("in")) {
         identifier = "it";
         var expression = parser.requireElement("expression");
@@ -10174,7 +10184,7 @@
     }
     resolve(ctx, { value }) {
       if (this.unescaped) return value;
-      if (value === void 0) return "";
+      if (value == null) return "";
       switch (this.escapeType) {
         case "html":
           return escapeHTML(value);
