@@ -1258,6 +1258,7 @@ class WhereExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
+        if (!collection) return collection;
         var result = [];
         var items = Array.from(collection);
         for (var i = 0; i < items.length; i++) {
@@ -1282,6 +1283,7 @@ class SortedByExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
+        if (!collection) return collection;
         var items = Array.from(collection);
         var keys = [];
         for (var i = 0; i < items.length; i++) {
@@ -1310,6 +1312,7 @@ class MappedToExpression extends Expression {
     }
 
     resolve(context, { root: collection }) {
+        if (!collection) return collection;
         var items = Array.from(collection);
         var result = [];
         for (var i = 0; i < items.length; i++) {
@@ -1329,6 +1332,7 @@ class SplitByExpression extends Expression {
     }
 
     resolve(context, { root, delimiter }) {
+        if (!root) return root;
         return String(root).split(delimiter);
     }
 }
@@ -1341,6 +1345,7 @@ class JoinedByExpression extends Expression {
     }
 
     resolve(context, { root, delimiter }) {
+        if (!root) return root;
         return Array.from(root).join(delimiter);
     }
 }
