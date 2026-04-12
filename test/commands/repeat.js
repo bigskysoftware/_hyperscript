@@ -379,4 +379,14 @@ test.describe("the repeat command", () => {
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("done");
 	});
+
+	test("where clause can use the for loop variable name", async ({html, find}) => {
+		await html(`<div _="on click
+		                       set :items to [{name:'a', val:5}, {name:'b', val:15}, {name:'c', val:25}]
+		                       repeat for x in :items where x.val > 10
+		                         put x.name at end of me
+		                       end"></div>`);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("bc");
+	});
 });
