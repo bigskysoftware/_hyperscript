@@ -44,7 +44,8 @@
     "test:manual": "node test/manual/server.js",
     "test:connections": "node test/manual/server.js",
     "update-debug-plugin": "npm run build && cp dist/_hyperscript.js debug-plugin/vendor/_hyperscript.js",
-    "update-sha": "bash scripts/update-sha.sh"
+    "update-sha": "bash scripts/update-sha.sh",
+    "release-check": "node scripts/release-check.mjs"
   },
   "repository": {
     "type": "git",

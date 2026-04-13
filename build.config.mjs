@@ -3,6 +3,7 @@ import { cpSync, mkdirSync, readdirSync } from 'fs'
 import { execSync } from 'child_process'
 
 const dev = process.argv.includes('--watch')
+const OUT = process.env.HS_OUT_DIR || 'dist'
 
 const coreEntry = ['src/_hyperscript.js']
 const extEntries = [
@@ -61,34 +62,34 @@ function builds(entryPoints, outOptions) {
 const maxEntry = ['src/_hyperscript-max.js']
 
 const coreBuildConfigs = builds(coreEntry, {
-  iife:    { outfile: 'dist/_hyperscript.js' },
-  esm:     { outfile: 'dist/_hyperscript.esm.js' },
-  iifeMin: { outfile: 'dist/_hyperscript.min.js' },
-  esmMin:  { outfile: 'dist/_hyperscript.esm.min.js' },
+  iife:    { outfile: `${OUT}/_hyperscript.js` },
+  esm:     { outfile: `${OUT}/_hyperscript.esm.js` },
+  iifeMin: { outfile: `${OUT}/_hyperscript.min.js` },
+  esmMin:  { outfile: `${OUT}/_hyperscript.esm.min.js` },
 })
 
 const maxBuildConfigs = [
-  { ...shared, format: 'iife', entryPoints: maxEntry, outfile: 'dist/_hyperscript-max.js' },
-  { ...shared, format: 'iife', minify: true, sourcemap: false, entryPoints: maxEntry, outfile: 'dist/_hyperscript-max.min.js' },
+  { ...shared, format: 'iife', entryPoints: maxEntry, outfile: `${OUT}/_hyperscript-max.js` },
+  { ...shared, format: 'iife', minify: true, sourcemap: false, entryPoints: maxEntry, outfile: `${OUT}/_hyperscript-max.min.js` },
 ]
 
 const extBuildConfigs = builds(extEntries, {
-  iife:    { outdir: 'dist/ext' },
-  esm:     { outdir: 'dist/ext', outExtension: { '.js': '.esm.js' } },
-  iifeMin: { outdir: 'dist/ext', outExtension: { '.js': '.min.js' } },
-  esmMin:  { outdir: 'dist/ext', outExtension: { '.js': '.esm.min.js' } },
+  iife:    { outdir: `${OUT}/ext` },
+  esm:     { outdir: `${OUT}/ext`, outExtension: { '.js': '.esm.js' } },
+  iifeMin: { outdir: `${OUT}/ext`, outExtension: { '.js': '.min.js' } },
+  esmMin:  { outdir: `${OUT}/ext`, outExtension: { '.js': '.esm.min.js' } },
 })
 
 function brotliCompress() {
   const minFiles = [
-    'dist/_hyperscript.min.js',
-    'dist/_hyperscript.esm.min.js',
-    'dist/_hyperscript-max.min.js',
+    `${OUT}/_hyperscript.min.js`,
+    `${OUT}/_hyperscript.esm.min.js`,
+    `${OUT}/_hyperscript-max.min.js`,
   ]
   // Add extension min files
-  for (const f of readdirSync('dist/ext')) {
+  for (const f of readdirSync(`${OUT}/ext`)) {
     if (f.endsWith('.min.js')) {
-      minFiles.push('dist/ext/' + f)
+      minFiles.push(`${OUT}/ext/` + f)
     }
   }
   for (const f of minFiles) {
@@ -97,8 +98,8 @@ function brotliCompress() {
 }
 
 function copyPlatformScripts() {
-  mkdirSync('dist/platform', { recursive: true })
-  cpSync('src/platform', 'dist/platform', { recursive: true })
+  mkdirSync(`${OUT}/platform`, { recursive: true })
+  cpSync('src/platform', `${OUT}/platform`, { recursive: true })
 }
 
 if (dev) {
@@ -107,14 +108,14 @@ if (dev) {
     ...shared,
     format: 'iife',
     entryPoints: coreEntry,
-    outfile: 'dist/_hyperscript.js',
+    outfile: `${OUT}/_hyperscript.js`,
   })
   await ctx.watch()
-  console.log('Watching src/ for changes...')
+  console.log(`Watching src/ for changes...`)
 } else {
   const allConfigs = [...coreBuildConfigs, ...maxBuildConfigs, ...extBuildConfigs]
   await Promise.all(allConfigs.map(c => esbuild.build(c)))
   copyPlatformScripts()
   brotliCompress()
-  console.log('Built dist/')
+  console.log(`Built ${OUT}/`)
 }
