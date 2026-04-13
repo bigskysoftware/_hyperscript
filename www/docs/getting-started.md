@@ -43,7 +43,7 @@ The syntax takes a bit of getting used to, but once it clicks, scripts become ea
 Hyperscript is dependency-free and can be installed with a simple `<script>` tag:
 
   ~~~ html
-  <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js" integrity="sha384-kNli9q2SAIKZyCaj/HsxM+q3rmzWVyOTVcwQ/X1tVf7h38a1wkbfBYpckMRA0eSr" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js" integrity="sha384-PV7wvDa1ZQdFKClS9VFcKq4DDcjiyR2kv1OlifemiOm0IPHAZXdagLZ4RksgbypK" crossorigin="anonymous"></script>
   ~~~
 
 ### ES Module
@@ -51,7 +51,7 @@ Hyperscript is dependency-free and can be installed with a simple `<script>` tag
 Hyperscript ships as an ES module too, either from the CDN:
 
   ~~~ html
-  <script type="module" src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.esm.min.js" integrity="sha384-lNDEj2nrXBoU9smz+Hrc/bS3az2j390bFp8N7GvggJy3MkhIYx1aKrMVbJhuobyK" crossorigin="anonymous"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.esm.min.js" integrity="sha384-oJBoPLZDDnPSYYJHSReRkxJGqCFX1TaguJ/NhSF96o8UbTNcEAO54fecZgqeHT2X" crossorigin="anonymous"></script>
   ~~~
 
 or via npm.
