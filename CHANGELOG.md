@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.90 - Unreleased
+## 0.9.90 - 2026-04-13
 
 Hoooooo doggie, it's been a year of on and off work, and we finally had some time to focus on hyperscript!
 

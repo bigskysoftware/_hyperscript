@@ -1881,6 +1881,9 @@
       return Array.from(val).flat();
     },
     HTML: _toHTML,
+    Stream: function() {
+      throw new Error("The Stream conversion requires the SSE extension. Include dist/ext/sse.js or dist/ext/sse.esm.js after hyperscript.");
+    },
     Fragment: function(val, runtime2) {
       var frag = document.createDocumentFragment();
       runtime2.implicitLoop(val, (val2) => {
@@ -6094,6 +6097,12 @@
         }
         if (this.conversionType === "response") return complete(resp);
         if (this.conversionType === "json") return resp.json().then(complete);
+        if (this.conversion) {
+          var convFn = config.conversions[this.conversion];
+          if (convFn && convFn._rawResponse) {
+            return complete(convFn(resp, context.meta.runtime, context));
+          }
+        }
         return resp.text().then((result) => {
           if (this.conversion) result = context.meta.runtime.convertValue(result, this.conversion);
           if (this.conversionType === "html") result = context.meta.runtime.convertValue(result, "Fragment");
@@ -6820,44 +6829,59 @@
       } else if (times) {
         keepLooping = iteratorInfo.index < times;
       } else if (iteratorInfo.iterator) {
+        if (iteratorInfo.async) {
+          var self2 = this;
+          return iteratorInfo.iterator.next().then(function(result) {
+            if (result.done) {
+              return self2._endLoop(context, iteratorInfo);
+            }
+            return self2._continueLoop(context, iteratorInfo, result.value);
+          });
+        }
         var nextValFromIterator = iteratorInfo.iterator.next();
         keepLooping = !nextValFromIterator.done;
         loopVal = nextValFromIterator.value;
       }
       if (keepLooping) {
-        var currentIndex = iteratorInfo.index;
-        if (iteratorInfo.value) {
-          context.result = context.locals[this.identifier] = loopVal;
-        } else {
-          context.result = currentIndex;
-        }
-        if (this.indexIdentifier) {
-          context.locals[this.indexIdentifier] = currentIndex;
-        }
-        if (context.meta.__ht_template_result && iteratorInfo.value) {
-          var scopes = context.meta.__ht_scopes || (context.meta.__ht_scopes = {});
-          if (!scopes[this.slot]) {
-            scopes[this.slot] = {
-              identifier: this.identifier,
-              indexIdentifier: this.indexIdentifier,
-              source: iteratorInfo.value
-            };
-          }
-          context.meta.__ht_template_result.push(
-            "<!--hs-scope:" + this.slot + ":" + currentIndex + "-->"
-          );
-        }
-        iteratorInfo.didIterate = true;
-        iteratorInfo.index++;
-        return this.loop;
+        return this._continueLoop(context, iteratorInfo, loopVal);
       } else {
-        var didIterate = iteratorInfo.didIterate;
-        context.meta.iterators[this.slot] = null;
-        if (!didIterate && this.elseBranch) {
-          return this.elseBranch;
-        }
-        return context.meta.runtime.findNext(this.parent, context);
+        return this._endLoop(context, iteratorInfo);
       }
+    }
+    _continueLoop(context, iteratorInfo, loopVal) {
+      var currentIndex = iteratorInfo.index;
+      if (iteratorInfo.value) {
+        context.result = context.locals[this.identifier] = loopVal;
+      } else {
+        context.result = currentIndex;
+      }
+      if (this.indexIdentifier) {
+        context.locals[this.indexIdentifier] = currentIndex;
+      }
+      if (context.meta.__ht_template_result && iteratorInfo.value) {
+        var scopes = context.meta.__ht_scopes || (context.meta.__ht_scopes = {});
+        if (!scopes[this.slot]) {
+          scopes[this.slot] = {
+            identifier: this.identifier,
+            indexIdentifier: this.indexIdentifier,
+            source: iteratorInfo.value
+          };
+        }
+        context.meta.__ht_template_result.push(
+          "<!--hs-scope:" + this.slot + ":" + currentIndex + "-->"
+        );
+      }
+      iteratorInfo.didIterate = true;
+      iteratorInfo.index++;
+      return this.loop;
+    }
+    _endLoop(context, iteratorInfo) {
+      var didIterate = iteratorInfo.didIterate;
+      context.meta.iterators[this.slot] = null;
+      if (!didIterate && this.elseBranch) {
+        return this.elseBranch;
+      }
+      return context.meta.runtime.findNext(this.parent, context);
     }
   };
   var IfCommand = class _IfCommand extends Command {
@@ -7032,7 +7056,10 @@
       };
       context.meta.iterators[this.slot] = iteratorInfo;
       if (value) {
-        if (value[Symbol.iterator]) {
+        if (value[Symbol.asyncIterator]) {
+          iteratorInfo.iterator = value[Symbol.asyncIterator]();
+          iteratorInfo.async = true;
+        } else if (value[Symbol.iterator]) {
           iteratorInfo.iterator = value[Symbol.iterator]();
         } else {
           iteratorInfo.iterator = Object.keys(value)[Symbol.iterator]();
@@ -11672,8 +11699,70 @@
     }
     return data;
   }
+  function createStream(response, runtime2, context) {
+    var element = context.me;
+    var reader = response.body.getReader();
+    var messages = [];
+    var waiting = null;
+    var done = false;
+    (async function() {
+      try {
+        for await (var msg of parseSSE(reader)) {
+          var eventType = msg.event || "message";
+          if (msg.event) {
+            runtime2.triggerEvent(element, eventType, {
+              data: msg.data,
+              lastEventId: msg.id || ""
+            });
+          } else {
+            messages.push(msg.data);
+            if (waiting) {
+              waiting.resolve({ value: msg.data, done: false });
+              waiting = null;
+            }
+          }
+        }
+      } catch (err) {
+        runtime2.triggerEvent(element, "stream-error", { error: err });
+      }
+      done = true;
+      if (waiting) {
+        waiting.resolve({ value: void 0, done: true });
+        waiting = null;
+      }
+      runtime2.triggerEvent(element, "streamEnd", {});
+    })();
+    var stream = {
+      element,
+      [Symbol.asyncIterator]: function() {
+        var index = 0;
+        return {
+          next: function() {
+            if (index < messages.length) {
+              return Promise.resolve({ value: messages[index++], done: false });
+            }
+            if (done) {
+              return Promise.resolve({ value: void 0, done: true });
+            }
+            return new Promise(function(resolve) {
+              waiting = { resolve };
+            }).then(function(result) {
+              if (!result.done) index++;
+              return result;
+            });
+          }
+        };
+      }
+    };
+    return stream;
+  }
+  var streamConversion = function(response, runtime2, context) {
+    return createStream(response, runtime2, context);
+  };
+  streamConversion._rawResponse = true;
   function eventsourcePlugin(_hyperscript2) {
     _hyperscript2.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
+    _hyperscript2.config.conversions.Stream = streamConversion;
   }
   if (typeof self !== "undefined" && self._hyperscript) {
     self._hyperscript.use(eventsourcePlugin);
