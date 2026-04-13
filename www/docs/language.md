@@ -91,7 +91,7 @@ Many expressions in hyperscript will be familiar to developers:
 * String literals - `"hello world"`
 * Array literals - `[1, 2, 3]`
 
-Others are a bit more exotic and, for example, make it easy to work with the DOM:
+Others are specific to hyperscript and cover DOM access:
 
 * ID References: `#foo`
 * Class References: `.tabs`
@@ -133,8 +133,7 @@ Note that local scoped variables are scoped to the enclosing feature, similar to
 
 #### Variable Names & Scoping {#names_and_scoping}
 
-In order to make non-locally scoped variables easy to create and recognize in code, hyperscript
-supports the following naming conventions:
+Hyperscript uses prefix characters to distinguish non-local scopes at a glance:
 
 * If a variable starts with the `$` character, it will be globally scoped
 * If a variable starts with the `^` character, it will be DOM scoped

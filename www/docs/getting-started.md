@@ -31,12 +31,12 @@ This is the hyperscript way: you put the code [on the thing that does the thing]
 
 The second thing you probably notices is that hyperscript reads like english.  Hyperscript is a member of the [xTalk](https://en.wikipedia.org/wiki/XTalk) family of scripting languages, starting with [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf).
 
-This syntax has some big advantages for a scripting language for the web:
+This syntax has two advantages for a scripting language embedded in HTML:
 
-* It embeds very well in HTML by avoiding noisy syntax
-* It is very easy to read, making it obvious what a script is doing
+* It avoids noisy punctuation, so scripts sit naturally inside HTML attributes
+* It reads top-to-bottom, so the behavior of a script is visible from the source
 
-It takes a bit to get used to, but once you do it is very readable, making behavior obvious.
+The syntax takes a bit of getting used to, but once it clicks, scripts become easy to scan.
 
 ## Install & Quick Start {#install}
 
@@ -94,7 +94,7 @@ end
 
 ### Onward!
 
-Note that hyperscript is a sister project of [htmx](https://htmx.org) and [integrates seamlessly](/docs/conclusion/#htmx) with it.
+Hyperscript is a sister project of [htmx](https://htmx.org) and [integrates with it](/docs/conclusion/#htmx) directly.
 
 OK, now let's learn us some hyperscript...
 

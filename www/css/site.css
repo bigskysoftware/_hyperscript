@@ -38,6 +38,12 @@
     line-height: 1;
     margin-bottom: 0.5rem;
 }
+img.docs-card-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
 .docs-card strong {
     font-family: var(--font-heading);
     font-size: 1.05rem;

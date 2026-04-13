@@ -30,9 +30,9 @@ The script above, again, found on the `_` attribute, does, well, almost exactly 
 
 > On the 'click' event for this button, add the 'clicked' class to this button
 
-This is the beauty of hyperscript: you probably knew what it was doing immediately, when reading it.
+Event handlers in hyperscript read close to English, so their behavior is usually obvious on first look.
 
-Event handlers have a *very* extensive syntax that allows you to, for example:
+The `on` feature supports a rich syntax that includes:
 
 * Control the queuing behavior of events (how do you want events to queue up when an event handler is running?)
 * Respond to events only in certain cases, with the `first` modifier (e.g. `on first click`), counts (e.g. `on click 1`) or event filters (`on keyup[key is 'Escape']`)
@@ -140,9 +140,9 @@ You may also use the [`exit`](/commands/exit) command to exit a function, discus
 
 ### Sending Events {#sending-events}
 
-hyperscript not only makes it easy to respond to events, but also makes it very easy to send events to other elements
-using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands.  Both commands do the same thing:
-sending an event to an element (possibly the current element!) to handle.
+In addition to responding to events, hyperscript can send events to other elements
+using the [`send`](/commands/send) and [`trigger`](/commands/trigger) commands. Both commands do the same thing:
+dispatch an event to an element (possibly the current element) to handle.
 
 Here are a few examples:
 
@@ -165,12 +165,11 @@ You can also pass arguments to events via the `event.detail` property, and use t
 </output>
 {% endexample %}
 
-As you can see, working with events is very natural in hyperscript.  This allows you to build clear, readable
-event-driven code without a lot of fuss.
+Events are hyperscript's primary model for behavior, giving you a direct way to build event-driven code.
 
 ### Synthetic Events
 
-hyperscript includes a few synthetic events that make it easier to use more complex APIs in JavaScript.
+hyperscript includes a few synthetic events that wrap more complex JavaScript APIs.
 
 #### Mutation Events {#mutation}
 

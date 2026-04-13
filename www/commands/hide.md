@@ -106,6 +106,12 @@ More information here: [Safelisting specific utilities - Tailwind CSS v4.0](http
 <div _="on click hide with twOpacity">Hide Me With Opacity!</div>
 ```
 
+### See also
+
+- [`show`](/commands/show) -- the inverse operation
+- [`toggle`](/commands/toggle) -- flip between shown and hidden
+- [`add`](/commands/add) / [`remove`](/commands/remove) -- also support the `when` clause for per-element filtering
+
 ### Syntax
 
 ```ebnf

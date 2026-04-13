@@ -120,6 +120,8 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    height: 44px;
+    box-sizing: border-box;
 }
 
 .navbar nav {
@@ -127,6 +129,7 @@ body {
     margin: 0 auto;
     display: flex;
     align-items: center;
+    height: 100%;
 }
 
 .nav-links {
@@ -147,7 +150,7 @@ body {
     color: var(--text);
     font-family: var(--font-heading);
     font-size: 0.95rem;
-    padding: 8px 14px;
+    padding: 10px 14px;
 }
 
 .navbar a:hover {
@@ -159,7 +162,7 @@ body {
 
 /* Logo */
 .nav-logo-img {
-    height: 44px;
+    height: 28px;
     width: auto;
     image-rendering: pixelated;
     vertical-align: middle;
@@ -275,8 +278,8 @@ body {
     flex-direction: column;
     justify-content: center;
     gap: 4px;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     padding: 4px;
     background: none;
     border: none;
@@ -304,16 +307,23 @@ body {
         left: -1rem;
         right: -1rem;
         background: var(--bg);
-        border-bottom: 1px solid var(--border);
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        padding: 8px 0;
+        padding: 0;
         z-index: 98;
         gap: 0;
         max-height: 0;
         overflow: hidden;
-        transition: max-height 0.2s ease-out;
+        box-sizing: border-box;
+        pointer-events: none;
+        border-bottom: 0 solid var(--border);
+        transition: max-height 0.2s ease-out, border-bottom-width 0s linear 0.2s;
     }
-    .nav-open .nav-links { max-height: 500px; }
+    .nav-open .nav-links {
+        max-height: 500px;
+        pointer-events: auto;
+        border-bottom-width: 1px;
+        transition: max-height 0.2s ease-out, border-bottom-width 0s linear;
+    }
     .nav-links li { width: 100%; text-align: center; }
     .nav-links a {
         display: block;

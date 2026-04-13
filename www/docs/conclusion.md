@@ -235,7 +235,7 @@ npx hyperscript.org --validate --attr hs,data-hs
 ### CI Integration {#validate-ci}
 
 The tool exits with code 0 when no errors are found and code 1 when there are errors,
-making it easy to add to a CI pipeline. Use `--quiet` to suppress individual error details
+so it drops into a CI pipeline without extra wiring. Use `--quiet` to suppress individual error details
 and only print the summary:
 
 ```bash

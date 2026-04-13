@@ -7,11 +7,10 @@ title: ///_hyperscript
 
 ## Working With The DOM {#working-with-the-dom}
 
-The primary use case for hyperscript is adding small bits of interactivity to the DOM and, as such, it has a lot of
-syntax for making this easy and natural.
+The primary use case for hyperscript is adding interactivity to the DOM, so the language includes dedicated syntax
+for DOM work.
 
-We have glossed over a lot of this syntax in previous examples (we hope it was intuitive enough!) but now we will get
-into the details of what they all do:
+Earlier examples used much of this syntax in passing. This section walks through each piece in detail:
 
 ### Finding Elements {#finding-things}
 
@@ -22,7 +21,7 @@ find things in the DOM.
 
 You are probably used to things like number literals (e.g. `1`) or string literals (e.g. `"hello world"`).
 
-Since hyperscript is designed for DOM manipulation, it supports special literals that make it easy to work with the DOM.
+Since hyperscript is designed for DOM manipulation, it provides special literals for the DOM.
 
 Some are inspired by CSS, while others are our own creation.
 
@@ -71,9 +70,7 @@ This allows you to look up elements based on a variable rather than a fixed valu
   remove <${elementType}.hidden/>
   ~~~
 
-All these language constructs make it very easy to work with the DOM in a concise, enjoyable manner.
-
-Compare the following JavaScript:
+Together, these constructs let you express DOM operations concisely. Compare the JavaScript equivalent:
 
   ~~~ js
   document.querySelector('#example-btn')

@@ -69,6 +69,13 @@ the property. This keeps the common case `remove firstChild of me`
 doing what you'd expect.
 {% endnote %}
 
+### See also
+
+- [`add`](/commands/add) -- the inverse operation
+- [`take`](/commands/take) -- move a class or attribute from one element to another
+- [`toggle`](/commands/toggle) -- flip a class or attribute on and off
+- [`show`](/commands/show) / [`hide`](/commands/hide) -- also support the `when` clause for per-element filtering
+
 ### Syntax
 
 ```ebnf

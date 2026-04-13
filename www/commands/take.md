@@ -19,7 +19,7 @@ take <class-ref+ | attribute-ref> [with <value>] [from <source> [giving <value>]
 | Clause                | What it does | Default if omitted |
 |-----------------------|--------------|--------------------|
 | `<class-ref>`         | One or more `.classNames` to move | - required form A |
-| `<attribute-ref>`     | An `@attr` or `[@attr='value']` to move | - required form B |
+| `<attribute-ref>`     | An `@attr` or `@attr='value'` to move | - required form B |
 | `with <value>`        | A *replacement* given to the `from` elements instead of having the class/attribute removed. For the attribute form `<value>` is any expression; for the class form it is a single class reference. | class is removed / attribute is removed |
 | `from <expression>`   | Source element(s) to take from | for classes: any element on the page that has the class; for attributes: must be specified |
 | `giving <value>`      | Same meaning as `with`, but written *after* the `from` clause where it usually reads more naturally. Cannot be combined with `with`. | - |

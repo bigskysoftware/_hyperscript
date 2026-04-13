@@ -4,7 +4,7 @@ title: toggle - ///_hyperscript
 
 ## The `toggle` Command
 
-The `toggle` command flips classes, attributes, or visibility on and off -- the simplest way to create interactive UI.
+The `toggle` command flips classes, attributes, or visibility on and off.
 
 You can toggle:
 
@@ -36,7 +36,7 @@ Toggle a class on another element:
 Toggle an attribute:
 
 ```html
-<button _="on click toggle [@disabled='true']">Toggle Disabled!</button>
+<button _="on click toggle @disabled='true'">Toggle Disabled!</button>
 ```
 
 Toggle with a timeout - reverts after the duration:

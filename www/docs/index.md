@@ -14,73 +14,73 @@ Everything you need to know about _hyperscript
 <div class="docs-grid">
 
 <a href="/docs/getting-started/" class="docs-card">
-<span class="docs-card-icon">&#x1F511;</span>
+<img class="docs-card-icon" src="/img/Getting%20Started.png" alt="">
 <strong>Getting Started</strong>
 <span>Introduction, installation, and your first script</span>
 </a>
 
 <a href="/docs/language/" class="docs-card">
-<span class="docs-card-icon">&#x1F4D6;</span>
+<img class="docs-card-icon" src="/img/Language%20.png" alt="">
 <strong>Language</strong>
 <span>Variables, expressions, control flow, strings, math, conversions</span>
 </a>
 
 <a href="/docs/events/" class="docs-card">
-<span class="docs-card-icon">&#x26A1;</span>
+<img class="docs-card-icon" src="/img/Events%20.png" alt="">
 <strong>Events & Functions</strong>
 <span>Event handlers, functions, exception handling</span>
 </a>
 
 <a href="/docs/dom/" class="docs-card">
-<span class="docs-card-icon">&#x1F333;</span>
+<img class="docs-card-icon" src="/img/DOM%20.png" alt="">
 <strong>Working With The DOM</strong>
 <span>Finding elements, updating content, measuring, visibility</span>
 </a>
 
 <a href="/docs/async/" class="docs-card">
-<span class="docs-card-icon">&#x1F50D;</span>
+<img class="docs-card-icon" src="/img/Transparency%20.png" alt="">
 <strong>Async Transparency</strong>
 <span>No callbacks, no await -- just write linear code and let the runtime handle it</span>
 </a>
 
 <a href="/docs/networking/" class="docs-card">
-<span class="docs-card-icon">&#x1F310;</span>
+<img class="docs-card-icon" src="/img/Networking%20.png" alt="">
 <strong>Networking</strong>
 <span>Fetch, Server-Sent Events, WebSockets</span>
 </a>
 
 <a href="/docs/getting-around/" class="docs-card">
-<span class="docs-card-icon">&#x1F697;</span>
+<img class="docs-card-icon" src="/img/Getting%20Around.png" alt="">
 <strong>Getting Around</strong>
 <span>Navigation, scrolling, and moving users around the page</span>
 </a>
 
 <a href="/docs/templates/" class="docs-card">
-<span class="docs-card-icon">&#x1F4CB;</span>
+<img class="docs-card-icon" src="/img/Templates%20.png" alt="">
 <strong>Templates & Morphing</strong>
 <span>Generate HTML with templates, update the DOM intelligently with morph</span>
 </a>
 
 <a href="/docs/reactivity/" class="docs-card">
-<span class="docs-card-icon">&#x1F504;</span>
+<img class="docs-card-icon" src="/img/Reactivity.png" alt="">
 <strong>Reactivity</strong>
 <span>Reactive values, data binding, and automatic UI updates</span>
 </a>
 
 <a href="/docs/components/" class="docs-card">
-<span class="docs-card-icon">&#x1F9F1;</span>
+<img class="docs-card-icon" src="/img/Components%20.png" alt="">
 <strong>Components</strong>
 <span>Custom elements with reactive templates, slots, and DOM isolation</span>
 </a>
 
 <a href="/docs/extensions/" class="docs-card">
-<span class="docs-card-icon">&#x1F50C;</span>
+<img class="docs-card-icon" src="/img/Extensions%20.png" alt="">
 <strong>Extensions</strong>
 <span>Extending hyperscript with custom commands, expressions, and features</span>
 </a>
 
 <a href="/docs/conclusion/" class="docs-card">
-<span class="docs-card-icon">&#x1F3C1;</span>
+<img class="docs-card-icon" src="/img/Conclusion%20.png" alt="">
 <strong>Conclusion</strong>
 <span>HyperTalk-isms, debugging, JavaScript interop, security, language history</span>
 </a>

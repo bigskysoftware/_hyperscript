@@ -24,7 +24,7 @@ The `when` clause lets you filter which elements in the target actually get the 
   _="on change add { --accent-color: my.value } to document.body"
 />
 
-<button _="on click add [@disabled='true'] to <button/> when it is not me">Disable Other Buttons</button>
+<button _="on click add @disabled='true' to <button/> when it is not me">Disable Other Buttons</button>
 
 <button _="on click add .{'-foo-bar'} to #that">Add Class With A Dash Prefix!</button>
 
@@ -38,6 +38,13 @@ The `when` clause lets you filter which elements in the target actually get the 
 add item to myArray                      -- array.push(item)
 add item to mySet                        -- set.add(item)
 ```
+
+### See also
+
+- [`remove`](/commands/remove) -- the inverse operation
+- [`take`](/commands/take) -- move a class or attribute from one element to another
+- [`toggle`](/commands/toggle) -- flip a class or attribute on and off
+- [`show`](/commands/show) / [`hide`](/commands/hide) -- also support the `when` clause for per-element filtering
 
 ### Syntax
 

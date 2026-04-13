@@ -7,8 +7,7 @@ title: ///_hyperscript
 
 ## Getting Around {#getting-around}
 
-Hyperscript makes it easy to move users around the page or to entirely new pages, with simple
-English-like commands for navigation and scrolling.
+Hyperscript provides English-like commands for navigation and scrolling within and between pages.
 
 ### Going Places {#go}
 

@@ -155,7 +155,7 @@ To cancel a fetch request, send a `fetch:abort` event to the element that trigge
 If you need to fetch from a dynamically-generated URL, use a [template literal string](/expressions/string/) as the URL:
 
 ```hyperscript
-set userId to my [@data-userId]
+set userId to my @data-userId
 fetch `/users/${userId}/profile` as JSON  -- parsed into an object
 ```
 

@@ -6,7 +6,7 @@ title: put - ///_hyperscript
 
 The `put` command inserts content into a variable, property, or the DOM. It reads naturally for placement operations like "put X into Y" or "put X after Y".
 
-Content added to the DOM via `put` will have any hyperscript within it automatically initialized -- no need to call `processNode()`.
+Content added to the DOM via `put` will have any hyperscript within it automatically initialized -- no need to call `_hyperscript.process()`.
 
 ### Examples
 

@@ -75,6 +75,12 @@ If you're using Tailwind CSS, you can use their utility classes instead. Set `_h
 </div>
 ```
 
+### See also
+
+- [`hide`](/commands/hide) -- the inverse operation
+- [`toggle`](/commands/toggle) -- flip between shown and hidden
+- [`add`](/commands/add) / [`remove`](/commands/remove) -- also support the `when` clause for per-element filtering
+
 ### Syntax
 
 ```ebnf
