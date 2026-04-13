@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resize Target Test</title>
+    <script type="module" src="../../src/_hyperscript.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 48em; margin: 2em auto; padding: 0 1em; }
+        .panel {
+            border: 1px solid #ccc;
+            padding: 1em;
+            margin: 1em 0;
+            background: #fafafa;
+        }
+        .status {
+            font-family: monospace;
+            padding: 0.5em;
+            background: #eef;
+            border-radius: 4px;
+            margin: 0.5em 0;
+        }
+        #box {
+            width: 200px;
+            height: 100px;
+            background: #2b6b1f;
+            color: white;
+            padding: 1em;
+            resize: both;
+            overflow: auto;
+        }
+        .instructions { color: #666; font-size: 0.9em; margin: 0.25em 0; }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Resize Target Test</h1>
+    <p>
+        This page exercises the three distinct targets for <code>on resize</code>:
+        <code>window</code> (native event), an explicit element via
+        <code>from</code> (ResizeObserver), and the implicit <code>me</code>
+        target (ResizeObserver).
+    </p>
+
+    <div class="panel">
+        <h2>1. <code>on resize from window</code> &mdash; native window event</h2>
+        <p class="instructions">Resize the browser window. The counter should tick and the latest size should appear.</p>
+        <div class="status" _="init set :count to 0
+                               on resize from window
+                                   increment :count
+                                   put `window resize #${:count}: ${window.innerWidth} × ${window.innerHeight}` into me
+                               end">
+            (not fired yet)
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>2. <code>on resize from body</code> &mdash; ResizeObserver on &lt;body&gt;</h2>
+        <p class="instructions">Resize the window or scroll. The <code>body</code> element is an Element so ResizeObserver handles it.</p>
+        <div class="status" _="init set :count to 0
+                               on resize from body
+                                   increment :count
+                                   put `body resize #${:count}: ${detail.width} × ${detail.height}` into me
+                               end">
+            (not fired yet)
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>3. <code>on resize</code> (implicit <code>me</code>) &mdash; ResizeObserver on the element itself</h2>
+        <p class="instructions">Drag the corner of the green box below to resize it.</p>
+        <div id="box" _="on resize put `${detail.width as Int} × ${detail.height as Int}` into me">
+            drag my corner
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>4. Combined: <code>on load or resize from window</code> &mdash; the original bug case</h2>
+        <p class="instructions">Fires once on page load, then on each window resize. Tests that chained event specs with mixed native + synthetic targets work.</p>
+        <div class="status" _="init set :count to 0
+                               on load or resize from window
+                                   increment :count
+                                   put `fired ${:count} time(s) (load or window resize)` into me
+                               end">
+            (not fired yet)
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>5. Combined: <code>on load or scroll from window or resize from body</code></h2>
+        <p class="instructions">
+            Load + native scroll + element ResizeObserver in one handler.
+            Should fire once on load, again on any window scroll, and again on any body resize.
+        </p>
+        <div class="status" _="init set :count to 0
+                               on load or scroll from window or resize from body
+                                   increment :count
+                                   put `combined handler: ${:count} event(s)` into me
+                               end">
+            (not fired yet)
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>6. The exact bug report pattern</h2>
+        <p class="instructions">
+            <code>on load or scroll from window throttled at 16ms or resize from window or htmx:afterSettle from window</code><br>
+            This was the failing case: all four events targeting <code>window</code>, including
+            <code>resize from window</code> which the pre-fix code tried to hand to
+            <code>ResizeObserver.observe(window)</code>. After the fix, window-targeted
+            <code>resize</code> falls through to the native <code>resize</code> event.
+            (The <code>htmx:afterSettle</code> spec is parsed and installed even though htmx
+            isn't loaded -- it just never fires.)
+        </p>
+        <div class="status"
+             _="init set :count to 0
+                on load
+                  or scroll from window throttled at 16ms
+                  or resize from window
+                  or htmx:afterSettle from window
+                    increment :count
+                    put `bug-report pattern: ${:count} event(s)` into me
+                end">
+            (not fired yet)
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>6. Modified bug report suggestion</h2>
+        <p class="instructions">
+            <code>on load or scroll from window throttled at 16ms or resize from window or htmx:afterSettle from window</code><br>
+        </p>
+        <div class="status"
+             _="init set :count to 0
+                on load
+                  or scroll from window throttled at 16ms
+                  or resize from body
+                  or htmx:afterSettle from window
+                    increment :count
+                    put `bug-report pattern: ${:count} event(s)` into me
+                end">
+            (not fired yet)
+        </div>
+    </div>
+</body>
+</html>

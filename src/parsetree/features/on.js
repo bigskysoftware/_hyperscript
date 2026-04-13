@@ -143,7 +143,9 @@ export class OnFeature extends Feature {
                     eltData.observers.push(observer);
                 }
 
-                if (eventSpec.resizeSpec) {
+                if (eventSpec.resizeSpec && target instanceof Element) {
+                    // ResizeObserver only works on Elements, so `on resize from window`
+                    // (or document) falls through to the native `resize` event below.
                     eventName = "hyperscript:resize";
                     const observer = new ResizeObserver(function (entries) {
                         for (const entry of entries) {

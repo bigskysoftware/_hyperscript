@@ -37,4 +37,15 @@ test.describe("on resize", () => {
 		await expect(find('#out')).toHaveText("150");
 	});
 
+	test("on resize from window uses native window resize event", async ({html, find, page}) => {
+		await html(
+			"<div id='out' _='on resize from window put \"fired\" into me'></div>"
+		);
+		// Native window resize isn't a ResizeObserver event; trigger it directly
+		await page.evaluate(() => {
+			window.dispatchEvent(new Event('resize'));
+		});
+		await expect(find('#out')).toHaveText("fired");
+	});
+
 });
