@@ -11,8 +11,8 @@ The `worker` feature lets you create Web Workers whose functions are transparent
 The `worker` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/worker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/worker.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/worker.js'` after importing hyperscript.

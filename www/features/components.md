@@ -11,8 +11,8 @@ Components let you define reusable custom elements using a `<script type="text/h
 Components is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/component.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/component.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/component.js'` after importing hyperscript.

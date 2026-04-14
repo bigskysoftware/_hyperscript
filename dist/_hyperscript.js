@@ -129,8 +129,15 @@
     peekToken(value, peek, type) {
       peek = peek || 0;
       type = type || "IDENTIFIER";
-      if (this.#tokens[peek] && this.#tokens[peek].value === value && this.#tokens[peek].type === type) {
-        return this.#tokens[peek];
+      let peekNoWhitespace = 0;
+      while (peek > 0) {
+        peekNoWhitespace++;
+        if (this.#tokens[peekNoWhitespace]?.type !== "WHITESPACE") {
+          peek--;
+        }
+      }
+      if (this.#tokens[peekNoWhitespace] && this.#tokens[peekNoWhitespace].value === value && this.#tokens[peekNoWhitespace].type === type) {
+        return this.#tokens[peekNoWhitespace];
       }
     }
     // ----- Whitespace -----
@@ -7886,7 +7893,8 @@
       var time = null;
       var evt = null;
       var from = null;
-      if (parser.matchToken("for")) {
+      if (parser.peekToken("for") && !parser.peekToken("in", 2)) {
+        parser.matchToken("for");
         time = parser.requireElement("expression");
       } else if (parser.matchToken("until")) {
         evt = parser.requireElement("dotOrColonPath", "Expected event name");
@@ -9072,7 +9080,7 @@
             observer.observe(target);
             eltData.observers.push(observer);
           }
-          if (eventSpec.resizeSpec) {
+          if (eventSpec.resizeSpec && target instanceof Element) {
             eventName = "hyperscript:resize";
             const observer = new ResizeObserver(function(entries) {
               for (const entry of entries) {
@@ -10112,14 +10120,6 @@
           var exprParser = parser.createChildParser(exprTokens);
           if (exprParser.matchToken("unescaped")) escape = false;
           var valueNode = exprParser.requireElement("expression");
-          console.log(exprTokens);
-          console.log(
-            "AFTER EXPR:",
-            exprStr,
-            "\u2192 next token:",
-            exprParser.currentToken()?.value,
-            exprParser.currentToken()?.type
-          );
           if (exprParser.matchToken("if")) {
             var conditionNode = exprParser.requireElement("expression");
             var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
@@ -10144,17 +10144,8 @@
       var parts = this.parts;
       var vals = parts.map((part) => {
         if (part.type === "literal") return part.value;
-        console.log("Part:", part);
         if (part.type === "conditional") {
           var condition = part.conditionNode.evaluate(ctx);
-          console.log(
-            "COND:",
-            part.conditionNode.sourceFor?.(),
-            "\u2192",
-            condition,
-            "val:",
-            condition ? part.valueNode.evaluate(ctx) : void 0
-          );
           if (condition) {
             return part.valueNode.evaluate(ctx);
           } else if (part.elseNode) {
@@ -10366,7 +10357,7 @@
       processNode: (elt) => runtime.processNode(elt),
       // deprecated alias
       cleanup: (elt) => runtime.cleanup(elt),
-      version: "0.9.90"
+      version: "0.9.91"
     }
   );
   function ready(fn) {

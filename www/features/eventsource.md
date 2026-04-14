@@ -11,8 +11,8 @@ The `eventsource` feature gives you a declarative way to work with [Server Sent 
 The `eventsource` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/eventsource.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/eventsource.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/eventsource.js'` after importing hyperscript.

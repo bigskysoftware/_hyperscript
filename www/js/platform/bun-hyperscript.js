@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
 import _hyperscript from '../_hyperscript.js';
-import { Feature } from '../parsetree/base.js';
 import path from 'node:path';
 
 const hsExt = '._hs';
@@ -14,48 +13,35 @@ function run(modulePath) {
         .catch(e => console.error("Cannot execute file:", e));
 }
 
-class RequireFeature extends Feature {
-    static keyword = "require";
-
-    constructor(id, name) {
-        super();
-        this.moduleId = id;
-        this.moduleName = name;
+_hyperscript.addFeature("require", function parseRequire(parser) {
+    if (!parser.matchToken("require")) return;
+    const id = parser.requireElement("nakedString").evalStatically();
+    let name;
+    if (parser.matchToken("as")) {
+        name = parser.requireTokenType("IDENTIFIER").value;
+    } else {
+        name = path.basename(id).replace(/\.[^.]*$/, '');
     }
-
-    static parse(parser) {
-        if (!parser.matchToken("require")) return;
-        var id = parser.requireElement("nakedString").evalStatically();
-        var name;
-        if (parser.matchToken("as")) {
-            name = parser.requireTokenType("IDENTIFIER").value;
-        } else {
-            name = path.basename(id).replace(/\.[^.]*$/, '');
-        }
-        return new RequireFeature(id, name);
-    }
-
-    async install(target, source, args, runtime) {
-        var id = this.moduleId;
-        if (id.startsWith('./') || id.startsWith('../')) {
-            id = path.join(args.module.dir, id);
-        }
-
-        var mod;
-        if (id.endsWith(hsExt)) {
-            mod = await run(id);
-        } else {
-            var file = Bun.file(id + hsExt);
-            if (await file.exists()) {
-                mod = await run(id + hsExt);
-            } else {
-                mod = await import(id);
+    return {
+        async install(target, source, args, runtime) {
+            let resolved = id;
+            if (resolved.startsWith('./') || resolved.startsWith('../')) {
+                resolved = path.join(args.module.dir, resolved);
             }
+            let mod;
+            if (resolved.endsWith(hsExt)) {
+                mod = await run(resolved);
+            } else {
+                const file = Bun.file(resolved + hsExt);
+                if (await file.exists()) {
+                    mod = await run(resolved + hsExt);
+                } else {
+                    mod = await import(resolved);
+                }
+            }
+            runtime.assignToNamespace(target, [], name, mod);
         }
-        runtime.assignToNamespace(target, [], this.moduleName, mod);
-    }
-}
-
-_hyperscript.addFeature(RequireFeature.keyword, RequireFeature.parse.bind(RequireFeature));
+    };
+});
 
 run(process.argv[2]);

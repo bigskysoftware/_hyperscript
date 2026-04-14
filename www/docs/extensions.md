@@ -25,8 +25,8 @@ These extensions ship in the `dist/ext/` directory and must be loaded separately
 Each extension is loaded via an additional `<script>` tag. For example:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/socket.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/socket.min.js"></script>
 ```
 
 See each extension's feature page for specific install instructions.

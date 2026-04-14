@@ -13,8 +13,8 @@ service worker that handles request interception according to your rules.
 The `intercept` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/ext/intercept.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/intercept.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/intercept.js'` after importing hyperscript.

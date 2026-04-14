@@ -121,8 +121,15 @@ var Tokens = class {
   peekToken(value, peek, type) {
     peek = peek || 0;
     type = type || "IDENTIFIER";
-    if (this.#tokens[peek] && this.#tokens[peek].value === value && this.#tokens[peek].type === type) {
-      return this.#tokens[peek];
+    let peekNoWhitespace = 0;
+    while (peek > 0) {
+      peekNoWhitespace++;
+      if (this.#tokens[peekNoWhitespace]?.type !== "WHITESPACE") {
+        peek--;
+      }
+    }
+    if (this.#tokens[peekNoWhitespace] && this.#tokens[peekNoWhitespace].value === value && this.#tokens[peekNoWhitespace].type === type) {
+      return this.#tokens[peekNoWhitespace];
     }
   }
   // ----- Whitespace -----

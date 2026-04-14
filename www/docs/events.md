@@ -275,7 +275,7 @@ When loaded in this manner, the script tags **must** appear before loading hyper
 
   ~~~ html
   <script type="text/hyperscript" src="/functions._hs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.90/dist/_hyperscript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
   ~~~
 
 Hyperscript is fully interoperable with JavaScript, and global hyperscript functions can be called from JavaScript as well
