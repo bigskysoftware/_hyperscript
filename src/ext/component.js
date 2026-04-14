@@ -19,6 +19,21 @@ export default function componentPlugin(_hyperscript) {
     const { runtime, createParser, reactivity } = _hyperscript.internals;
     const tokenizer = new Tokenizer();
 
+    // Hide undefined custom elements to avoid a flash of unstyled content
+    // while bundle fetches or the after-process walk register them. The rule
+    // only matches custom elements (built-in tags are always :defined), so
+    // it's safe to apply globally. Injected lazily on the first before-process
+    // hook (rather than at module load) so that we know <head> exists and that
+    // the extension is running in a real document.
+    function ensureFouceGuard() {
+        if (typeof document === 'undefined' || !document.head) return;
+        if (document.head.querySelector('style[data-hyperscript-component="fouce-guard"]')) return;
+        var styleEl = document.createElement('style');
+        styleEl.setAttribute('data-hyperscript-component', 'fouce-guard');
+        styleEl.textContent = ':not(:defined) { visibility: hidden; }';
+        document.head.appendChild(styleEl);
+    }
+
     function substituteSlots(templateSource, slotContent, scopeSel) {
         if (!slotContent) return templateSource;
 
@@ -116,7 +131,9 @@ export default function componentPlugin(_hyperscript) {
         }
 
         // Extract <style> blocks from the raw text, wrap in @scope (tag-name),
-        // and insert a single combined <style> right after the definition element.
+        // and inject a single combined <style> into document.head. Using head
+        // rather than insertAdjacentElement keeps bundle-loaded templates
+        // (whose templateEl lives in a DOMParser'd foreign document) working.
         var raw = templateEl.textContent;
         var combined = '';
         var styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
@@ -127,11 +144,10 @@ export default function componentPlugin(_hyperscript) {
         if (combined) {
             raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
             templateEl.textContent = raw;
-        }
-        if (combined) {
             var scopedStyle = document.createElement('style');
+            scopedStyle.setAttribute('data-hyperscript-component', tagName);
             scopedStyle.textContent = '@scope (' + tagName + ') {\n' + combined + '}';
-            templateEl.insertAdjacentElement('afterend', scopedStyle);
+            document.head.appendChild(scopedStyle);
         }
 
         const templateSource = templateEl.textContent;
@@ -250,21 +266,66 @@ export default function componentPlugin(_hyperscript) {
         customElements.define(tagName, ComponentClass);
     }
 
-    // Register a before-process hook to scan for component definitions
     var registered = new Set();
+    var fetchedBundles = new Map();
 
+    function registerTemplate(tmpl) {
+        var tagName = tmpl.getAttribute('component');
+        if (!tagName || registered.has(tagName) || customElements.get(tagName)) return;
+        registered.add(tagName);
+        var script = tmpl.hasOwnProperty('_componentScript')
+            ? tmpl._componentScript
+            : (tmpl.getAttribute('_') || '');
+        if (tmpl.hasAttribute('_')) tmpl.removeAttribute('_');
+        registerComponent(tmpl, script || '');
+    }
+
+    function loadComponentBundle(url) {
+        if (fetchedBundles.has(url)) return fetchedBundles.get(url);
+        var p = fetch(url)
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status + ' fetching ' + url);
+                return r.text();
+            })
+            .then(function (html) {
+                // Parse in a detached document — no scripts execute, no side
+                // effects on the live DOM. We only harvest the component
+                // template elements and hand them to registerComponent.
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                doc.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(registerTemplate);
+            })
+            .catch(function (err) {
+                console.error("hyperscript component bundle '" + url + "': " + err.message);
+                fetchedBundles.delete(url); // allow retry
+            });
+        fetchedBundles.set(url, p);
+        return p;
+    }
+
+    // Before-process: inject the FOUCE guard if we haven't already, then
+    // strip `_` from inline component templates and stash it, so the walk
+    // doesn't install the init feature on the <script> tag itself.
     _hyperscript.addBeforeProcessHook(function(elt) {
+        ensureFouceGuard();
         if (!elt || !elt.querySelectorAll) return;
         elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-            // Always strip _ to prevent normal processNode from running it on the template
-            var script = tmpl.getAttribute('_') || '';
+            if ('_componentScript' in tmpl) return;
+            tmpl._componentScript = tmpl.getAttribute('_') || '';
             tmpl.removeAttribute('_');
+        });
+    });
 
-            var tagName = tmpl.getAttribute('component');
-            if (!registered.has(tagName) && !customElements.get(tagName)) {
-                registered.add(tagName);
-                registerComponent(tmpl, script);
-            }
+    _hyperscript.addAfterProcessHook(function(elt) {
+        if (!elt || !elt.querySelectorAll) return;
+
+        // Inline components
+        elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(registerTemplate);
+
+        // External bundles: <script type="text/hyperscript-component" src="...">
+        elt.querySelectorAll('script[type="text/hyperscript-component"][src]').forEach(function (bundle) {
+            if (bundle._componentBundleLoaded) return;
+            bundle._componentBundleLoaded = true;
+            loadComponentBundle(bundle.getAttribute('src'));
         });
     });
 }

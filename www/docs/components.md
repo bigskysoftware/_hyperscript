@@ -11,7 +11,7 @@ Components let you define reusable custom elements using a `<script type="text/h
 You write markup with `${}` interpolation, attach hyperscript with `_=`, and the
 runtime handles reactive re-rendering via morphing.
 
-Components is an extension and must be loaded separately after hyperscript.
+Note that components are an extension and must be loaded separately after hyperscript.
 
 See the [component feature page](/features/components) for installation details.
 
@@ -232,6 +232,53 @@ Each component instance gets `dom-scope="isolated"`, which stops `^var` lookups 
 the component boundary. This keeps component state private and avoids collisions
 with outer scopes. See [`dom-scope`](/docs/language/#names_and_scoping) in the
 language docs for all the scoping options.
+
+### Loading Components From an External File {#external-bundles}
+
+Inline component definitions are convenient for single-page apps, but when you
+want to share the same components across multiple pages, you can move them
+into an external file and import the file with a single script tag:
+
+~~~ html
+<script type="text/hyperscript-component" src="/components/cards.html"></script>
+~~~
+
+The file at `/components/cards.html` is a plain fragment containing one or more
+component definitions, written exactly the same way you would inline them:
+
+  ~~~ html
+  <script type="text/hyperscript-template" component="user-card"
+          _="init set ^user to attrs.data">
+    <style>h3, p { margin: 0; }</style>
+    <h3>${^user.name}</h3>
+    <p>${^user.email}</p>
+  </script>
+
+  <script type="text/hyperscript-template" component="user-badge">
+    <span class="badge">${^user.name}</span>
+  </script>
+  ~~~
+
+The extension fetches the file, harvests every `<script type="text/hyperscript-template" component="...">`
+it finds in the response, and registers each as a custom element.
+
+Because custom element registration is asynchronous (the fetch has to complete
+before `customElements.define` can run) instances of the component exist in
+the DOM as unknown elements during the fetch window. The extension hides them
+with a global `:not(:defined) { visibility: hidden; }` rule (injected into
+`<head>` as `<style data-hyperscript-component="fouce-guard">`), so they reserve
+layout space without flashing raw content. Once the fetch resolves and the
+custom element is defined, the rule stops matching and the component's rendered
+output appears in one step. You can override or remove the style tag if you
+want different behavior.
+
+{% tip "Above-the-fold components" %}
+The fetch adds one HTTP round trip before the component can render. For
+components that need to paint as fast as possible (hero images, primary
+navigation), keep the definition inline and externalize the below-the-fold
+pieces. You can also add `<link rel="preload" as="fetch" href="/components/cards.html" crossorigin>`
+to start the fetch in parallel with the HTML parser.
+{% endtip %}
 
 ### Example: Filterable List {#example-filter}
 
