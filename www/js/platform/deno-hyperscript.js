@@ -1,4 +1,4 @@
-import _hyperscript from '../_hyperscript.js';
+import _hyperscript from '../_hyperscript.esm.js';
 import * as path from 'jsr:@std/path';
 
 const hsExt = '._hs';

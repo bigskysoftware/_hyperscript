@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import _hyperscript from '../_hyperscript.js';
+import _hyperscript from '../_hyperscript.esm.js';
 import path from 'node:path';
 
 const hsExt = '._hs';

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import _hyperscript from '../_hyperscript.js';
+import _hyperscript from '../_hyperscript.esm.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';

@@ -1,5 +1,6 @@
 import * as esbuild from 'esbuild'
-import { cpSync, mkdirSync, readdirSync } from 'fs'
+import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
 import { execSync } from 'child_process'
 
 const dev = process.argv.includes('--watch')
@@ -100,6 +101,16 @@ function brotliCompress() {
 function copyPlatformScripts() {
   mkdirSync(`${OUT}/platform`, { recursive: true })
   cpSync('src/platform', `${OUT}/platform`, { recursive: true })
+  // In src/, `../_hyperscript.js` resolves to the ESM source entry.
+  // In dist/, the equivalent ESM bundle is `_hyperscript.esm.js` — `_hyperscript.js`
+  // is the IIFE build and has no exports. Rewrite the import path on copy.
+  for (const name of readdirSync(`${OUT}/platform`)) {
+    if (!name.endsWith('.js')) continue
+    const p = join(OUT, 'platform', name)
+    const src = readFileSync(p, 'utf8')
+    const fixed = src.replaceAll("'../_hyperscript.js'", "'../_hyperscript.esm.js'")
+    if (fixed !== src) writeFileSync(p, fixed)
+  }
 }
 
 if (dev) {
