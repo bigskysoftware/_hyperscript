@@ -55,6 +55,37 @@ test.describe("the toggle command", () => {
 		await expect(find('div')).not.toHaveClass(/foo/);
 	});
 
+	test("toggle does not consume a following for-in loop", async ({html, find, page}) => {
+		await html(
+			"<div id='out'></div>" +
+			"<div id='btn' _=\"on click " +
+			"           toggle .foo " +
+			"           for x in [1, 2, 3] " +
+			"             put x into #out " +
+			"           end\"></div>"
+		);
+		const btn = page.locator('#btn');
+		await expect(btn).not.toHaveClass(/foo/);
+		await btn.dispatchEvent('click');
+		await expect(btn).toHaveClass(/foo/);
+		await expect(find('#out')).toHaveText('3');
+	});
+
+	test("toggle between followed by for-in loop works", async ({html, find, page}) => {
+		await html(
+			"<div id='out'></div>" +
+			"<div id='btn' class='a' _=\"on click " +
+			"           toggle between .a and .b " +
+			"           for x in [1, 2] " +
+			"             put x into #out " +
+			"           end\"></div>"
+		);
+		const btn = page.locator('#btn');
+		await btn.dispatchEvent('click');
+		await expect(btn).toHaveClass(/b/);
+		await expect(find('#out')).toHaveText('2');
+	});
+
 	test("can toggle until an event on another element", async ({html, find, evaluate}) => {
 		await html("<div id='d1'></div><div _='on click toggle .foo until foo from #d1'></div>");
 		await expect(find('div:nth-of-type(2)')).not.toHaveClass(/foo/);

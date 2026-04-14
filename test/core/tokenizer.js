@@ -395,3 +395,254 @@ test.describe("the _hyperscript tokenizer", () => {
 	});
 
 });
+
+test.describe("the Tokens API", () => {
+
+	test("peekToken skips whitespace when looking ahead", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const r = {};
+
+			// for x in items → tokens are: for, WS, x, WS, in, WS, items
+			const forIn = t.tokenize("for x in items");
+			r.peek0 = forIn.peekToken("for", 0)?.value ?? null;
+			r.peek1 = forIn.peekToken("x", 1)?.value ?? null;
+			r.peek2 = forIn.peekToken("in", 2)?.value ?? null;
+			r.peek3 = forIn.peekToken("items", 3)?.value ?? null;
+
+			// peek that shouldn't match
+			r.peekMiss = forIn.peekToken("in", 1) ?? null;
+
+			// for 10ms — "in" is never present
+			const forDur = t.tokenize("for 10ms");
+			r.durPeek2 = forDur.peekToken("in", 2) ?? null;
+
+			// Extra whitespace between tokens is tolerated
+			const extraWs = t.tokenize("for   x   in   items");
+			r.extraPeek2 = extraWs.peekToken("in", 2)?.value ?? null;
+
+			// Comments between tokens are tolerated
+			const withComment = t.tokenize("for -- comment\nx in items");
+			r.commentPeek2 = withComment.peekToken("in", 2)?.value ?? null;
+
+			// Newlines as whitespace
+			const multiline = t.tokenize("for\nx\nin\nitems");
+			r.multiPeek2 = multiline.peekToken("in", 2)?.value ?? null;
+
+			// Type defaults to IDENTIFIER — matching against an operator requires explicit type
+			const withOp = t.tokenize("a + b");
+			r.opDefault = withOp.peekToken("+", 1) ?? null; // IDENTIFIER type, won't match
+			r.opExplicit = withOp.peekToken("+", 1, "PLUS")?.value ?? null;
+
+			// Lookahead past the end returns undefined
+			const short = t.tokenize("foo");
+			r.beyondEnd = short.peekToken("anything", 5) ?? null;
+
+			return r;
+		});
+
+		expect(results.peek0).toBe("for");
+		expect(results.peek1).toBe("x");
+		expect(results.peek2).toBe("in");
+		expect(results.peek3).toBe("items");
+		expect(results.peekMiss).toBeNull();
+		expect(results.durPeek2).toBeNull();
+		expect(results.extraPeek2).toBe("in");
+		expect(results.commentPeek2).toBe("in");
+		expect(results.multiPeek2).toBe("in");
+		expect(results.opDefault).toBeNull();
+		expect(results.opExplicit).toBe("+");
+		expect(results.beyondEnd).toBeNull();
+	});
+
+	test("matchToken consumes and returns on match", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("foo bar baz");
+			const r = {};
+			r.match = tokens.matchToken("foo")?.value ?? null;
+			r.miss = tokens.matchToken("baz") ?? null; // next is "bar", miss
+			r.next = tokens.currentToken().value;
+			r.match2 = tokens.matchToken("bar")?.value ?? null;
+			return r;
+		});
+		expect(results.match).toBe("foo");
+		expect(results.miss).toBeNull();
+		expect(results.next).toBe("bar");
+		expect(results.match2).toBe("bar");
+	});
+
+	test("matchToken honors the follow set", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("and then");
+			tokens.pushFollow("and");
+			const blocked = tokens.matchToken("and") ?? null;
+			tokens.popFollow();
+			const allowed = tokens.matchToken("and")?.value ?? null;
+			return {blocked, allowed};
+		});
+		expect(results.blocked).toBeNull();
+		expect(results.allowed).toBe("and");
+	});
+
+	test("matchOpToken matches operators by value", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("+ - *");
+			return [
+				tokens.matchOpToken("-") ?? null, // next is +, miss
+				tokens.matchOpToken("+")?.value ?? null,
+				tokens.matchOpToken("-")?.value ?? null,
+				tokens.matchOpToken("*")?.value ?? null,
+			];
+		});
+		expect(results[0]).toBeNull();
+		expect(results[1]).toBe("+");
+		expect(results[2]).toBe("-");
+		expect(results[3]).toBe("*");
+	});
+
+	test("matchTokenType matches by type", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("foo 42");
+			const r = {};
+			r.ident = tokens.matchTokenType("IDENTIFIER")?.value ?? null;
+			r.numMiss = tokens.matchTokenType("STRING") ?? null;
+			r.numOneOf = tokens.matchTokenType("STRING", "NUMBER")?.value ?? null;
+			return r;
+		});
+		expect(results.ident).toBe("foo");
+		expect(results.numMiss).toBeNull();
+		expect(results.numOneOf).toBe("42");
+	});
+
+	test("matchAnyToken and matchAnyOpToken try each option", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("bar + baz");
+			return {
+				anyTok: tokens.matchAnyToken("foo", "bar", "baz")?.value ?? null,
+				anyOp: tokens.matchAnyOpToken("-", "+")?.value ?? null,
+				anyTokMiss: tokens.matchAnyToken("foo", "quux") ?? null,
+			};
+		});
+		expect(results.anyTok).toBe("bar");
+		expect(results.anyOp).toBe("+");
+		expect(results.anyTokMiss).toBeNull();
+	});
+
+	test("consumeUntil collects tokens up to a marker", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("a b c end d");
+			// consumeUntil collects every intervening token, whitespace included
+			const collected = tokens.consumeUntil("end")
+				.filter(tok => tok.type !== "WHITESPACE")
+				.map(tok => tok.value);
+			const landed = tokens.currentToken().value;
+			return {collected, landed};
+		});
+		expect(results.collected).toEqual(["a", "b", "c"]);
+		expect(results.landed).toBe("end");
+	});
+
+	test("consumeUntilWhitespace stops at first whitespace", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("foo.bar more");
+			const collected = tokens.consumeUntilWhitespace().map(tok => tok.value);
+			const landed = tokens.currentToken().value;
+			return {collected, landed};
+		});
+		// consumeUntilWhitespace stops at the space between foo.bar and more
+		expect(results.collected).toEqual(["foo", ".", "bar"]);
+		expect(results.landed).toBe("more");
+	});
+
+	test("lastMatch returns the last consumed token", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("foo bar baz");
+			const r = {};
+			r.before = tokens.lastMatch() ?? null;
+			tokens.consumeToken();
+			r.afterFoo = tokens.lastMatch()?.value ?? null;
+			tokens.consumeToken();
+			r.afterBar = tokens.lastMatch()?.value ?? null;
+			return r;
+		});
+		expect(results.before).toBeNull();
+		expect(results.afterFoo).toBe("foo");
+		expect(results.afterBar).toBe("bar");
+	});
+
+	test("lastWhitespace reflects whitespace before the current token", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("foo   bar\n\tbaz");
+			const r = {};
+			// Before any consume, no whitespace has been consumed yet
+			r.initial = tokens.lastWhitespace();
+			tokens.consumeToken(); // foo → consumes trailing whitespace "   "
+			r.afterFoo = tokens.lastWhitespace();
+			tokens.consumeToken(); // bar → consumes "\n\t"
+			r.afterBar = tokens.lastWhitespace();
+			return r;
+		});
+		expect(results.initial).toBe("");
+		expect(results.afterFoo).toBe("   ");
+		expect(results.afterBar).toBe("\n\t");
+	});
+
+	test("pushFollow/popFollow nest follow-set boundaries", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const r = {};
+			const tokens = t.tokenize("and or not");
+			tokens.pushFollow("and");
+			tokens.pushFollow("or");
+			r.andBlocked = tokens.matchToken("and") ?? null;
+			tokens.popFollow(); // pops "or"
+			r.andStillBlocked = tokens.matchToken("and") ?? null;
+			tokens.popFollow(); // pops "and"
+			r.andAllowed = tokens.matchToken("and")?.value ?? null;
+			return r;
+		});
+		expect(results.andBlocked).toBeNull();
+		expect(results.andStillBlocked).toBeNull();
+		expect(results.andAllowed).toBe("and");
+	});
+
+	test("pushFollows/popFollows push and pop in bulk", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("and or");
+			const count = tokens.pushFollows("and", "or");
+			const blocked = tokens.matchToken("and") ?? null;
+			tokens.popFollows(count);
+			const allowed = tokens.matchToken("and")?.value ?? null;
+			return {count, blocked, allowed};
+		});
+		expect(results.count).toBe(2);
+		expect(results.blocked).toBeNull();
+		expect(results.allowed).toBe("and");
+	});
+
+	test("clearFollows/restoreFollows round-trip the follow set", async ({evaluate}) => {
+		const results = await evaluate(() => {
+			const t = _hyperscript.internals.tokenizer;
+			const tokens = t.tokenize("and and and");
+			tokens.pushFollow("and");
+			const saved = tokens.clearFollows();
+			const allowedWhileCleared = tokens.matchToken("and")?.value ?? null;
+			tokens.restoreFollows(saved);
+			const blockedAfterRestore = tokens.matchToken("and") ?? null;
+			return {allowedWhileCleared, blockedAfterRestore};
+		});
+		expect(results.allowedWhileCleared).toBe("and");
+		expect(results.blockedAfterRestore).toBeNull();
+	});
+
+});

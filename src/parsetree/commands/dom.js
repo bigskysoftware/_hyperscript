@@ -564,7 +564,8 @@ export class ToggleCommand extends VisibilityCommand {
         var evt = null;
         var from = null;
 
-        if (parser.matchToken("for")) {
+        if (parser.peekToken("for") && !parser.peekToken("in", 2)) {
+            parser.matchToken("for")
             time = parser.requireElement("expression");
         } else if (parser.matchToken("until")) {
             evt = parser.requireElement("dotOrColonPath", "Expected event name");
