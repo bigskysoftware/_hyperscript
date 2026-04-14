@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.91 - 2026-04-14
+
+Bugfixes from the 0.9.90 release:
+
+- Fix `on resize from window` / `on resize from document` — non-Element targets now fall through to the native `resize` event instead of using a `ResizeObserver`
+- The toggle commands `for <duration>` modifier no longer consumes a following for-in loop
+- Fix `${}` template expressions hanging the playground iframe due to leftover debug logging
+- Fix `npx hyperscript.org --validate` (and the `bun`/`deno` platform scripts) crashing with `ERR_MODULE_NOT_FOUND`. (#667)
+
 ## 0.9.90 - 2026-04-13
 
 Hoooooo doggie, it's been a year of on and off work, and we finally had some time to focus on hyperscript!
