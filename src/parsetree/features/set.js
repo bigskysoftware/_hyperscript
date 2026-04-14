@@ -30,7 +30,9 @@ export class SetFeature extends Feature {
     }
 
     install(target, source, args, runtime) {
-        this.start && this.start.execute(runtime.makeContext(target, this, target, null));
+        queueMicrotask(() => {
+            this.start && this.start.execute(runtime.makeContext(target, this, target, null));
+        });
     }
 
     static parse(parser) {

@@ -126,6 +126,10 @@ gives you `"$currentUser"` as a string, while `attrs.data` gives you the resolve
 Note that reactive bindings work through the `attrs` object, so you can bind external values to
 internal component state.
 
+{% note "A note on `init immediately`" %}
+Components should avoid using `init immediately` or risk not having reactive effects of initialization code captured properly.
+{% endnote %}
+
 ### Slots {#slots}
 
 `<slot/>` elements let callers pass content into a component. The parent's markup

@@ -250,20 +250,26 @@ export default function componentPlugin(_hyperscript) {
         customElements.define(tagName, ComponentClass);
     }
 
-    // Register a before-process hook to scan for component definitions
     var registered = new Set();
 
+    // Always strip _ to prevent normal processNode from running it on the template
     _hyperscript.addBeforeProcessHook(function(elt) {
         if (!elt || !elt.querySelectorAll) return;
         elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-            // Always strip _ to prevent normal processNode from running it on the template
-            var script = tmpl.getAttribute('_') || '';
+            if (tmpl._componentScript != null) return;
+            tmpl._componentScript = tmpl.getAttribute('_') || '';
             tmpl.removeAttribute('_');
+        });
+    });
 
+    // register components after processing so symbols are available
+    _hyperscript.addAfterProcessHook(function(elt) {
+        if (!elt || !elt.querySelectorAll) return;
+        elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
             var tagName = tmpl.getAttribute('component');
             if (!registered.has(tagName) && !customElements.get(tagName)) {
                 registered.add(tagName);
-                registerComponent(tmpl, script);
+                registerComponent(tmpl, tmpl._componentScript || '');
             }
         });
     });

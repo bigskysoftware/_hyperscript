@@ -290,4 +290,32 @@ test.describe('the component extension', () => {
 		}).toBe('rgb(11, 22, 33)')
 	})
 
+	test('component reads enclosing scope set by a sibling init on first load', async ({html, find, evaluate}) => {
+		await html(`
+			<script type="text/hyperscript-template" component="test-user-card" _="init set ^user to attrs.data">
+				<h3>${"\x24"}{^user.name}</h3>
+				<p>${"\x24"}{^user.email}</p>
+			</script>
+			<div _="init set $testCurrentUser to { name: 'Carson', email: 'carson@example.com' }">
+				<test-user-card data="$testCurrentUser"></test-user-card>
+			</div>
+		`)
+		await expect.poll(() => find('test-user-card h3').textContent()).toBe('Carson')
+		await expect.poll(() => find('test-user-card p').textContent()).toBe('carson@example.com')
+		await evaluate(() => { delete window.$testCurrentUser })
+	})
+
+	test('component reads a feature-level set from an enclosing div on first load', async ({html, find, evaluate}) => {
+		await html(`
+			<script type="text/hyperscript-template" component="test-plain-card" _="init set ^label to attrs.label">
+				<span>${"\x24"}{^label}</span>
+			</script>
+			<div _="set $testLabel to 'hello'">
+				<test-plain-card label="$testLabel"></test-plain-card>
+			</div>
+		`)
+		await expect.poll(() => find('test-plain-card span').textContent()).toBe('hello')
+		await evaluate(() => { delete window.$testLabel })
+	})
+
 })
