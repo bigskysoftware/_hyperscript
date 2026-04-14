@@ -6,11 +6,13 @@
 //   1. dist/ is up to date with src/ (rebuilds to a temp dir, compares bytes)
 //   2. The SHA-384 integrity attributes in www/docs/getting-started.md match
 //      the current dist files
+//   3. dist/platform/node-hyperscript.js boots and validates a fixture without
+//      crashing (guards against broken relative imports like #667)
 //
 // Exits 0 on success, 1 on any failure. Does NOT mutate dist/ or the docs.
 
 import { createHash } from 'node:crypto'
-import { readFileSync, rmSync, mkdtempSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, rmSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -130,6 +132,52 @@ while ((m = tagRe.exec(docs)) !== null) {
 
 if (found === 0) fail(`no integrity="sha384-..." attributes found in ${relative(repoRoot, docsFile)}`)
 else if (failures === 0) ok(`all ${found} integrity attributes match`)
+
+// -----------------------------------------------------------------------------
+// Check 3: dist/platform/node-hyperscript.js actually runs
+// -----------------------------------------------------------------------------
+
+section('Smoke-testing dist/platform/node-hyperscript.js...')
+
+const nodeBin = join(distDir, 'platform', 'node-hyperscript.js')
+const smokeDir = mkdtempSync(join(tmpdir(), 'hs-smoke-'))
+try {
+    writeFileSync(join(smokeDir, 'ok.html'), '<div _="on click log 1"></div>\n')
+    writeFileSync(join(smokeDir, 'bad.html'), '<div _="on click log"></div>\n')
+
+    // Valid fixture: validator should boot and exit 0
+    let booted = false
+    try {
+        execSync(`node "${nodeBin}" --validate --quiet "${join(smokeDir, 'ok.html')}"`, { stdio: 'pipe' })
+        ok('validator boots and exits 0 on a valid fixture')
+        booted = true
+    } catch (e) {
+        const stderr = e.stderr?.toString().trim() || e.message
+        fail(`validator failed on valid fixture: ${stderr.split('\n')[0]}`)
+        if (stderr.includes('ERR_MODULE_NOT_FOUND')) {
+            console.error('      (this is the #667 class of bug — a broken import in dist/platform/)')
+        }
+    }
+
+    // Invalid fixture: validator should exit 1 and print an error to stderr.
+    // Only meaningful if the previous check passed — if the script crashes at
+    // startup it also exits 1, and we'd mistake that for "detected a parse error".
+    if (booted) {
+        try {
+            execSync(`node "${nodeBin}" --validate --quiet "${join(smokeDir, 'bad.html')}"`, { stdio: 'pipe' })
+            fail('validator did not detect parse error in bad fixture (exit 0)')
+        } catch (e) {
+            if (e.status === 1) {
+                ok('validator detects parse errors (exit 1 on a bad fixture)')
+            } else {
+                const stderr = e.stderr?.toString().trim() || e.message
+                fail(`validator crashed on bad fixture (exit ${e.status}): ${stderr.split('\n')[0]}`)
+            }
+        }
+    }
+} finally {
+    rmSync(smokeDir, { recursive: true, force: true })
+}
 
 // -----------------------------------------------------------------------------
 
