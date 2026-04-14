@@ -813,12 +813,18 @@ function componentPlugin(_hyperscript) {
   _hyperscript.addBeforeProcessHook(function(elt) {
     if (!elt || !elt.querySelectorAll) return;
     elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-      var script = tmpl.getAttribute("_") || "";
+      if (tmpl._componentScript != null) return;
+      tmpl._componentScript = tmpl.getAttribute("_") || "";
       tmpl.removeAttribute("_");
+    });
+  });
+  _hyperscript.addAfterProcessHook(function(elt) {
+    if (!elt || !elt.querySelectorAll) return;
+    elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
       var tagName = tmpl.getAttribute("component");
       if (!registered.has(tagName) && !customElements.get(tagName)) {
         registered.add(tagName);
-        registerComponent(tmpl, script);
+        registerComponent(tmpl, tmpl._componentScript || "");
       }
     });
   });

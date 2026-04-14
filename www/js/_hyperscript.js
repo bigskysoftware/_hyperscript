@@ -9467,7 +9467,9 @@
       this.start = setCmd;
     }
     install(target, source, args, runtime2) {
-      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      queueMicrotask(() => {
+        this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      });
     }
     static parse(parser) {
       let setCmd = parser.parseElement("setCommand");

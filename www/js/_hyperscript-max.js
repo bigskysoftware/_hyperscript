@@ -9466,7 +9466,9 @@
       this.start = setCmd;
     }
     install(target, source, args, runtime2) {
-      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      queueMicrotask(() => {
+        this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      });
     }
     static parse(parser) {
       let setCmd = parser.parseElement("setCommand");
@@ -11100,12 +11102,18 @@
     _hyperscript2.addBeforeProcessHook(function(elt) {
       if (!elt || !elt.querySelectorAll) return;
       elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-        var script = tmpl.getAttribute("_") || "";
+        if (tmpl._componentScript != null) return;
+        tmpl._componentScript = tmpl.getAttribute("_") || "";
         tmpl.removeAttribute("_");
+      });
+    });
+    _hyperscript2.addAfterProcessHook(function(elt) {
+      if (!elt || !elt.querySelectorAll) return;
+      elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
         var tagName = tmpl.getAttribute("component");
         if (!registered.has(tagName) && !customElements.get(tagName)) {
           registered.add(tagName);
-          registerComponent(tmpl, script);
+          registerComponent(tmpl, tmpl._componentScript || "");
         }
       });
     });
