@@ -68,6 +68,8 @@ Templates use `<script type="text/hyperscript-template">` elements with `${}` in
 </script>
 
 <button _="on click
+  fetch /users as JSON
+  set userDat to the result
   render #user-card with users: userData
   put the result into #container">
   Load Users
