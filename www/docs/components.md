@@ -38,7 +38,7 @@ Component templates use hyperscript's template syntax. `${expr}` interpolates an
 expression. `#for`, `#if`, `#else`, and `#end` give you loops and conditionals.
 
   ~~~ html
-  <script type="text/hyperscript-template" component="user-card" _="init set ^user to attrs.data">
+  <script type="text/hyperscript-template" component="user-card" _="set ^user to attrs.data">
     <h3>${^user.name}</h3>
     #if ^user.admin
       <span class="badge">admin</span>
@@ -60,7 +60,7 @@ Use DOM-scoped variables (`^var`) for component state. Each component instance g
 its own isolated DOM scope, so two instances do not share state.
 
 {% example "Component state" %}
-<script type="text/hyperscript-template" component="click-counter" _="init set ^count to 0">
+<script type="text/hyperscript-template" component="click-counter" _="set ^count to 0">
   <style>
     .label { margin-left: 1em; }
   </style>
@@ -83,9 +83,13 @@ re-renders. Rendering uses morphing, so focus, scroll position, and event handle
 are preserved across updates.
 
 {% example "Reactive rendering" %}
-<script type="text/hyperscript-template" component="live-greeter" _="init set ^name to 'World'">
+<script type="text/hyperscript-template" component="live-greeter" _="set ^name to 'World'">
   <input type="text" _="bind ^name to my value" />
-  <p>Hello, ${^name}!</p>
+  #if ^name is empty
+    <p>What's your name?</p>
+  #else
+    <p>Hello, ${^name}!</p>
+  #end
 </script>
 
 <live-greeter></live-greeter>
@@ -103,7 +107,7 @@ An attribute access is lazily is parsed as a hyperscript expression in the *pare
 This allows you to pass variables and objects as naturally as you would any hyperscript expression:
 
 {% example "Passing data via attrs" %}
-<script type="text/hyperscript-template" component="user-card" _="init set ^user to attrs.data">
+<script type="text/hyperscript-template" component="user-card" _="set ^user to attrs.data">
   <style>
     h3, p { margin: 0; }
   </style>
@@ -111,7 +115,7 @@ This allows you to pass variables and objects as naturally as you would any hype
   <p>${^user.email}</p>
 </script>
 
-<div _="init set $currentUser to { name: 'Carson', email: 'carson@example.com' }">
+<div _="set $currentUser to { name: 'Carson', email: 'carson@example.com' }">
   <user-card data="$currentUser"></user-card>
 </div>
 {% endexample %}
@@ -243,8 +247,8 @@ A component with reactive state, `attrs` input, and two-way binding:
 
 {% example "Filterable List" %}
 <script type="text/hyperscript-template" component="filter-list"
-        _="init set ^items to attrs.items
-                   set ^query to ''">
+        _="set ^items to attrs.items
+           set ^query to ''">
   <input type="text" placeholder="Search..." _="bind ^query to my value" />
   <ul>
     #for item in ^items where its name contains ^query ignoring case
