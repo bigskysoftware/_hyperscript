@@ -15,7 +15,7 @@ There is an [Upgrade Guide](#upgrade-guide) at the bottom of this release note.
 
 ### Reactivity
 
-The headline feature of this release is a new [reactivity system](/docs#reactivity) with three features that let you
+The headline feature of this release is a new [reactivity system](/docs/reactivity) with three features that let you
 declare relationships between values and have them stay in sync automatically.
 
 #### live
@@ -105,7 +105,7 @@ and scope isolation - all declared in a single `<script type="text/hyperscript-t
 
 ### DOM-Scoped Variables
 
-[Variables](/docs#scoping) with the `^` prefix are scoped to the element and inherited by all descendants,
+[Variables](/docs/language#scoping) with the `^` prefix are scoped to the element and inherited by all descendants,
 ideal for component state without polluting the global scope:
 
 ```html
@@ -313,7 +313,7 @@ for x in items where x.score > 10 ...
 
 #### clipboard and selection
 
-New [magic symbols](/docs#zoo) for accessing the system clipboard and current text selection:
+New [magic symbols](/docs/language#zoo) for accessing the system clipboard and current text selection:
 
 ```hyperscript
 put clipboard into #paste-target     -- async read, auto-awaited
@@ -324,7 +324,7 @@ put selection into #selected-text    -- window.getSelection().toString()
 #### on resize
 
 [ResizeObserver](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver) as a synthetic event,
-matching the pattern of [`on mutation`](/docs#mutation) and [`on intersection`](/docs#intersection):
+matching the pattern of [`on mutation`](/docs/language#mutation) and [`on intersection`](/docs/language#intersection):
 
 ```hyperscript
 on resize put `${detail.width}x${detail.height}` into #size
@@ -483,7 +483,7 @@ prefixes, replace them with `#`. Replace `@repeat in Y` with `#for x in Y`.
 #### 3. transition requires \* style refs
 
 The [`transition`](/commands/transition) command previously accepted bare identifiers like `width` and `opacity`
-as CSS property names. Now that hyperscript has [style literals](/docs#dom-literals) (`*width`, `*opacity`),
+as CSS property names. Now that hyperscript has [style literals](/docs/language#dom-literals) (`*width`, `*opacity`),
 `transition` requires them for consistency with the rest of the language. The `element` keyword prefix for
 targeting other elements has also been removed in favor of standard [possessive](/expressions/possessive) and
 [`of`](/expressions/of) syntax.
