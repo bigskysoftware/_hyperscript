@@ -292,7 +292,10 @@ export default function componentPlugin(_hyperscript) {
                 // effects on the live DOM. We only harvest the component
                 // template elements and hand them to registerComponent.
                 var doc = new DOMParser().parseFromString(html, 'text/html');
-                doc.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(registerTemplate);
+                // @ts-ignore
+                for (let tmpl of doc.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+                    registerTemplate(tmpl);
+                }
             })
             .catch(function (err) {
                 console.error("hyperscript component bundle '" + url + "': " + err.message);
@@ -319,14 +322,16 @@ export default function componentPlugin(_hyperscript) {
         if (!elt || !elt.querySelectorAll) return;
 
         // Inline components
-        elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(registerTemplate);
+        for (var tmpl of elt.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+            registerTemplate(tmpl);
+        }
 
         // External bundles: <script type="text/hyperscript-component" src="...">
-        elt.querySelectorAll('script[type="text/hyperscript-component"][src]').forEach(function (bundle) {
-            if (bundle._componentBundleLoaded) return;
+        for (var bundle of elt.querySelectorAll('script[type="text/hyperscript-component"][src]')) {
+            if (bundle._componentBundleLoaded) continue;
             bundle._componentBundleLoaded = true;
             loadComponentBundle(bundle.getAttribute('src'));
-        });
+        }
     });
 }
 
