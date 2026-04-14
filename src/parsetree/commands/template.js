@@ -158,9 +158,6 @@ export class TemplateTextCommand extends Command {
                 var exprParser = parser.createChildParser(exprTokens);
                 if (exprParser.matchToken("unescaped")) escape = false;
                 var valueNode = exprParser.requireElement("expression");
-                console.log(exprTokens)
-                console.log('AFTER EXPR:', exprStr, '→ next token:',
-                    exprParser.currentToken()?.value, exprParser.currentToken()?.type);
                 if (exprParser.matchToken("if")) {
                     var conditionNode = exprParser.requireElement("expression");
                     var elseNode = exprParser.matchToken("else") ? exprParser.requireElement("expression") : null;
@@ -187,11 +184,8 @@ export class TemplateTextCommand extends Command {
         var parts = this.parts;
         var vals = parts.map(part => {
             if (part.type === 'literal') return part.value;
-            console.log("Part:", part)
             if (part.type === 'conditional') {
                 var condition = part.conditionNode.evaluate(ctx);
-                console.log('COND:', part.conditionNode.sourceFor?.(), '→', condition,
-                    'val:', condition ? part.valueNode.evaluate(ctx) : undefined);
                 if (condition) {
                     return part.valueNode.evaluate(ctx);
                 } else if (part.elseNode) {
