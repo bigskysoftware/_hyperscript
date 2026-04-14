@@ -145,7 +145,7 @@ const _hyperscript = Object.assign(
         process: (elt) => runtime.processNode(elt),
         processNode: (elt) => runtime.processNode(elt), // deprecated alias
         cleanup: (elt) => runtime.cleanup(elt),
-        version: "0.9.90",
+        version: "0.9.91",
     }
 );
 
