@@ -613,6 +613,7 @@ export class FetchCommand extends Command {
         var detail = options || {};
         detail.sender = context.me;
         detail.headers = detail.headers || {};
+        detail.conversion = this.conversion || this.conversionType;
         var abortController = new AbortController();
         var abortListener = () => abortController.abort();
         context.me.addEventListener('fetch:abort', abortListener, {once: true});
