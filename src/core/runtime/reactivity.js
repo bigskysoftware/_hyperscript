@@ -9,7 +9,7 @@
  * A single tracked read, recording what was accessed during expression().
  *
  * @typedef {Object} Dependency
- * @property {string} type      - "symbol" | "property" | "attribute"
+ * @property {string} type      - "symbol" | "property" | "attribute" | "query"
  * @property {string} name      - e.g. "$price", "value", "data-title"
  * @property {string} [scope]   - "global" or "element" (symbol deps only)
  * @property {Element} [element] - Target element (element-scoped/property/attribute deps)
@@ -127,7 +127,7 @@ class Effect {
         // Subscribe to new deps
         reactivity._subscribeEffect(this);
 
-        // Clean up observers/listeners for deps that were dropped
+        // Clean up empty subscription entries for deps that were dropped
         reactivity._cleanupOrphanedDeps(oldDeps);
 
         // Compare and fire (Object.is semantics: NaN === NaN, +0 !== -0)
@@ -162,12 +162,18 @@ export class Reactivity {
         /** Per-object reactive state, keyed by any object (DOM element or plain JS object) */
         this._objectState = new WeakMap();
 
-        /**
-         * Global symbol subscriptions: symbolName -> Set<Effect>
-         * When a global variable is written, all effects in its set are scheduled.
-         * @type {Map<string, Set<Effect>>}
-         */
-        this._globalSubscriptions = new Map();
+        // Symbol subscriptions — global $variables (e.g. $count, $theme)
+        // Element-scoped :variables are stored in _getObjectState(element).subscriptions
+        this._globalSymbolSubscriptions = new Map();  // symbolName -> Set<Effect>
+
+        // Attribute subscriptions — DOM attributes (@data-theme, @aria-hidden)
+        this._attributeSubscriptions = new Map();  // "attrName:elementId" -> Set<Effect>
+
+        // Property subscriptions — JS properties (element.value, element.checked)
+        this._propertySubscriptions = new Map();  // elementId -> Set<Effect>
+
+        // Query subscriptions — CSS selector results (<:checked/> in #myTable)
+        this._querySubscriptions = new Map();  // root -> Set<Effect>
 
         /** Next ID to assign to an object for dependency dedup keys */
         this._nextId = 0;
@@ -180,13 +186,14 @@ export class Reactivity {
 
         /** @type {boolean} Whether a microtask is scheduled to run pending effects */
         this._isRunScheduled = false;
+
     }
 
     /**
      * Get or create the reactive state object for any object.
      * Assigns a stable unique ID on first access.
      * @param {Object} obj - DOM element or plain JS object
-     * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+     * @returns {{ id: string, subscriptions: Map|null }}
      */
     _getObjectState(obj) {
         var state = this._objectState.get(obj);
@@ -194,8 +201,6 @@ export class Reactivity {
             this._objectState.set(obj, state = {
                 id: String(++this._nextId),
                 subscriptions: null,
-                propertyHandler: null,
-                attributeObservers: null,
             });
         }
         return state;
@@ -256,11 +261,24 @@ export class Reactivity {
     }
 
     /**
+     * Track a DOM query as a dependency. Re-evaluates when any DOM
+     * change occurs within root or its descendants.
+     * @param {Element|Document} root - the element querySelectorAll runs on (e.g. #myTable in `<:checked/> in #myTable`)
+     */
+    trackQuery(root) {
+        if (!this._currentEffect) return;
+        root = root || document;
+        var key = "query:" + this._getObjectState(root).id;
+        this._currentEffect.dependencies.set(key,
+            { type: "query", root: root });
+    }
+
+    /**
      * Notify that a global variable was written.
      * @param {string} name - Variable name
      */
     notifyGlobalSymbol(name) {
-        var subs = this._globalSubscriptions.get(name);
+        var subs = this._globalSymbolSubscriptions.get(name);
         if (subs) {
             for (var effect of subs) {
                 this._scheduleEffect(effect);
@@ -294,8 +312,13 @@ export class Reactivity {
     notifyProperty(obj) {
         if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
         var state = this._objectState.get(obj);
-        if (state && state.propertyHandler) {
-            state.propertyHandler.queueAll();
+        if (state) {
+            var subs = this._propertySubscriptions.get(state.id);
+            if (subs) {
+                for (var effect of subs) {
+                    this._scheduleEffect(effect);
+                }
+            }
         }
     }
 
@@ -312,6 +335,114 @@ export class Reactivity {
             var self = this;
             queueMicrotask(function () { self._runPendingEffects(); });
         }
+    }
+
+    /**
+     * Set up the single global MutationObserver and delegated input/change
+     * listeners that power attribute, property, and query tracking.
+     */
+    _initGlobalObserver() {
+        if (typeof document === "undefined") return;
+
+        if (!this._observer) {
+            var reactivity = this;
+            this._observer = new MutationObserver(function (mutations) {
+                reactivity._handleMutations(mutations);
+            });
+            this._inputHandler = function (e) { reactivity._handleDOMEvent(e); };
+            this._changeHandler = function (e) { reactivity._handleDOMEvent(e); };
+        }
+
+        // observe() replaces any prior observation on this target
+        this._observer.observe(document, {
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
+
+        // addEventListener is idempotent for the same listener+capture combo
+        document.addEventListener("input", this._inputHandler, true);
+        document.addEventListener("change", this._changeHandler, true);
+    }
+
+    /**
+     * Handle MutationObserver callbacks. Dispatches to attribute and query
+     * subscriptions based on mutation type.
+     * @param {MutationRecord[]} mutations
+     */
+    _handleMutations(mutations) {
+        var queryTargets = new Set();
+        for (var i = 0; i < mutations.length; i++) {
+            var mutation = mutations[i];
+            if (mutation.type === "attributes") {
+                this._scheduleAttributeEffects(mutation.target, mutation.attributeName);
+            }
+            queryTargets.add(mutation.target);
+        }
+        this._scheduleQueryEffects(queryTargets);
+    }
+
+    /**
+     * Handle delegated input/change events. Dispatches to property and
+     * query subscriptions.
+     * @param {Event} event
+     */
+    _handleDOMEvent(event) {
+        var el = event.target;
+        if (!(el instanceof Element)) return;
+        var state = this._objectState.get(el);
+        if (state) {
+            var subs = this._propertySubscriptions.get(state.id);
+            if (subs) {
+                for (var effect of subs) {
+                    this._scheduleEffect(effect);
+                }
+            }
+        }
+        this._scheduleQueryEffects(el);
+    }
+
+    /**
+     * Schedule effects watching a specific attribute on a specific element.
+     * @param {Element} element
+     * @param {string} attrName
+     */
+    _scheduleAttributeEffects(element, attrName) {
+        var state = this._objectState.get(element);
+        if (!state) return;
+        var key = attrName + ":" + state.id;
+        var subs = this._attributeSubscriptions.get(key);
+        if (subs) {
+            for (var effect of subs) {
+                this._scheduleEffect(effect);
+            }
+        }
+    }
+
+    /**
+     * Schedule effects with query deps whose root includes any of the mutated elements.
+     * @param {Set<Element>|Element} mutated - Element(s) where DOM changes occurred
+     */
+    _scheduleQueryEffects(mutated) {
+        if (this._querySubscriptions.size === 0) return;
+        for (var [root, effects] of this._querySubscriptions) {
+            if (this._containsTarget(root, mutated)) {
+                for (var effect of effects) {
+                    this._scheduleEffect(effect);
+                }
+            }
+        }
+    }
+
+    /** Check if any of the mutated elements are inside root. */
+    _containsTarget(root, mutated) {
+        if (mutated instanceof Set) {
+            for (var el of mutated) {
+                if (root.contains(el)) return true;
+            }
+            return false;
+        }
+        return root.contains(mutated);
     }
 
     /**
@@ -345,19 +476,21 @@ export class Reactivity {
 
     /**
      * Subscribe an effect to all its current deps.
-     * Symbols go into subscription maps, attributes get MutationObservers,
-     * properties use persistent per-element input/change listeners.
+     * Symbols go into per-element/global subscription maps.
+     * Attributes, properties, and queries use flat lookup maps
+     * dispatched by the global observer.
      * @param {Effect} effect
      */
     _subscribeEffect(effect) {
         var reactivity = this;
+        var needsGlobalObserver = false;
 
         for (var [depKey, dep] of effect.dependencies) {
             if (dep.type === "symbol" && dep.scope === "global") {
-                if (!reactivity._globalSubscriptions.has(dep.name)) {
-                    reactivity._globalSubscriptions.set(dep.name, new Set());
+                if (!reactivity._globalSymbolSubscriptions.has(dep.name)) {
+                    reactivity._globalSymbolSubscriptions.set(dep.name, new Set());
                 }
-                reactivity._globalSubscriptions.get(dep.name).add(effect);
+                reactivity._globalSymbolSubscriptions.get(dep.name).add(effect);
 
             } else if (dep.type === "symbol" && dep.scope === "element") {
                 var state = reactivity._getObjectState(dep.element);
@@ -370,87 +503,37 @@ export class Reactivity {
                 state.subscriptions.get(dep.name).add(effect);
 
             } else if (dep.type === "attribute") {
-                reactivity._subscribeAttributeDependency(dep.element, dep.name, effect);
+                var attrState = reactivity._getObjectState(dep.element);
+                var attrKey = dep.name + ":" + attrState.id;
+                if (!reactivity._attributeSubscriptions.has(attrKey)) {
+                    reactivity._attributeSubscriptions.set(attrKey, new Set());
+                }
+                reactivity._attributeSubscriptions.get(attrKey).add(effect);
+                needsGlobalObserver = true;
 
             } else if (dep.type === "property") {
-                reactivity._subscribePropertyDependency(dep.object, dep.name, effect);
+                var propState = reactivity._getObjectState(dep.object);
+                if (!reactivity._propertySubscriptions.has(propState.id)) {
+                    reactivity._propertySubscriptions.set(propState.id, new Set());
+                }
+                reactivity._propertySubscriptions.get(propState.id).add(effect);
+                needsGlobalObserver = true;
+
+            } else if (dep.type === "query") {
+                if (!reactivity._querySubscriptions.has(dep.root)) {
+                    reactivity._querySubscriptions.set(dep.root, new Set());
+                }
+                reactivity._querySubscriptions.get(dep.root).add(effect);
+                needsGlobalObserver = true;
             }
         }
-    }
 
-    /**
-     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
-     * per element+attribute, shared across effects and re-runs.
-     * @param {Element} element
-     * @param {string} attrName
-     * @param {Effect} effect
-     */
-    _subscribeAttributeDependency(element, attrName, effect) {
-        var reactivity = this;
-        var state = reactivity._getObjectState(element);
-
-        if (!state.attributeObservers) {
-            state.attributeObservers = {};
+        // Lazily initialize the global observer only when an effect
+        // actually depends on DOM state (attributes, properties, or queries).
+        // Symbol-only effects (e.g. `when $count changes`) skip this entirely.
+        if (needsGlobalObserver) {
+            reactivity._initGlobalObserver();
         }
-
-        if (!state.attributeObservers[attrName]) {
-            var trackedEffects = new Set();
-            var observer = new MutationObserver(function () {
-                for (var eff of trackedEffects) {
-                    reactivity._scheduleEffect(eff);
-                }
-            });
-            observer.observe(element, {
-                attributes: true,
-                attributeFilter: [attrName]
-            });
-            state.attributeObservers[attrName] = {
-                effects: trackedEffects,
-                observer: observer
-            };
-        }
-        state.attributeObservers[attrName].effects.add(effect);
-    }
-
-    /**
-     * Subscribe to a property on an object. For DOM elements, sets up
-     * persistent input/change event listeners. For plain objects, only
-     * the subscription map is used (notified via setProperty).
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} propName
-     * @param {Effect} effect
-     */
-    _subscribePropertyDependency(obj, propName, effect) {
-        var reactivity = this;
-        var state = reactivity._getObjectState(obj);
-
-        if (!state.propertyHandler) {
-            var trackedEffects = new Set();
-            var queueAll = function () {
-                for (var eff of trackedEffects) {
-                    reactivity._scheduleEffect(eff);
-                }
-            };
-
-            var remove;
-            if (obj instanceof Element) {
-                obj.addEventListener("input", queueAll);
-                obj.addEventListener("change", queueAll);
-                remove = function () {
-                    obj.removeEventListener("input", queueAll);
-                    obj.removeEventListener("change", queueAll);
-                };
-            } else {
-                remove = function () {};
-            }
-
-            state.propertyHandler = {
-                effects: trackedEffects,
-                queueAll: queueAll,
-                remove: remove,
-            };
-        }
-        state.propertyHandler.effects.add(effect);
     }
 
     /** @param {Effect} effect */
@@ -458,11 +541,11 @@ export class Reactivity {
         var reactivity = this;
         for (var [depKey, dep] of effect.dependencies) {
             if (dep.type === "symbol" && dep.scope === "global") {
-                var subs = reactivity._globalSubscriptions.get(dep.name);
+                var subs = reactivity._globalSymbolSubscriptions.get(dep.name);
                 if (subs) {
                     subs.delete(effect);
                     if (subs.size === 0) {
-                        reactivity._globalSubscriptions.delete(dep.name);
+                        reactivity._globalSymbolSubscriptions.delete(dep.name);
                     }
                 }
             } else if (dep.type === "symbol" && dep.scope === "element") {
@@ -477,40 +560,60 @@ export class Reactivity {
                     }
                 }
             } else if (dep.type === "attribute" && dep.element) {
-                var state = reactivity._getObjectState(dep.element);
-                if (state.attributeObservers && state.attributeObservers[dep.name]) {
-                    state.attributeObservers[dep.name].effects.delete(effect);
+                var attrState = reactivity._getObjectState(dep.element);
+                var attrKey = dep.name + ":" + attrState.id;
+                var subs = reactivity._attributeSubscriptions.get(attrKey);
+                if (subs) {
+                    subs.delete(effect);
+                    if (subs.size === 0) {
+                        reactivity._attributeSubscriptions.delete(attrKey);
+                    }
                 }
             } else if (dep.type === "property" && dep.object) {
-                var state = reactivity._getObjectState(dep.object);
-                if (state.propertyHandler) {
-                    state.propertyHandler.effects.delete(effect);
+                var propState = reactivity._getObjectState(dep.object);
+                var subs = reactivity._propertySubscriptions.get(propState.id);
+                if (subs) {
+                    subs.delete(effect);
+                    if (subs.size === 0) {
+                        reactivity._propertySubscriptions.delete(propState.id);
+                    }
+                }
+            } else if (dep.type === "query") {
+                var subs = reactivity._querySubscriptions.get(dep.root);
+                if (subs) {
+                    subs.delete(effect);
+                    if (subs.size === 0) {
+                        reactivity._querySubscriptions.delete(dep.root);
+                    }
                 }
             }
         }
     }
 
     /**
-     * Clean up MutationObservers and property listeners for deps with no remaining effects.
+     * Remove empty entries from subscription maps for deps that were dropped.
+     * Query deps need no cleanup here — _unsubscribeEffect handles them directly.
      * @param {Map<string, Dependency>} deps
      */
     _cleanupOrphanedDeps(deps) {
         var reactivity = this;
         for (var [depKey, dep] of deps) {
             if (dep.type === "attribute" && dep.element) {
-                var state = reactivity._getObjectState(dep.element);
-                if (state.attributeObservers && state.attributeObservers[dep.name]) {
-                    var obs = state.attributeObservers[dep.name];
-                    if (obs.effects.size === 0) {
-                        obs.observer.disconnect();
-                        delete state.attributeObservers[dep.name];
+                var attrState = reactivity._objectState.get(dep.element);
+                if (attrState) {
+                    var attrKey = dep.name + ":" + attrState.id;
+                    var subs = reactivity._attributeSubscriptions.get(attrKey);
+                    if (subs && subs.size === 0) {
+                        reactivity._attributeSubscriptions.delete(attrKey);
                     }
                 }
             } else if (dep.type === "property" && dep.object) {
-                var state = reactivity._getObjectState(dep.object);
-                if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
-                    state.propertyHandler.remove();
-                    state.propertyHandler = null;
+                var propState = reactivity._objectState.get(dep.object);
+                if (propState) {
+                    var subs = reactivity._propertySubscriptions.get(propState.id);
+                    if (subs && subs.size === 0) {
+                        reactivity._propertySubscriptions.delete(propState.id);
+                    }
                 }
             }
         }

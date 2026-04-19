@@ -530,7 +530,7 @@ export class InExpression extends Expression {
         var returnArr = [];
         if (rootVal.css) {
             context.meta.runtime.implicitLoop(target, function (targetElt) {
-                var results = targetElt.querySelectorAll(rootVal.css);
+                var results = context.meta.runtime.resolveQuery(targetElt, rootVal.css);
                 for (var i = 0; i < results.length; i++) {
                     returnArr.push(results[i]);
                 }
