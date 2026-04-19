@@ -94,6 +94,23 @@ lists events: they just read `^items`, and the runtime handles the rest.
 Note that in this example we use a DOM-scoped variable, `^items` rather than a global variable. This encapsulates
 the reactivity in just this small bit of HTML. Generally we recommend using DOM-scoped variables when possible.
 
+### DOM Queries {#queries}
+
+CSS selector expressions are reactive too. A `live` block that reads a query
+like `<:checked/> in #container` re-evaluates whenever the DOM changes inside
+that container.
+
+{% example "Reactive query" %}
+<div id="toppings">
+  <label><input type="checkbox" value="cheese" /> Cheese</label>
+  <label><input type="checkbox" value="peppers" /> Peppers</label>
+  <label><input type="checkbox" value="onions" /> Onions</label>
+</div>
+<output _="live put (<:checked/> in #toppings).length + ' selected' into me">0 selected</output>
+{% endexample %}
+
+Check or uncheck any box and the count updates. No event listener needed.
+
 ### Reactivity vs. Events
 
 Reactivity is a neat feature and is useful when you have complicated dependencies in your UI that affect many different
