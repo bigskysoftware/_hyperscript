@@ -335,7 +335,7 @@ var ui = `
 					decrement @data-hist
 				else if event.key is 'ArrowDown' and @data-hist < 0
 					increment @data-hist
-				end end
+				end
 				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
 					or oldContent
 				halt default
