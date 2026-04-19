@@ -371,15 +371,16 @@ export class Reactivity {
      * @param {MutationRecord[]} mutations
      */
     _handleMutations(mutations) {
-        var queryTargets = new Set();
+        var hasQueries = this._querySubscriptions.size > 0;
+        var queryTargets = hasQueries ? new Set() : null;
         for (var i = 0; i < mutations.length; i++) {
             var mutation = mutations[i];
             if (mutation.type === "attributes") {
                 this._scheduleAttributeEffects(mutation.target, mutation.attributeName);
             }
-            queryTargets.add(mutation.target);
+            if (queryTargets) queryTargets.add(mutation.target);
         }
-        this._scheduleQueryEffects(queryTargets);
+        if (queryTargets) this._scheduleQueryEffects(queryTargets);
     }
 
     /**
@@ -588,6 +589,21 @@ export class Reactivity {
                 }
             }
         }
+        reactivity._maybeStopGlobalObserver();
+    }
+
+    /**
+     * Disconnect the global observer and delegated listeners when no
+     * effects depend on DOM state (attributes, properties, or queries).
+     */
+    _maybeStopGlobalObserver() {
+        if (!this._observer) return;
+        if (this._attributeSubscriptions.size > 0) return;
+        if (this._propertySubscriptions.size > 0) return;
+        if (this._querySubscriptions.size > 0) return;
+        this._observer.disconnect();
+        document.removeEventListener("input", this._inputHandler, true);
+        document.removeEventListener("change", this._changeHandler, true);
     }
 
     /**
