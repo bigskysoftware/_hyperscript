@@ -2000,9 +2000,10 @@
       let query = this.selectMatches();
       return query[Symbol.iterator]();
     }
+    /** @returns {NodeList} all elements matching this.css under the root node */
     selectMatches() {
-      let query = this._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
-      return query;
+      var root = this._runtime.getRootNode(this.relativeToElement);
+      return this._runtime.resolveQuery(root, this.css);
     }
   };
   var TemplatedQueryElementCollection = class extends ElementCollection {
@@ -2509,6 +2510,10 @@
       if (this.reactivity.isTracking && val != null && typeof val === "object") {
         this.reactivity.trackProperty(val, "__mutation__");
       }
+    }
+    resolveQuery(root, css) {
+      if (this.reactivity.isTracking) this.reactivity.trackQuery(root);
+      return root.querySelectorAll(css);
     }
     resolveAttribute(root, property) {
       if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
@@ -3051,7 +3056,10 @@
   var Reactivity = class {
     constructor() {
       this._objectState = /* @__PURE__ */ new WeakMap();
-      this._globalSubscriptions = /* @__PURE__ */ new Map();
+      this._globalSymbolSubscriptions = /* @__PURE__ */ new Map();
+      this._attributeSubscriptions = /* @__PURE__ */ new Map();
+      this._propertySubscriptions = /* @__PURE__ */ new Map();
+      this._querySubscriptions = /* @__PURE__ */ new Map();
       this._nextId = 0;
       this._currentEffect = null;
       this._pendingEffects = /* @__PURE__ */ new Set();
@@ -3061,16 +3069,14 @@
      * Get or create the reactive state object for any object.
      * Assigns a stable unique ID on first access.
      * @param {Object} obj - DOM element or plain JS object
-     * @returns {{ id: string, subscriptions: Map|null, propertyHandler: Object|null }}
+     * @returns {{ id: string, subscriptions: Map|null }}
      */
     _getObjectState(obj) {
       var state = this._objectState.get(obj);
       if (!state) {
         this._objectState.set(obj, state = {
           id: String(++this._nextId),
-          subscriptions: null,
-          propertyHandler: null,
-          attributeObservers: null
+          subscriptions: null
         });
       }
       return state;
@@ -3133,11 +3139,25 @@
       );
     }
     /**
+     * Track a DOM query as a dependency. Re-evaluates when any DOM
+     * change occurs within root or its descendants.
+     * @param {Element|Document} root - the element querySelectorAll runs on (e.g. #myTable in `<:checked/> in #myTable`)
+     */
+    trackQuery(root) {
+      if (!this._currentEffect) return;
+      root = root || document;
+      var key = "query:" + this._getObjectState(root).id;
+      this._currentEffect.dependencies.set(
+        key,
+        { type: "query", root }
+      );
+    }
+    /**
      * Notify that a global variable was written.
      * @param {string} name - Variable name
      */
     notifyGlobalSymbol(name) {
-      var subs = this._globalSubscriptions.get(name);
+      var subs = this._globalSymbolSubscriptions.get(name);
       if (subs) {
         for (var effect of subs) {
           this._scheduleEffect(effect);
@@ -3169,8 +3189,13 @@
     notifyProperty(obj) {
       if (obj == null || typeof obj !== "object" || obj._hsSkipTracking) return;
       var state = this._objectState.get(obj);
-      if (state && state.propertyHandler) {
-        state.propertyHandler.queueAll();
+      if (state) {
+        var subs = this._propertySubscriptions.get(state.id);
+        if (subs) {
+          for (var effect of subs) {
+            this._scheduleEffect(effect);
+          }
+        }
       }
     }
     /**
@@ -3188,6 +3213,108 @@
           self2._runPendingEffects();
         });
       }
+    }
+    /**
+     * Set up the single global MutationObserver and delegated input/change
+     * listeners that power attribute, property, and query tracking.
+     */
+    _initGlobalObserver() {
+      if (typeof document === "undefined") return;
+      if (!this._observer) {
+        var reactivity2 = this;
+        this._observer = new MutationObserver(function(mutations) {
+          reactivity2._handleMutations(mutations);
+        });
+        this._inputHandler = function(e) {
+          reactivity2._handleDOMEvent(e);
+        };
+        this._changeHandler = function(e) {
+          reactivity2._handleDOMEvent(e);
+        };
+      }
+      this._observer.observe(document, {
+        attributes: true,
+        childList: true,
+        subtree: true
+      });
+      document.addEventListener("input", this._inputHandler, true);
+      document.addEventListener("change", this._changeHandler, true);
+    }
+    /**
+     * Handle MutationObserver callbacks. Dispatches to attribute and query
+     * subscriptions based on mutation type.
+     * @param {MutationRecord[]} mutations
+     */
+    _handleMutations(mutations) {
+      var hasQueries = this._querySubscriptions.size > 0;
+      var queryTargets = hasQueries ? /* @__PURE__ */ new Set() : null;
+      for (var i = 0; i < mutations.length; i++) {
+        var mutation = mutations[i];
+        if (mutation.type === "attributes") {
+          this._scheduleAttributeEffects(mutation.target, mutation.attributeName);
+        }
+        if (queryTargets) queryTargets.add(mutation.target);
+      }
+      if (queryTargets) this._scheduleQueryEffects(queryTargets);
+    }
+    /**
+     * Handle delegated input/change events. Dispatches to property and
+     * query subscriptions.
+     * @param {Event} event
+     */
+    _handleDOMEvent(event) {
+      var el = event.target;
+      if (!(el instanceof Element)) return;
+      var state = this._objectState.get(el);
+      if (state) {
+        var subs = this._propertySubscriptions.get(state.id);
+        if (subs) {
+          for (var effect of subs) {
+            this._scheduleEffect(effect);
+          }
+        }
+      }
+      this._scheduleQueryEffects(el);
+    }
+    /**
+     * Schedule effects watching a specific attribute on a specific element.
+     * @param {Element} element
+     * @param {string} attrName
+     */
+    _scheduleAttributeEffects(element, attrName) {
+      var state = this._objectState.get(element);
+      if (!state) return;
+      var key = attrName + ":" + state.id;
+      var subs = this._attributeSubscriptions.get(key);
+      if (subs) {
+        for (var effect of subs) {
+          this._scheduleEffect(effect);
+        }
+      }
+    }
+    /**
+     * Schedule effects with query deps whose root includes any of the mutated elements.
+     * @param {Set<Element>|Element} mutated - Element(s) where DOM changes occurred
+     */
+    _scheduleQueryEffects(mutated) {
+      if (this._querySubscriptions.size === 0) return;
+      for (var [root, effects] of this._querySubscriptions) {
+        if (this._containsTarget(root, mutated)) {
+          for (var effect of effects) {
+            this._scheduleEffect(effect);
+          }
+        }
+      }
+    }
+    /** Check if any of the mutated elements are inside root. */
+    _containsTarget(root, mutated) {
+      if (mutated instanceof Set) {
+        for (var el of mutated) {
+          if (root.contains(el)) return true;
+        }
+        return false;
+      }
+      return root.contains(mutated);
     }
     /**
      * Run all pending effects. Called once per microtask batch.
@@ -3214,18 +3341,20 @@
     }
     /**
      * Subscribe an effect to all its current deps.
-     * Symbols go into subscription maps, attributes get MutationObservers,
-     * properties use persistent per-element input/change listeners.
+     * Symbols go into per-element/global subscription maps.
+     * Attributes, properties, and queries use flat lookup maps
+     * dispatched by the global observer.
      * @param {Effect} effect
      */
     _subscribeEffect(effect) {
       var reactivity2 = this;
+      var needsGlobalObserver = false;
       for (var [depKey, dep] of effect.dependencies) {
         if (dep.type === "symbol" && dep.scope === "global") {
-          if (!reactivity2._globalSubscriptions.has(dep.name)) {
-            reactivity2._globalSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
+          if (!reactivity2._globalSymbolSubscriptions.has(dep.name)) {
+            reactivity2._globalSymbolSubscriptions.set(dep.name, /* @__PURE__ */ new Set());
           }
-          reactivity2._globalSubscriptions.get(dep.name).add(effect);
+          reactivity2._globalSymbolSubscriptions.get(dep.name).add(effect);
         } else if (dep.type === "symbol" && dep.scope === "element") {
           var state = reactivity2._getObjectState(dep.element);
           if (!state.subscriptions) {
@@ -3236,91 +3365,42 @@
           }
           state.subscriptions.get(dep.name).add(effect);
         } else if (dep.type === "attribute") {
-          reactivity2._subscribeAttributeDependency(dep.element, dep.name, effect);
+          var attrState = reactivity2._getObjectState(dep.element);
+          var attrKey = dep.name + ":" + attrState.id;
+          if (!reactivity2._attributeSubscriptions.has(attrKey)) {
+            reactivity2._attributeSubscriptions.set(attrKey, /* @__PURE__ */ new Set());
+          }
+          reactivity2._attributeSubscriptions.get(attrKey).add(effect);
+          needsGlobalObserver = true;
         } else if (dep.type === "property") {
-          reactivity2._subscribePropertyDependency(dep.object, dep.name, effect);
+          var propState = reactivity2._getObjectState(dep.object);
+          if (!reactivity2._propertySubscriptions.has(propState.id)) {
+            reactivity2._propertySubscriptions.set(propState.id, /* @__PURE__ */ new Set());
+          }
+          reactivity2._propertySubscriptions.get(propState.id).add(effect);
+          needsGlobalObserver = true;
+        } else if (dep.type === "query") {
+          if (!reactivity2._querySubscriptions.has(dep.root)) {
+            reactivity2._querySubscriptions.set(dep.root, /* @__PURE__ */ new Set());
+          }
+          reactivity2._querySubscriptions.get(dep.root).add(effect);
+          needsGlobalObserver = true;
         }
       }
-    }
-    /**
-     * Subscribe to a DOM attribute. Sets up a persistent MutationObserver
-     * per element+attribute, shared across effects and re-runs.
-     * @param {Element} element
-     * @param {string} attrName
-     * @param {Effect} effect
-     */
-    _subscribeAttributeDependency(element, attrName, effect) {
-      var reactivity2 = this;
-      var state = reactivity2._getObjectState(element);
-      if (!state.attributeObservers) {
-        state.attributeObservers = {};
+      if (needsGlobalObserver) {
+        reactivity2._initGlobalObserver();
       }
-      if (!state.attributeObservers[attrName]) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var observer = new MutationObserver(function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        });
-        observer.observe(element, {
-          attributes: true,
-          attributeFilter: [attrName]
-        });
-        state.attributeObservers[attrName] = {
-          effects: trackedEffects,
-          observer
-        };
-      }
-      state.attributeObservers[attrName].effects.add(effect);
-    }
-    /**
-     * Subscribe to a property on an object. For DOM elements, sets up
-     * persistent input/change event listeners. For plain objects, only
-     * the subscription map is used (notified via setProperty).
-     * @param {Object} obj - DOM element or plain JS object
-     * @param {string} propName
-     * @param {Effect} effect
-     */
-    _subscribePropertyDependency(obj, propName, effect) {
-      var reactivity2 = this;
-      var state = reactivity2._getObjectState(obj);
-      if (!state.propertyHandler) {
-        var trackedEffects = /* @__PURE__ */ new Set();
-        var queueAll = function() {
-          for (var eff of trackedEffects) {
-            reactivity2._scheduleEffect(eff);
-          }
-        };
-        var remove;
-        if (obj instanceof Element) {
-          obj.addEventListener("input", queueAll);
-          obj.addEventListener("change", queueAll);
-          remove = function() {
-            obj.removeEventListener("input", queueAll);
-            obj.removeEventListener("change", queueAll);
-          };
-        } else {
-          remove = function() {
-          };
-        }
-        state.propertyHandler = {
-          effects: trackedEffects,
-          queueAll,
-          remove
-        };
-      }
-      state.propertyHandler.effects.add(effect);
     }
     /** @param {Effect} effect */
     _unsubscribeEffect(effect) {
       var reactivity2 = this;
       for (var [depKey, dep] of effect.dependencies) {
         if (dep.type === "symbol" && dep.scope === "global") {
-          var subs = reactivity2._globalSubscriptions.get(dep.name);
+          var subs = reactivity2._globalSymbolSubscriptions.get(dep.name);
           if (subs) {
             subs.delete(effect);
             if (subs.size === 0) {
-              reactivity2._globalSubscriptions.delete(dep.name);
+              reactivity2._globalSymbolSubscriptions.delete(dep.name);
             }
           }
         } else if (dep.type === "symbol" && dep.scope === "element") {
@@ -3335,39 +3415,73 @@
             }
           }
         } else if (dep.type === "attribute" && dep.element) {
-          var state = reactivity2._getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            state.attributeObservers[dep.name].effects.delete(effect);
+          var attrState = reactivity2._getObjectState(dep.element);
+          var attrKey = dep.name + ":" + attrState.id;
+          var subs = reactivity2._attributeSubscriptions.get(attrKey);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              reactivity2._attributeSubscriptions.delete(attrKey);
+            }
           }
         } else if (dep.type === "property" && dep.object) {
-          var state = reactivity2._getObjectState(dep.object);
-          if (state.propertyHandler) {
-            state.propertyHandler.effects.delete(effect);
+          var propState = reactivity2._getObjectState(dep.object);
+          var subs = reactivity2._propertySubscriptions.get(propState.id);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              reactivity2._propertySubscriptions.delete(propState.id);
+            }
+          }
+        } else if (dep.type === "query") {
+          var subs = reactivity2._querySubscriptions.get(dep.root);
+          if (subs) {
+            subs.delete(effect);
+            if (subs.size === 0) {
+              reactivity2._querySubscriptions.delete(dep.root);
+            }
           }
         }
       }
+      reactivity2._maybeStopGlobalObserver();
     }
     /**
-     * Clean up MutationObservers and property listeners for deps with no remaining effects.
+     * Disconnect the global observer and delegated listeners when no
+     * effects depend on DOM state (attributes, properties, or queries).
+     */
+    _maybeStopGlobalObserver() {
+      if (!this._observer) return;
+      if (this._attributeSubscriptions.size > 0) return;
+      if (this._propertySubscriptions.size > 0) return;
+      if (this._querySubscriptions.size > 0) return;
+      this._observer.disconnect();
+      document.removeEventListener("input", this._inputHandler, true);
+      document.removeEventListener("change", this._changeHandler, true);
+    }
+    /**
+     * Remove empty entries from subscription maps for deps that were dropped.
+     * Query deps need no cleanup here — _unsubscribeEffect handles them directly.
      * @param {Map<string, Dependency>} deps
      */
     _cleanupOrphanedDeps(deps) {
       var reactivity2 = this;
       for (var [depKey, dep] of deps) {
         if (dep.type === "attribute" && dep.element) {
-          var state = reactivity2._getObjectState(dep.element);
-          if (state.attributeObservers && state.attributeObservers[dep.name]) {
-            var obs = state.attributeObservers[dep.name];
-            if (obs.effects.size === 0) {
-              obs.observer.disconnect();
-              delete state.attributeObservers[dep.name];
+          var attrState = reactivity2._objectState.get(dep.element);
+          if (attrState) {
+            var attrKey = dep.name + ":" + attrState.id;
+            var subs = reactivity2._attributeSubscriptions.get(attrKey);
+            if (subs && subs.size === 0) {
+              reactivity2._attributeSubscriptions.delete(attrKey);
             }
           }
         } else if (dep.type === "property" && dep.object) {
-          var state = reactivity2._getObjectState(dep.object);
-          if (state.propertyHandler && state.propertyHandler.effects.size === 0) {
-            state.propertyHandler.remove();
-            state.propertyHandler = null;
+          var propState = reactivity2._objectState.get(dep.object);
+          if (propState) {
+            var subs = reactivity2._propertySubscriptions.get(propState.id);
+            if (subs && subs.size === 0) {
+              reactivity2._propertySubscriptions.delete(propState.id);
+            }
           }
         }
       }
@@ -4202,7 +4316,7 @@
       var returnArr = [];
       if (rootVal.css) {
         context.meta.runtime.implicitLoop(target, function(targetElt) {
-          var results = targetElt.querySelectorAll(rootVal.css);
+          var results = context.meta.runtime.resolveQuery(targetElt, rootVal.css);
           for (var i = 0; i < results.length; i++) {
             returnArr.push(results[i]);
           }
@@ -6067,6 +6181,7 @@
       var detail = options || {};
       detail.sender = context.me;
       detail.headers = detail.headers || {};
+      detail.conversion = this.conversion || this.conversionType;
       var abortController = new AbortController();
       var abortListener = () => abortController.abort();
       context.me.addEventListener("fetch:abort", abortListener, { once: true });
@@ -9095,9 +9210,9 @@
             observer.observe(target);
             eltData.observers.push(observer);
           }
-          var addEventListener = target.addEventListener || target.on;
+          var addEventListener2 = target.addEventListener || target.on;
           var handler;
-          addEventListener.call(target, eventName, handler = function listener(evt) {
+          addEventListener2.call(target, eventName, handler = function listener(evt) {
             if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
               target.removeEventListener(eventName, listener);
               return;
@@ -10909,6 +11024,14 @@
   function componentPlugin(_hyperscript2) {
     const { runtime: runtime2, createParser, reactivity: reactivity2 } = _hyperscript2.internals;
     const tokenizer2 = new Tokenizer();
+    function ensureFouceGuard() {
+      if (typeof document === "undefined" || !document.head) return;
+      if (document.head.querySelector('style[data-hyperscript-component="fouce-guard"]')) return;
+      var styleEl = document.createElement("style");
+      styleEl.setAttribute("data-hyperscript-component", "fouce-guard");
+      styleEl.textContent = ":not(:defined) { visibility: hidden; }";
+      document.head.appendChild(styleEl);
+    }
     function substituteSlots(templateSource, slotContent, scopeSel) {
       if (!slotContent) return templateSource;
       var tmp = document.createElement("div");
@@ -11000,11 +11123,10 @@
       if (combined) {
         raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
         templateEl.textContent = raw;
-      }
-      if (combined) {
         var scopedStyle = document.createElement("style");
+        scopedStyle.setAttribute("data-hyperscript-component", tagName);
         scopedStyle.textContent = "@scope (" + tagName + ") {\n" + combined + "}";
-        templateEl.insertAdjacentElement("afterend", scopedStyle);
+        document.head.appendChild(scopedStyle);
       }
       const templateSource = templateEl.textContent;
       const ComponentClass = class extends HTMLElement {
@@ -11097,17 +11219,51 @@
       customElements.define(tagName, ComponentClass);
     }
     var registered = /* @__PURE__ */ new Set();
+    var fetchedBundles = /* @__PURE__ */ new Map();
+    function registerTemplate(tmpl) {
+      var tagName = tmpl.getAttribute("component");
+      if (!tagName || registered.has(tagName) || customElements.get(tagName)) return;
+      registered.add(tagName);
+      var script = tmpl.hasOwnProperty("_componentScript") ? tmpl._componentScript : tmpl.getAttribute("_") || "";
+      if (tmpl.hasAttribute("_")) tmpl.removeAttribute("_");
+      registerComponent(tmpl, script || "");
+    }
+    function loadComponentBundle(url) {
+      if (fetchedBundles.has(url)) return fetchedBundles.get(url);
+      var p = fetch(url).then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status + " fetching " + url);
+        return r.text();
+      }).then(function(html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        for (let tmpl of doc.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+          registerTemplate(tmpl);
+        }
+      }).catch(function(err) {
+        console.error("hyperscript component bundle '" + url + "': " + err.message);
+        fetchedBundles.delete(url);
+      });
+      fetchedBundles.set(url, p);
+      return p;
+    }
     _hyperscript2.addBeforeProcessHook(function(elt) {
+      ensureFouceGuard();
       if (!elt || !elt.querySelectorAll) return;
       elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-        var script = tmpl.getAttribute("_") || "";
+        if ("_componentScript" in tmpl) return;
+        tmpl._componentScript = tmpl.getAttribute("_") || "";
         tmpl.removeAttribute("_");
-        var tagName = tmpl.getAttribute("component");
-        if (!registered.has(tagName) && !customElements.get(tagName)) {
-          registered.add(tagName);
-          registerComponent(tmpl, script);
-        }
       });
+    });
+    _hyperscript2.addAfterProcessHook(function(elt) {
+      if (!elt || !elt.querySelectorAll) return;
+      for (var tmpl of elt.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+        registerTemplate(tmpl);
+      }
+      for (var bundle of elt.querySelectorAll('script[type="text/hyperscript-component"][src]')) {
+        if (bundle._componentBundleLoaded) continue;
+        bundle._componentBundleLoaded = true;
+        loadComponentBundle(bundle.getAttribute("src"));
+      }
     });
   }
   if (typeof self !== "undefined" && self._hyperscript) {
@@ -11754,6 +11910,11 @@
   function eventsourcePlugin(_hyperscript2) {
     _hyperscript2.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
     _hyperscript2.config.conversions.Stream = streamConversion;
+    addEventListener("hyperscript:beforeFetch", function(evt) {
+      if (evt.detail.conversion === "Stream") {
+        evt.detail.headers["Accept"] = "text/event-stream";
+      }
+    });
   }
   if (typeof self !== "undefined" && self._hyperscript) {
     self._hyperscript.use(eventsourcePlugin);

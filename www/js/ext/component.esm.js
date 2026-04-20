@@ -622,6 +622,14 @@ var Tokenizer = class _Tokenizer {
 function componentPlugin(_hyperscript) {
   const { runtime, createParser, reactivity } = _hyperscript.internals;
   const tokenizer = new Tokenizer();
+  function ensureFouceGuard() {
+    if (typeof document === "undefined" || !document.head) return;
+    if (document.head.querySelector('style[data-hyperscript-component="fouce-guard"]')) return;
+    var styleEl = document.createElement("style");
+    styleEl.setAttribute("data-hyperscript-component", "fouce-guard");
+    styleEl.textContent = ":not(:defined) { visibility: hidden; }";
+    document.head.appendChild(styleEl);
+  }
   function substituteSlots(templateSource, slotContent, scopeSel) {
     if (!slotContent) return templateSource;
     var tmp = document.createElement("div");
@@ -713,11 +721,10 @@ function componentPlugin(_hyperscript) {
     if (combined) {
       raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
       templateEl.textContent = raw;
-    }
-    if (combined) {
       var scopedStyle = document.createElement("style");
+      scopedStyle.setAttribute("data-hyperscript-component", tagName);
       scopedStyle.textContent = "@scope (" + tagName + ") {\n" + combined + "}";
-      templateEl.insertAdjacentElement("afterend", scopedStyle);
+      document.head.appendChild(scopedStyle);
     }
     const templateSource = templateEl.textContent;
     const ComponentClass = class extends HTMLElement {
@@ -810,17 +817,51 @@ function componentPlugin(_hyperscript) {
     customElements.define(tagName, ComponentClass);
   }
   var registered = /* @__PURE__ */ new Set();
+  var fetchedBundles = /* @__PURE__ */ new Map();
+  function registerTemplate(tmpl) {
+    var tagName = tmpl.getAttribute("component");
+    if (!tagName || registered.has(tagName) || customElements.get(tagName)) return;
+    registered.add(tagName);
+    var script = tmpl.hasOwnProperty("_componentScript") ? tmpl._componentScript : tmpl.getAttribute("_") || "";
+    if (tmpl.hasAttribute("_")) tmpl.removeAttribute("_");
+    registerComponent(tmpl, script || "");
+  }
+  function loadComponentBundle(url) {
+    if (fetchedBundles.has(url)) return fetchedBundles.get(url);
+    var p = fetch(url).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status + " fetching " + url);
+      return r.text();
+    }).then(function(html) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      for (let tmpl of doc.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+        registerTemplate(tmpl);
+      }
+    }).catch(function(err) {
+      console.error("hyperscript component bundle '" + url + "': " + err.message);
+      fetchedBundles.delete(url);
+    });
+    fetchedBundles.set(url, p);
+    return p;
+  }
   _hyperscript.addBeforeProcessHook(function(elt) {
+    ensureFouceGuard();
     if (!elt || !elt.querySelectorAll) return;
     elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
-      var script = tmpl.getAttribute("_") || "";
+      if ("_componentScript" in tmpl) return;
+      tmpl._componentScript = tmpl.getAttribute("_") || "";
       tmpl.removeAttribute("_");
-      var tagName = tmpl.getAttribute("component");
-      if (!registered.has(tagName) && !customElements.get(tagName)) {
-        registered.add(tagName);
-        registerComponent(tmpl, script);
-      }
     });
+  });
+  _hyperscript.addAfterProcessHook(function(elt) {
+    if (!elt || !elt.querySelectorAll) return;
+    for (var tmpl of elt.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+      registerTemplate(tmpl);
+    }
+    for (var bundle of elt.querySelectorAll('script[type="text/hyperscript-component"][src]')) {
+      if (bundle._componentBundleLoaded) continue;
+      bundle._componentBundleLoaded = true;
+      loadComponentBundle(bundle.getAttribute("src"));
+    }
   });
 }
 if (typeof self !== "undefined" && self._hyperscript) {
