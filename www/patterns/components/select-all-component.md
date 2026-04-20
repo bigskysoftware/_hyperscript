@@ -68,10 +68,10 @@ th { background: #f5f5f5; }
 </style>
 {% endexample %}
 
-The component extends `<input>` behavior -- since `<master-checkbox>` has no template body,
-it renders as an empty custom element, but the hyperscript on the component definition
-runs on each instance. It finds all checkboxes in `the closest <table/>`, excluding itself
-with `where it is not me`.
+The component uses the same `on change` + `live` pattern as the
+[inline version](/patterns/lists-forms/select-all-checkbox/). The `live` block
+reactively queries the DOM for checked checkboxes and updates the header state
+automatically.
 
 Because the scope is `the closest <table/>` rather than `the next <tbody/>`, the component
 works regardless of where it's placed in the table structure. Drop it into any `<th>` and

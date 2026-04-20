@@ -4307,8 +4307,11 @@ var InExpression = class _InExpression extends Expression {
   static parse(parser, root) {
     if (!parser.matchToken("in")) return;
     var target = parser.requireElement("unaryExpression");
-    var inExpression = new _InExpression(root, target);
-    return parser.parseElement("indirectExpression", inExpression);
+    var result = new _InExpression(root, target);
+    if (parser.matchToken("where")) {
+      result = new WhereExpression(result, CollectionExpression.parseOperand(parser));
+    }
+    return parser.parseElement("indirectExpression", result);
   }
   resolve(context, { root: rootVal, target }) {
     if (rootVal == null) return [];
