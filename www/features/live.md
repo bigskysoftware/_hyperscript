@@ -106,6 +106,33 @@ The block runs with automatic dependency tracking. Whatever it reads
 during execution (variables, properties, attributes) becomes its dependencies.
 When any dependency changes, the block re-runs.
 
+### Conditional Branches
+
+`live` only tracks what it actually *reads* during execution. If a branch
+isn't taken, dependencies inside it aren't tracked until the branch runs:
+
+```hyperscript
+live
+  if $showDetails
+    put $details into me   -- not tracked until $showDetails is true
+  end
+```
+
+If `$showDetails` starts as `false`, changes to `$details` won't trigger a
+re-run. Once `$showDetails` flips to `true` and the block re-runs, `$details`
+becomes a dependency from that point on.
+
+To avoid surprises, read all the values you depend on before branching:
+
+```hyperscript
+live
+  if $showDetails then put $details into me
+  else put '' into me
+```
+
+Or use [`when`](/features/when) for conditional side effects, since `when` only
+tracks its expression, not the body.
+
 ### Cleanup
 
 When the element is removed from the DOM, all its `live` effects are automatically
