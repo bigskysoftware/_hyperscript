@@ -14,6 +14,7 @@ const extEntries = [
   'src/ext/worker.js',
   'src/ext/eventsource.js',
   'src/ext/tailwind.js',
+  'src/ext/ttd.js',
 ]
 
 const shared = {

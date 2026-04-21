@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>TTD - Time Travel Debugger Test</title>
+	<script type="module" src="../src/_hyperscript.js"></script>
+	<script type="module" src="../src/ext/ttd.js"></script>
+	<style>
+		body { font-family: sans-serif; max-width: 700px; margin: 2em auto; }
+		button { padding: .5em 1em; margin: .25em; font-size: 1em; }
+		output, .result { display: block; margin: .5em 0; padding: .5em; background: #f0f0f0; min-height: 1.5em; }
+		.box { width: 80px; height: 80px; background: #2196F3; margin: 1em 0; transition: all 0.3s; }
+		.box.red { background: #F44336; }
+		.box.big { width: 160px; height: 160px; }
+		.box.hidden { display: none; }
+		#counter-display { font-size: 2em; font-weight: bold; }
+		section { border: 1px solid #ddd; padding: 1em; margin: 1em 0; border-radius: .5em; }
+		h2 { margin-top: 0; }
+	</style>
+</head>
+<body>
+
+<h1>TTD Test Page</h1>
+<p>Open with <code>?_ttd</code> to activate. Open the console to use the TTD API.</p>
+<p><a href="?_ttd">Activate TTD</a> | <a href="?">Deactivate</a></p>
+
+<!-- Test 1: Simple variable mutation + DOM update -->
+<section>
+	<h2>Test 1: Click Counter</h2>
+	<button _="on click
+		set :count to (:count or 0) + 1
+		put :count into #counter-display
+	">Increment</button>
+	<button _="on click
+		set :count to 0
+		put '0' into #counter-display
+	">Reset</button>
+	<div id="counter-display">0</div>
+</section>
+
+<!-- Test 2: Class toggling -->
+<section>
+	<h2>Test 2: Class Toggle</h2>
+	<button _="on click toggle .red on #the-box">Toggle Red</button>
+	<button _="on click toggle .big on #the-box">Toggle Big</button>
+	<button _="on click toggle .hidden on #the-box">Toggle Hidden</button>
+	<div id="the-box" class="box"></div>
+</section>
+
+<!-- Test 3: DOM insertion -->
+<section>
+	<h2>Test 3: DOM Insertion</h2>
+	<button _="on click
+		js return 'Item ' + (new Date()).toLocaleTimeString() end
+		set val to it
+		put '<li>' + val + '</li>' at end of #item-list
+	">Add Item</button>
+	<button _="on click
+		set children to #item-list.children
+		if children.length > 0
+			remove the last <li/> in #item-list
+		end
+	">Remove Last</button>
+	<ul id="item-list"></ul>
+</section>
+
+<!-- Test 4: Conditional logic + multiple variables -->
+<section>
+	<h2>Test 4: Conditional Logic</h2>
+	<button _="on click
+		set x to Math.floor(Math.random() * 100)
+		set y to Math.floor(Math.random() * 100)
+		if x > y
+			set msg to '' + x + ' > ' + y + ' (x wins!)'
+		else
+			set msg to '' + y + ' >= ' + x + ' (y wins!)'
+		end
+		put msg into #logic-output
+	">Roll Dice</button>
+	<output id="logic-output">Click to compare random numbers</output>
+</section>
+
+<!-- Test 5: Attribute manipulation -->
+<section>
+	<h2>Test 5: Attribute Changes</h2>
+	<button _="on click
+		if #attr-target's @data-state is 'on'
+			set #attr-target's @data-state to 'off'
+			put 'State: OFF' into #attr-target
+			remove .on from #attr-target
+		else
+			set #attr-target's @data-state to 'on'
+			put 'State: ON' into #attr-target
+			add .on to #attr-target
+		end
+	">Toggle State</button>
+	<div id="attr-target" data-state="off" style="padding: .5em; background: #eee;">State: OFF</div>
+</section>
+
+<hr>
+<h2>Console Quick Reference</h2>
+<pre>
+ttd.help()         // Full help
+ttd.steps()        // Show all recorded steps
+ttd.inspect(n)     // Inspect step n
+ttd.back()         // Step backward (with DOM restoration)
+ttd.forward()      // Step forward
+ttd.goto(n)        // Jump to step n
+ttd.resume()       // Return to live execution
+ttd.find("set")    // Find steps matching pattern
+ttd.findVar("x")   // Find where variable x changed
+ttd.streams        // List execution streams
+</pre>
+
+</body>
+</html>
