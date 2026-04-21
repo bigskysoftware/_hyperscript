@@ -288,7 +288,7 @@ body {
 }
 .hamburger span {
     display: block;
-    height: 2px;
+    height: 3px;
     background: var(--text);
     border-radius: 1px;
     transition: transform 0.2s, opacity 0.2s;
@@ -296,7 +296,9 @@ body {
 
 /* Mobile nav */
 @media (max-width: 768px) {
+    .navbar { height: 56px; }
     .navbar nav { position: relative; }
+    .nav-logo-img { height: 44px; }
     .hamburger { display: flex; }
 
     .nav-links {
@@ -347,9 +349,9 @@ body {
     }
 
     /* Hamburger → X animation */
-    .nav-open .hamburger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+    .nav-open .hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .nav-open .hamburger span:nth-child(2) { opacity: 0; }
-    .nav-open .hamburger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+    .nav-open .hamburger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 }
 
 /* ---- Container ---- */
