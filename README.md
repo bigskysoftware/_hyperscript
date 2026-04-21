@@ -1,12 +1,16 @@
-[![//_hyperscript](https://hyperscript.org/img/light_logo.png "the underscore is silent")](https://hyperscript.org)
+<div align="center">
+
+<a href="https://hyperscript.org">
+<img src="https://hyperscript.org/img/logo.png" alt="hyperscript" width="120">
+</a>
+
+# hyperscript
 
 *the underscore is silent*
 
-## introduction
+A scripting language for the web, inspired by [HyperTalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
 
-`_hyperscript` is a small, open scripting language inspired by [hypertalk](https://hypercard.org/HyperTalk%20Reference%202.4.pdf)
-
-it is a companion project of <https://htmx.org>
+</div>
 
 ## quickstart
 
