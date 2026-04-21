@@ -180,11 +180,14 @@ if (typeof document !== 'undefined') {
             })
         );
 
-        // Evaluate loaded scripts
-        scriptTexts.forEach(sc => _hyperscript(sc));
-
-        // Wait for DOM ready, then initialize
+        // Wait for DOM ready, then parse external scripts and initialize.
+        // Parsing is deferred until after ready() so plugins loaded via
+        // synchronous <script> tags (e.g. hdb.js) have registered their
+        // commands before behavior files are evaluated.
+        // See https://github.com/bigskysoftware/_hyperscript/issues/533
         ready(() => {
+            scriptTexts.forEach(sc => _hyperscript(sc));
+
             _hyperscript.process(document.documentElement);
             document.dispatchEvent(new Event("hyperscript:ready"));
 

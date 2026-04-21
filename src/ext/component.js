@@ -288,11 +288,7 @@ export default function componentPlugin(_hyperscript) {
                 return r.text();
             })
             .then(function (html) {
-                // Parse in a detached document — no scripts execute, no side
-                // effects on the live DOM. We only harvest the component
-                // template elements and hand them to registerComponent.
                 var doc = new DOMParser().parseFromString(html, 'text/html');
-                // @ts-ignore
                 for (let tmpl of doc.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
                     registerTemplate(tmpl);
                 }
@@ -304,10 +300,6 @@ export default function componentPlugin(_hyperscript) {
         fetchedBundles.set(url, p);
         return p;
     }
-
-    // Before-process: inject the FOUCE guard if we haven't already, then
-    // strip `_` from inline component templates and stash it, so the walk
-    // doesn't install the init feature on the <script> tag itself.
     _hyperscript.addBeforeProcessHook(function(elt) {
         ensureFouceGuard();
         if (!elt || !elt.querySelectorAll) return;

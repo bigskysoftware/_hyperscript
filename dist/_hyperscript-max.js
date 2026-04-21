@@ -1,4 +1,3 @@
-"use strict";
 (() => {
   var __defProp = Object.defineProperty;
   var __export = (target, all) => {
@@ -9214,9 +9213,9 @@
             observer.observe(target);
             eltData.observers.push(observer);
           }
-          var addEventListener = target.addEventListener || target.on;
+          var addEventListener2 = target.addEventListener || target.on;
           var handler;
-          addEventListener.call(target, eventName, handler = function listener(evt) {
+          addEventListener2.call(target, eventName, handler = function listener(evt) {
             if (typeof Node !== "undefined" && elt instanceof Node && target !== elt && !elt.isConnected) {
               target.removeEventListener(eventName, listener);
               return;
@@ -9585,9 +9584,7 @@
       this.start = setCmd;
     }
     install(target, source, args, runtime2) {
-      queueMicrotask(() => {
-        this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
-      });
+      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
     }
     static parse(parser) {
       let setCmd = parser.parseElement("setCommand");
@@ -10516,6 +10513,1462 @@
   if (typeof self !== "undefined") {
     self._hyperscript = _hyperscript;
   }
-  var hyperscript_default = _hyperscript;
+
+  // src/ext/hdb.js
+  var BreakpointCommand2 = class _BreakpointCommand extends Command {
+    static keyword = "breakpoint";
+    static parse(parser) {
+      if (!parser.matchToken("breakpoint")) return;
+      return new _BreakpointCommand();
+    }
+    resolve(ctx) {
+      var hdb;
+      globalThis.hdb = hdb = new HDB(ctx, ctx.meta.runtime, this);
+      try {
+        return hdb.break(ctx);
+      } catch (e) {
+        console.error(e, e.stack);
+      }
+    }
+  };
+  function HDB(ctx, runtime2, breakpoint) {
+    this.ctx = ctx;
+    this.runtime = runtime2;
+    this.cmd = breakpoint;
+    this._hyperscript = self._hyperscript;
+    this.cmdMap = [];
+    this.bus = new EventTarget();
+  }
+  HDB.prototype.break = function(ctx) {
+    console.log("=== HDB///_hyperscript/debugger ===");
+    this.ui();
+    return new Promise((resolve, reject) => {
+      this.bus.addEventListener(
+        "continue",
+        () => {
+          if (this.ctx !== ctx) {
+            for (var attr in ctx) {
+              delete ctx[attr];
+            }
+            Object.assign(ctx, this.ctx);
+          }
+          delete globalThis.hdb;
+          resolve(this.runtime.findNext(this.cmd, this.ctx));
+        },
+        { once: true }
+      );
+    });
+  };
+  HDB.prototype.continueExec = function() {
+    this.bus.dispatchEvent(new Event("continue"));
+  };
+  HDB.prototype.stepOver = function() {
+    if (!this.cmd) return this.continueExec();
+    var result = this.cmd && this.cmd.type === "breakpointCommand" ? this.runtime.findNext(this.cmd, this.ctx) : this.runtime.unifiedEval(this.cmd, this.ctx);
+    if (result.type === "implicitReturn") return this.stepOut();
+    if (result && result.then instanceof Function) {
+      return result.then((next) => {
+        this.cmd = next;
+        this.bus.dispatchEvent(new Event("step"));
+        this.logCommand();
+      });
+    } else if (result.halt_flag) {
+      this.bus.dispatchEvent(new Event("continue"));
+    } else {
+      this.cmd = result;
+      this.bus.dispatchEvent(new Event("step"));
+      this.logCommand();
+    }
+  };
+  HDB.prototype.stepOut = function() {
+    if (!this.ctx.meta.caller) return this.continueExec();
+    var callingCmd = this.ctx.meta.callingCommand;
+    var oldMe = this.ctx.me;
+    this.ctx = this.ctx.meta.caller;
+    console.log(
+      "[hdb] stepping out into " + this.ctx.meta.feature.displayName
+    );
+    if (this.ctx.me instanceof Element && this.ctx.me !== oldMe) {
+      console.log("[hdb] me: ", this.ctx.me);
+    }
+    this.cmd = this.runtime.findNext(callingCmd, this.ctx);
+    this.cmd = this.runtime.findNext(this.cmd, this.ctx);
+    this.logCommand();
+    this.bus.dispatchEvent(new Event("step"));
+  };
+  HDB.prototype.skipTo = function(toCmd) {
+    this.cmd = toCmd.cmd;
+    this.bus.dispatchEvent(new Event("skip"));
+  };
+  HDB.prototype.rewrite = function(command, newCode) {
+    console.log("##", command);
+    const parent = command.cmd.parent;
+    let prev;
+    for (prev of parent.children) {
+      if (prev.next === command.cmd) break;
+    }
+    const next = command.next;
+    const tok = this._hyperscript.internals.tokenizer.tokenize(newCode);
+    const parser = this._hyperscript.internals.createParser(tok);
+    const newcmd = parser.requireElement("command");
+    console.log(newcmd);
+    newcmd.startToken = command.startToken;
+    newcmd.endToken = command.endToken;
+    newcmd.programSource = command.programSource;
+    newcmd.sourceFor = function() {
+      return newCode;
+    };
+    prev.next = newcmd;
+    newcmd.next = next;
+    newcmd.parent = parent;
+    this.bus.dispatchEvent(new Event("step"));
+  };
+  HDB.prototype.logCommand = function() {
+    var hasSource = this.cmd.sourceFor instanceof Function;
+    var cmdSource = hasSource ? this.cmd.sourceFor() : "-- " + this.cmd.type;
+    console.log("[hdb] current command: " + cmdSource);
+  };
+  HDB.prototype.traverse = function(ge) {
+    const rv = [];
+    (function recurse(ge2) {
+      rv.push(ge2);
+      if ("children" in ge2) for (const child of ge2.children) recurse(child);
+    })(ge);
+    return rv;
+  };
+  var ui = `
+<div class="hdb" _="
+	on load trigger update end
+	on step from hdb.bus trigger update end
+	on skip from hdb.bus trigger update end
+	on continue from hdb.bus log 'done' then remove me.getRootNode().host">
+
+	<script type="text/hyperscript">
+
+	def escapeHTML(unsafe)
+		js(unsafe) return unsafe
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/\\x22/g, "&quot;")
+			.replace(/\\x27/g, "&#039;") end
+		return it
+	end
+
+	def makeCommandWidget(i)
+		get \`<span data-cmd=\${i}><button class=skip data-cmd=\${i}>&rdca;</button>\`
+		if hdb.EXPERIMENTAL
+			append \`<button class=rewrite data-cmd=\${i}>Rewrite</button></span>\`
+		end
+		return it
+	end
+
+	def renderCode
+		set hdb.cmdMap to []
+		set src to hdb.cmd.programSource
+
+		-- Find feature
+		set feat to hdb.cmd
+		repeat until no feat.parent or feat.isFeature set feat to feat.parent end
+
+		-- Traverse, finding starts
+		for cmd in hdb.traverse(feat)
+			if no cmd.startToken continue end
+			append {
+				index: cmd.startToken.start,
+				widget: makeCommandWidget(hdb.cmdMap.length),
+				cmd: cmd
+			} to hdb.cmdMap
+		end
+
+		set rv to src.slice(0, hdb.cmdMap[0].index)
+		for obj in hdb.cmdMap index i
+			if obj.cmd is hdb.cmd
+				append obj.widget + '<u class=current>' +
+					escapeHTML(src.slice(obj.index, hdb.cmdMap[i+1].index)) + '</u>' to rv
+			else
+				append obj.widget + escapeHTML(src.slice(obj.index, hdb.cmdMap[i+1].index)) to rv
+			end
+		end
+		return rv
+	end
+
+	def truncate(str, len)
+		if str.length <= len return str end
+		return str.slice(0, len) + '\u2026'
+
+	def prettyPrint(obj)
+		if obj is null      return 'null'      end
+		if Element.prototype.isPrototypeOf(obj)
+			set rv to '&lt;<span class="token tagname">' +
+				obj.tagName.toLowerCase() + "</span>"
+			for attr in Array.from(obj.attributes)
+				if attr.specified
+					set rv to rv +
+						' <span class="token attr">' + attr.nodeName +
+						'</span>=<span class="token string">"' + truncate(attr.textContent, 10) +
+						'"</span>'
+				end
+			end
+			set rv to rv + '>'
+			return rv
+		else if obj.call
+			if obj.hyperfunc
+				get "def " + obj.hypername + ' ...'
+			else
+				get "function "+obj.name+"(...) {...}"
+			end
+		else if obj.toString
+			call obj.toString()
+		end
+		return escapeHTML((it or 'undefined').trim())
+	end
+	<\/script>
+
+	<header _="
+	on pointerdown(clientX, clientY)
+		halt the event
+		call event.stopPropagation()
+		get first .hdb
+		measure its x, y
+		set xoff to clientX - x
+		set yoff to clientY - y
+		repeat until event pointerup from document
+			wait for pointermove or pointerup from document
+			add {
+				left: \${its clientX - xoff}px;
+				top:  \${its clientY - yoff}px;
+			} to .hdb
+		end
+	">
+		<h2 class="titlebar">HDB</h2>
+		<ul role="toolbar" class="toolbar" _="on pointerdown halt">
+			<li><button _="on click call hdb.continueExec()">
+				&#x23F5; Continue
+			</button>
+			<li><button _="on click call hdb.stepOver()">
+				&#8631; Step Over
+			</button>
+		</ul>
+	</header>
+
+	<section class="sec-code">
+
+		<div class="code-container">
+			<pre class="code language-hyperscript" _="
+				on update from .hdb if hdb.cmd.programSource
+			    	put renderCode() into me
+			    	if Prism
+			    		call Prism.highlightAllUnder(me)
+			    	end
+			        go to bottom of .current in me
+				end
+
+				on click
+					if target matches .skip
+						get (target's @data-cmd) as Int
+						call hdb.skipTo(hdb.cmdMap[result])
+					end
+					if target matches .rewrite
+						set cmdNo to (target's @data-cmd) as Int
+						set span to the first <span[data-cmd='\${cmdNo}'] />
+						put \`<form class=rewrite><input id=cmd></form>\` into the span
+					end
+				end
+
+				on submit
+					halt the event
+					get (closest @data-cmd to target) as Int
+					call hdb.rewrite(hdb.cmdMap[result], #cmd's value)
+				end
+			"><code></code></pre>
+		</div>
+	</section>
+
+	<section class="sec-console" _="
+		-- Print context at startup
+		init repeat for var in Object.keys(hdb.ctx) if var is not 'meta'
+			send hdbUI:consoleEntry(input: var, output: hdb.ctx[var]) to #console">
+
+		<ul id="console" role="list" _="
+			on hdbUI:consoleEntry(input, output)
+				if no hdb.consoleHistory set hdb.consoleHistory to [] end
+				push(input) on hdb.consoleHistory
+				set node to #tmpl-console-entry.content.cloneNode(true)
+				put the node at end of me
+				set entry to my lastElementChild
+				go to bottom of the entry
+				put escapeHTML(input) into .input in the entry
+				if no output
+					call hdb._hyperscript.parse(input)
+					if its execute is not undefined then call its execute(hdb.ctx)
+					else call its evaluate(hdb.ctx)
+					end
+					set output to it
+				end
+				put prettyPrint(output) as Fragment into .output in the entry
+			">
+			<template id="tmpl-console-entry">
+				<li class="console-entry">
+					<kbd><code class="input"></code></kbd>
+					<samp class="output"></samp>
+				</li>
+			</template>
+		</ul>
+
+		<form id="console-form" data-hist="0" _="on submit
+				send hdbUI:consoleEntry(input: #console-input's value) to #console
+				set #console-input's value to ''
+				set @data-hist to 0
+				set element oldContent to null
+				halt
+			on keydown[key is 'ArrowUp' or key is 'ArrowDown']
+				if no hdb.consoleHistory or exit end
+				if element oldContent is null set element oldContent to #console-input.value end
+				if event.key is 'ArrowUp' and hdb.consoleHistory.length > -@data-hist
+					decrement @data-hist
+				else if event.key is 'ArrowDown' and @data-hist < 0
+					increment @data-hist
+				end end
+				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
+					or oldContent
+				halt default
+			on input if @data-hist is '0' set element oldContent to #console-input.value">
+			<input id="console-input" placeholder="Enter an expression&hellip;"
+				autocomplete="off">
+		</form>
+	</section>
+
+	<style>
+	.hdb {
+		border: 1px solid #888;
+		border-radius: .3em;
+		box-shadow: 0 .2em .3em #0008;
+		position: fixed;
+		top: .5em; right: .5em;
+		width: min(40ch, calc(100% - 1em));
+		max-height: calc(100% - 1em);
+		background-color: white;
+		font-family: sans-serif;
+		opacity: .9;
+		z-index: 2147483647;
+		color: black;
+		display: flex;
+		flex-flow: column;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: .4em;
+	}
+
+	.titlebar {
+		margin: 0;
+		font-size: 1em;
+		touch-action: none;
+	}
+
+	.toolbar {
+		display: flex;
+		gap: .35em;
+
+		list-style: none;
+		padding-left: 0;
+		margin: 0;
+	}
+
+	.toolbar a, .toolbar button {
+		background: #2183ff;
+		border: 1px solid #3465a4;
+		box-shadow: 0 1px #b3c6ff inset, 0 .06em .06em #000;
+		border-radius: .2em;
+		font: inherit;
+		padding: .2em .3em;
+		color: white;
+		text-shadow: 0 1px black;
+		font-weight: bold;
+	}
+
+	.toolbar a:hover .toolbar a:focus, .toolbar button:hover, .toolbar button:focus {
+		background: #94c8ff;
+	}
+
+	.toolbar a:active, .toolbar button:active {
+		background: #3465a4;
+	}
+
+	.sec-code {
+		border-radius: .3em;
+		overflow: hidden;
+		box-shadow: 0 1px white inset, 0 .06em .06em #0008;
+		background: #bdf;
+		margin: 0 .4em;
+		border: 1px solid #3465a4;
+	}
+
+	.hdb h3 {
+		margin: 0;
+		font-size: 1em;
+		padding: .2em .4em 0 .4em;
+	}
+
+	.code-container {
+		display: grid;
+		line-height: 1.2em;
+		height: calc(12 * 1.2em);
+		border-radius: 0 0 .2em .2em;
+		overflow: auto;
+		scrollbar-width: thin;
+		scrollbar-color: #0003 transparent;
+	}
+
+	.code, #console, #console-input {
+		font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+	}
+
+	.code {
+		width: 0;
+		margin: 0;
+		padding-left: 1ch;
+		tab-size: 2;
+		-moz-tab-size: 2;
+		-o-tab-size: 2;
+	}
+
+	.current {
+		font-weight: bold;
+		background: #abf;
+	}
+
+	.skip {
+		padding: 0;
+		margin: 2px;
+		border: 1px solid #3465a4;
+		border-radius: 50%;
+		color: #3465a4;
+		background: none;
+		font-weight: bold;
+		font-size: 1.2em;
+		width: calc(2ch / 1.2 - 4px);
+		height: calc(2ch / 1.2 - 4px);
+		line-height: 0.6;
+	}
+
+	.skip:hover {
+		background: #3465a4;
+		color: #bdf;
+	}
+
+	#console {
+		overflow-y: scroll;
+		scrollbar-width: thin;
+		scrollbar-color: #afc2db transparent;
+		height: calc(12 * 1.2em);
+		list-style: none;
+		padding-left: 0;
+		margin: 0 .4em .4em .4em;
+		position: relative;
+		word-wrap: break-word;
+	}
+
+	#console>*+* {
+		margin-top: .5em;
+	}
+
+	.console-entry>* {
+		display: block;
+	}
+
+	.console-entry .input  { color: #3465a4; }
+	.console-entry .output { color: #333; }
+
+	.console-entry .input:before  { content: '>> ' }
+	.console-entry .output:before { content: '<- ' }
+
+	#console-form {
+		margin: 0 .4em .4em .4em;
+	}
+
+	#console-input {
+		width: 100%;
+		font-size: inherit;
+	}
+
+	.token.tagname { font-weight: bold; }
+	.token.attr, .token.builtin, .token.italic { font-style: italic; }
+	.token.string { opacity: .8; }
+	.token.keyword { color: #3465a4; }
+	.token.bold, .token.punctuation, .token.operator { font-weight: bold; }
+	</style>
+	</div>
+	`;
+  HDB.prototype.ui = function() {
+    var node = document.createElement("div");
+    var shadow = node.attachShadow({ mode: "open" });
+    node.style.cssText = "all: initial";
+    shadow.innerHTML = ui;
+    document.body.appendChild(node);
+    this._hyperscript.process(shadow.querySelector(".hdb"));
+  };
+  function hdbPlugin(_hyperscript2) {
+    _hyperscript2.addCommand(BreakpointCommand2.keyword, BreakpointCommand2.parse.bind(BreakpointCommand2));
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(hdbPlugin);
+  }
+
+  // src/ext/component.js
+  function componentPlugin(_hyperscript2) {
+    const { runtime: runtime2, createParser, reactivity: reactivity2 } = _hyperscript2.internals;
+    const tokenizer2 = new Tokenizer();
+    function ensureFouceGuard() {
+      if (typeof document === "undefined" || !document.head) return;
+      if (document.head.querySelector('style[data-hyperscript-component="fouce-guard"]')) return;
+      var styleEl = document.createElement("style");
+      styleEl.setAttribute("data-hyperscript-component", "fouce-guard");
+      styleEl.textContent = ":not(:defined) { visibility: hidden; }";
+      document.head.appendChild(styleEl);
+    }
+    function substituteSlots(templateSource, slotContent, scopeSel) {
+      if (!slotContent) return templateSource;
+      var tmp = document.createElement("div");
+      tmp.innerHTML = slotContent;
+      var named = {};
+      var defaultParts = [];
+      for (var child of Array.from(tmp.childNodes)) {
+        if (child.nodeType === 1 && scopeSel && !child.hasAttribute("dom-scope")) {
+          child.setAttribute("dom-scope", "parent of " + scopeSel);
+        }
+        var slotName = child.nodeType === 1 && child.getAttribute("slot");
+        if (slotName) {
+          child.removeAttribute("slot");
+          if (!named[slotName]) named[slotName] = "";
+          named[slotName] += child.outerHTML;
+        } else {
+          defaultParts.push(child.nodeType === 1 ? child.outerHTML : child.nodeType === 3 ? child.textContent : "");
+        }
+      }
+      var defaultContent = defaultParts.join("");
+      var source = templateSource.replace(
+        /<slot\s+name\s*=\s*["']([^"']+)["']\s*\/?\s*>(\s*<\/slot>)?/g,
+        function(_, name) {
+          return named[name] || "";
+        }
+      );
+      source = source.replace(/<slot\s*\/?\s*>(\s*<\/slot>)?/g, defaultContent);
+      return source;
+    }
+    function parseArg(componentEl, prop) {
+      if (typeof prop !== "string") return null;
+      var cache = componentEl._attrsCache || (componentEl._attrsCache = {});
+      if (!cache[prop]) {
+        var attrValue = componentEl.getAttribute(prop);
+        if (attrValue == null) return null;
+        try {
+          cache[prop] = createParser(tokenizer2.tokenize(attrValue)).requireElement("expression");
+        } catch (e) {
+          console.error("component: failed to parse attrs." + prop + ":", e.message);
+          return null;
+        }
+      }
+      return cache[prop];
+    }
+    function parentContext(componentEl) {
+      var parent = componentEl.parentElement;
+      return parent ? runtime2.makeContext(parent, null, parent, null) : null;
+    }
+    function createAttrs(componentEl) {
+      return new Proxy({ _hsSkipTracking: true }, {
+        get: function(_, prop) {
+          if (prop === "_hsSkipTracking") return true;
+          if (typeof prop !== "string" || prop.startsWith("_")) return void 0;
+          var expr = parseArg(componentEl, prop);
+          if (!expr) return void 0;
+          var ctx = parentContext(componentEl);
+          return ctx ? expr.evaluate(ctx) : void 0;
+        },
+        set: function(_, prop, value) {
+          var expr = parseArg(componentEl, prop);
+          if (!expr || !expr.set) return false;
+          var ctx = parentContext(componentEl);
+          if (!ctx) return false;
+          var lhs = {};
+          if (expr.lhs) {
+            for (var key in expr.lhs) {
+              var e = expr.lhs[key];
+              lhs[key] = e && e.evaluate ? e.evaluate(ctx) : e;
+            }
+          }
+          expr.set(ctx, lhs, value);
+          return true;
+        }
+      });
+    }
+    function registerComponent(templateEl, componentScript) {
+      const tagName = templateEl.getAttribute("component");
+      if (!tagName.includes("-")) {
+        console.error("component name must contain a dash: '" + tagName + "'");
+        return;
+      }
+      var raw = templateEl.textContent;
+      var combined = "";
+      var styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+      var match;
+      while ((match = styleRegex.exec(raw)) !== null) {
+        combined += match[1] + "\n";
+      }
+      if (combined) {
+        raw = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+        templateEl.textContent = raw;
+        var scopedStyle = document.createElement("style");
+        scopedStyle.setAttribute("data-hyperscript-component", tagName);
+        scopedStyle.textContent = "@scope (" + tagName + ") {\n" + combined + "}";
+        document.head.appendChild(scopedStyle);
+      }
+      const templateSource = templateEl.textContent;
+      const ComponentClass = class extends HTMLElement {
+        connectedCallback() {
+          if (this._hypercomp_initialized) return;
+          this._hypercomp_initialized = true;
+          this.setAttribute("dom-scope", "isolated");
+          this._slotContent = this.innerHTML;
+          this.innerHTML = "";
+          var internalData = runtime2.getInternalData(this);
+          if (!internalData.elementScope) internalData.elementScope = {};
+          internalData.elementScope.attrs = createAttrs(this);
+          if (componentScript) {
+            this.setAttribute("_", componentScript);
+            _hyperscript2.process(this);
+          }
+          const self2 = this;
+          var source = substituteSlots(templateSource, self2._slotContent, tagName);
+          queueMicrotask(function() {
+            var result = self2._renderTemplate(source);
+            if (result && result.then) {
+              result.then(function(html) {
+                self2._stampTemplate(html);
+                self2._setupReactiveEffect(source);
+              });
+            } else {
+              self2._stampTemplate(result);
+              self2._setupReactiveEffect(source);
+            }
+          });
+        }
+        disconnectedCallback() {
+          reactivity2.stopElementEffects(this);
+          runtime2.cleanup(this);
+          this._hypercomp_initialized = false;
+          this._hypercomp_stamped = false;
+        }
+        _setupReactiveEffect(source) {
+          var self2 = this;
+          reactivity2.createEffect(
+            function() {
+              return self2._renderTemplate(source);
+            },
+            function(html) {
+              self2._stampTemplate(html);
+            },
+            { element: self2 }
+          );
+        }
+        _renderTemplate(source) {
+          var ctx = runtime2.makeContext(this, null, this, null);
+          var buf = [];
+          ctx.meta.__ht_template_result = buf;
+          var tokens = tokenizer2.tokenize(source, "lines");
+          var parser = createParser(tokens);
+          var commandList;
+          try {
+            commandList = parser.parseElement("commandList");
+            parser.ensureTerminated(commandList);
+          } catch (e) {
+            console.error("hypercomp template parse error:", e.message || e);
+            return "";
+          }
+          var resolve, reject;
+          var promise = new Promise(function(res, rej) {
+            resolve = res;
+            reject = rej;
+          });
+          commandList.execute(ctx);
+          this.__hs_scopes = ctx.meta.__ht_scopes || null;
+          if (ctx.meta.returned || !ctx.meta.resolve) {
+            return buf.join("");
+          }
+          ctx.meta.resolve = resolve;
+          ctx.meta.reject = reject;
+          return promise.then(function() {
+            return buf.join("");
+          });
+        }
+        _stampTemplate(html) {
+          if (!this._hypercomp_stamped) {
+            this.innerHTML = html;
+            _hyperscript2.process(this);
+            this._hypercomp_stamped = true;
+          } else {
+            runtime2.morph(this, html);
+          }
+        }
+      };
+      customElements.define(tagName, ComponentClass);
+    }
+    var registered = /* @__PURE__ */ new Set();
+    var fetchedBundles = /* @__PURE__ */ new Map();
+    function registerTemplate(tmpl) {
+      var tagName = tmpl.getAttribute("component");
+      if (!tagName || registered.has(tagName) || customElements.get(tagName)) return;
+      registered.add(tagName);
+      var script = tmpl.hasOwnProperty("_componentScript") ? tmpl._componentScript : tmpl.getAttribute("_") || "";
+      if (tmpl.hasAttribute("_")) tmpl.removeAttribute("_");
+      registerComponent(tmpl, script || "");
+    }
+    function loadComponentBundle(url) {
+      if (fetchedBundles.has(url)) return fetchedBundles.get(url);
+      var p = fetch(url).then(function(r) {
+        if (!r.ok) throw new Error("HTTP " + r.status + " fetching " + url);
+        return r.text();
+      }).then(function(html) {
+        var doc = new DOMParser().parseFromString(html, "text/html");
+        for (let tmpl of doc.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+          registerTemplate(tmpl);
+        }
+      }).catch(function(err) {
+        console.error("hyperscript component bundle '" + url + "': " + err.message);
+        fetchedBundles.delete(url);
+      });
+      fetchedBundles.set(url, p);
+      return p;
+    }
+    _hyperscript2.addBeforeProcessHook(function(elt) {
+      ensureFouceGuard();
+      if (!elt || !elt.querySelectorAll) return;
+      elt.querySelectorAll('script[type="text/hyperscript-template"][component]').forEach(function(tmpl) {
+        if ("_componentScript" in tmpl) return;
+        tmpl._componentScript = tmpl.getAttribute("_") || "";
+        tmpl.removeAttribute("_");
+      });
+    });
+    _hyperscript2.addAfterProcessHook(function(elt) {
+      if (!elt || !elt.querySelectorAll) return;
+      for (var tmpl of elt.querySelectorAll('script[type="text/hyperscript-template"][component]')) {
+        registerTemplate(tmpl);
+      }
+      for (var bundle of elt.querySelectorAll('script[type="text/hyperscript-component"][src]')) {
+        if (bundle._componentBundleLoaded) continue;
+        bundle._componentBundleLoaded = true;
+        loadComponentBundle(bundle.getAttribute("src"));
+      }
+    });
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(componentPlugin);
+  }
+
+  // src/ext/socket.js
+  function genUUID() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c == "x" ? r : r & 3 | 8;
+      return v.toString(16);
+    });
+  }
+  function parseUrl(url) {
+    var finalUrl = url;
+    if (finalUrl.startsWith("/")) {
+      var basePart = window.location.hostname + (window.location.port ? ":" + window.location.port : "");
+      if (window.location.protocol === "https:") {
+        finalUrl = "wss://" + basePart + finalUrl;
+      } else if (window.location.protocol === "http:") {
+        finalUrl = "ws://" + basePart + finalUrl;
+      }
+    }
+    return finalUrl;
+  }
+  var PROXY_BLACKLIST = ["then", "catch", "length", "toJSON"];
+  var SocketFeature = class _SocketFeature extends Feature {
+    static keyword = "socket";
+    constructor(socketName, nameSpace, socketObject, messageHandler) {
+      super();
+      this.socketName = socketName;
+      this.nameSpace = nameSpace;
+      this.socketObject = socketObject;
+      this.messageHandler = messageHandler;
+    }
+    install(target, source, args, runtime2) {
+      this.runtime = runtime2;
+      runtime2.assignToNamespace(target, this.nameSpace, this.socketName, this.socketObject);
+    }
+    static parse(parser) {
+      if (!parser.matchToken("socket")) return;
+      var name = parser.requireElement("dotOrColonPath");
+      var qualifiedName = name.evalStatically();
+      var nameSpace = qualifiedName.split(".");
+      var socketName = nameSpace.pop();
+      var promises = {};
+      var url = parser.parseURLOrExpression();
+      var defaultTimeout = 1e4;
+      if (parser.matchToken("with")) {
+        parser.requireToken("timeout");
+        defaultTimeout = parser.requireElement("expression").evalStatically();
+      }
+      var jsonMessages = false;
+      var messageHandler = null;
+      if (parser.matchToken("on")) {
+        parser.requireToken("message");
+        if (parser.matchToken("as")) {
+          if (!parser.matchToken("JSON")) parser.requireToken("json");
+          jsonMessages = true;
+        }
+        messageHandler = parser.requireElement("commandList");
+        parser.ensureTerminated(messageHandler);
+      }
+      var socket = new WebSocket(parseUrl(url.evalStatically()));
+      function getProxy(timeout) {
+        return new Proxy(
+          {},
+          {
+            get: function(obj, property) {
+              if (PROXY_BLACKLIST.includes(property)) {
+                return null;
+              } else if (property === "noTimeout") {
+                return getProxy(-1);
+              } else if (property === "timeout") {
+                return function(i) {
+                  return getProxy(parseInt(i));
+                };
+              } else {
+                return function() {
+                  var uuid = genUUID();
+                  var args = [];
+                  for (var i = 0; i < arguments.length; i++) {
+                    args.push(arguments[i]);
+                  }
+                  var rpcInfo = {
+                    iid: uuid,
+                    function: property,
+                    args
+                  };
+                  socket = socket ? socket : new WebSocket(parseUrl(url.evalStatically()));
+                  socket.send(JSON.stringify(rpcInfo));
+                  var promise = new Promise(function(resolve, reject) {
+                    promises[uuid] = {
+                      resolve,
+                      reject
+                    };
+                  });
+                  if (timeout >= 0) {
+                    setTimeout(function() {
+                      if (promises[uuid]) {
+                        promises[uuid].reject("Timed out");
+                      }
+                      delete promises[uuid];
+                    }, timeout);
+                  }
+                  return promise;
+                };
+              }
+            }
+          }
+        );
+      }
+      var rpcProxy = getProxy(defaultTimeout);
+      var socketObject = {
+        raw: socket,
+        dispatchEvent: function(evt) {
+          var details = evt.detail;
+          delete details.sender;
+          delete details._namedArgList_;
+          socket.send(JSON.stringify(Object.assign({ type: evt.type }, details)));
+        },
+        rpc: rpcProxy
+      };
+      var feature = new _SocketFeature(socketName, nameSpace, socketObject, messageHandler);
+      socket.onmessage = function(evt) {
+        var data = evt.data;
+        try {
+          var dataAsJson = JSON.parse(data);
+        } catch (e) {
+        }
+        if (dataAsJson && dataAsJson.iid) {
+          if (dataAsJson.throw) {
+            promises[dataAsJson.iid].reject(dataAsJson.throw);
+          } else {
+            promises[dataAsJson.iid].resolve(dataAsJson.return);
+          }
+          delete promises[dataAsJson.iid];
+        }
+        if (messageHandler) {
+          var context = feature.runtime.makeContext(socketObject, feature, socketObject);
+          if (jsonMessages) {
+            if (dataAsJson) {
+              context.locals.message = dataAsJson;
+              context.result = dataAsJson;
+            } else {
+              throw new Error("Received non-JSON message from socket: " + data);
+            }
+          } else {
+            context.locals.message = data;
+            context.result = data;
+          }
+          messageHandler.execute(context);
+        }
+      };
+      socket.addEventListener("close", function(e) {
+        socket = null;
+      });
+      if (messageHandler) {
+        parser.setParent(messageHandler, feature);
+      }
+      return feature;
+    }
+  };
+  function socketPlugin(_hyperscript2) {
+    _hyperscript2.addFeature(SocketFeature.keyword, SocketFeature.parse.bind(SocketFeature));
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(socketPlugin);
+  }
+
+  // src/ext/worker.js
+  var invocationIdCounter = 0;
+  var workerFunc = function(self2) {
+    self2.onmessage = function(e) {
+      switch (e.data.type) {
+        case "init":
+          self2.importScripts(e.data._hyperscript);
+          self2.importScripts.apply(self2, e.data.extraScripts);
+          const _hyperscript2 = self2["_hyperscript"];
+          var hyperscript = _hyperscript2.parse(e.data.src);
+          hyperscript.apply(self2, self2);
+          postMessage({ type: "didInit" });
+          break;
+        case "call":
+          try {
+            var result = self2["_hyperscript"].internals.runtime.getHyperscriptFeatures(self2)[e.data.function].apply(self2, e.data.args);
+            Promise.resolve(result).then(function(value) {
+              postMessage({
+                type: "resolve",
+                id: e.data.id,
+                value
+              });
+            }).catch(function(error) {
+              postMessage({
+                type: "reject",
+                id: e.data.id,
+                error: error.toString()
+              });
+            });
+          } catch (error) {
+            postMessage({
+              type: "reject",
+              id: e.data.id,
+              error: error.toString()
+            });
+          }
+          break;
+      }
+    };
+  };
+  var workerCode = "(" + workerFunc.toString() + ")(self)";
+  var blob = new Blob([workerCode], { type: "text/javascript" });
+  var workerUri = URL.createObjectURL(blob);
+  var WorkerFeature2 = class _WorkerFeature extends Feature {
+    static keyword = "worker";
+    constructor(workerName, nameSpace, worker, stubs) {
+      super();
+      this.workerName = workerName;
+      this.name = workerName;
+      this.nameSpace = nameSpace;
+      this.worker = worker;
+      this.stubs = stubs;
+    }
+    static parse(parser) {
+      if (parser.matchToken("worker")) {
+        var name = parser.requireElement("dotOrColonPath");
+        var qualifiedName = name.evalStatically();
+        var nameSpace = qualifiedName.split(".");
+        var workerName = nameSpace.pop();
+        var extraScripts = [];
+        if (parser.matchOpToken("(")) {
+          if (parser.matchOpToken(")")) {
+          } else {
+            do {
+              var extraScript = parser.requireTokenType("STRING").value;
+              var absoluteUrl = new URL(extraScript, location.href).href;
+              extraScripts.push(absoluteUrl);
+            } while (parser.matchOpToken(","));
+            parser.requireOpToken(")");
+          }
+        }
+        var funcNames = [];
+        var bodyStartIndex = parser.consumed.length;
+        var bodyEndIndex = parser.consumed.length;
+        do {
+          var feature = parser.parseAnyOf(["defFeature", "jsFeature"]);
+          if (feature) {
+            if (feature.type === "defFeature") {
+              funcNames.push(feature.name);
+              bodyEndIndex = parser.consumed.length;
+            } else {
+              if (parser.hasMore()) continue;
+            }
+          } else break;
+        } while (parser.matchToken("end") && parser.hasMore());
+        var bodyTokens = parser.consumed.slice(bodyStartIndex, bodyEndIndex + 1);
+        var bodySrc = parser.source.substring(bodyTokens[0].start, bodyTokens[bodyTokens.length - 1].end);
+        var worker = new Worker(workerUri);
+        worker.postMessage({
+          type: "init",
+          _hyperscript: document.currentScript?.src || "/dist/_hyperscript.js",
+          extraScripts,
+          src: bodySrc
+        });
+        var workerPromise = new Promise(function(resolve, reject) {
+          worker.addEventListener(
+            "message",
+            function(e) {
+              if (e.data.type === "didInit") resolve();
+            },
+            { once: true }
+          );
+        });
+        var stubs = {};
+        funcNames.forEach(function(funcName) {
+          stubs[funcName] = function() {
+            var args = arguments;
+            return new Promise(function(resolve, reject) {
+              var id = invocationIdCounter++;
+              worker.addEventListener("message", function returnListener(e) {
+                if (e.data.id !== id) return;
+                worker.removeEventListener("message", returnListener);
+                if (e.data.type === "resolve") resolve(e.data.value);
+                else reject(e.data.error);
+              });
+              workerPromise.then(function() {
+                worker.postMessage({
+                  type: "call",
+                  function: funcName,
+                  args: Array.from(args),
+                  id
+                });
+              });
+            });
+          };
+        });
+        return new _WorkerFeature(workerName, nameSpace, worker, stubs);
+      }
+    }
+    install(target, source, args, runtime2) {
+      runtime2.assignToNamespace(target, this.nameSpace, this.workerName, this.stubs);
+    }
+  };
+  function workerPlugin(_hyperscript2) {
+    _hyperscript2.addFeature(WorkerFeature2.keyword, WorkerFeature2.parse.bind(WorkerFeature2));
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(workerPlugin);
+  }
+
+  // src/ext/eventsource.js
+  async function* parseSSE(reader) {
+    var decoder = new TextDecoder();
+    var buffer = "";
+    var hasData = false;
+    var message = { data: "", event: "", id: "", retry: null };
+    var firstChunk = true;
+    try {
+      while (true) {
+        var { done, value } = await reader.read();
+        if (done) break;
+        var chunk = decoder.decode(value, { stream: true });
+        if (firstChunk) {
+          if (chunk.charCodeAt(0) === 65279) chunk = chunk.slice(1);
+          firstChunk = false;
+        }
+        buffer += chunk;
+        var lines = buffer.split(/\r\n|\r|\n/);
+        buffer = lines.pop() || "";
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line) {
+            if (hasData) {
+              yield message;
+              hasData = false;
+              message = { data: "", event: "", id: "", retry: null };
+            }
+            continue;
+          }
+          var colonIndex = line.indexOf(":");
+          if (colonIndex === 0) continue;
+          var field, val;
+          if (colonIndex < 0) {
+            field = line;
+            val = "";
+          } else {
+            field = line.slice(0, colonIndex);
+            val = line.slice(colonIndex + 1);
+            if (val[0] === " ") val = val.slice(1);
+          }
+          if (field === "data") {
+            message.data += (hasData ? "\n" : "") + val;
+            hasData = true;
+          } else if (field === "event") {
+            message.event = val;
+          } else if (field === "id") {
+            if (!val.includes("\0")) message.id = val;
+          } else if (field === "retry") {
+            var retryValue = parseInt(val, 10);
+            if (!isNaN(retryValue)) message.retry = retryValue;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  function matchesEventPattern(pattern, eventName) {
+    if (pattern === eventName) return true;
+    if (!pattern.includes("*")) return false;
+    var regex = new RegExp("^" + pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+    return regex.test(eventName);
+  }
+  var EventSourceFeature = class _EventSourceFeature extends Feature {
+    static keyword = "eventsource";
+    constructor(eventSourceName, nameSpace, stub) {
+      super();
+      this.eventSourceName = eventSourceName;
+      this.nameSpace = nameSpace;
+      this.stub = stub;
+    }
+    install(target, source, args, runtime2) {
+      this.runtime = runtime2;
+      runtime2.assignToNamespace(target, this.nameSpace, this.eventSourceName, this.stub);
+    }
+    static parse(parser) {
+      if (!parser.matchToken("eventsource")) return;
+      var urlElement;
+      var withCredentials = false;
+      var method = "GET";
+      var headers = null;
+      var name = parser.requireElement("dotOrColonPath");
+      var qualifiedName = name.evalStatically();
+      var nameSpace = qualifiedName.split(".");
+      var eventSourceName = nameSpace.pop();
+      if (parser.matchToken("from")) {
+        urlElement = parser.parseURLOrExpression();
+      }
+      while (parser.matchToken("with")) {
+        if (parser.matchToken("credentials")) {
+          withCredentials = true;
+        } else if (parser.matchToken("method")) {
+          method = parser.requireElement("stringLike").evalStatically().toUpperCase();
+        } else if (parser.matchToken("headers")) {
+          headers = parser.requireElement("objectLiteral");
+        } else {
+          parser.raiseExpected("credentials", "method", "headers");
+        }
+      }
+      var staticHeaders = null;
+      if (headers) {
+        staticHeaders = {};
+        for (var i = 0; i < headers.keyExpressions.length; i++) {
+          var key = headers.keyExpressions[i].evalStatically();
+          var val = headers.valueExpressions[i].evalStatically();
+          staticHeaders[key] = val;
+        }
+      }
+      var stub = createStub(withCredentials, method, staticHeaders);
+      var feature = new _EventSourceFeature(eventSourceName, nameSpace, stub);
+      while (parser.matchToken("on")) {
+        var eventName = parser.requireElement("stringLike").evalStatically();
+        var encoding = "";
+        if (parser.matchToken("as")) {
+          encoding = parser.requireElement("stringLike").evalStatically();
+        }
+        var commandList = parser.requireElement("commandList");
+        parser.ensureTerminated(commandList);
+        parser.requireToken("end");
+        stub.listeners.push({
+          type: eventName,
+          handler: makeHandler(encoding, commandList, stub, feature)
+        });
+      }
+      parser.requireToken("end");
+      if (urlElement != void 0) {
+        stub.open(urlElement.evalStatically());
+      }
+      return feature;
+    }
+  };
+  function createStub(withCredentials, method, headers) {
+    var stub = {
+      listeners: [],
+      retryCount: 0,
+      closed: false,
+      abortController: null,
+      reader: null,
+      lastEventId: null,
+      reconnectTimeout: null,
+      url: null,
+      withCredentials,
+      method,
+      headers,
+      open: function(url) {
+        if (url == void 0) {
+          if (stub.url != null) {
+            url = stub.url;
+          } else {
+            throw new Error("no url defined for EventSource.");
+          }
+        }
+        if (stub.url === url && stub.abortController && !stub.abortController.signal.aborted) {
+          return;
+        }
+        if (stub.abortController) {
+          stub.abortController.abort();
+        }
+        stub.closed = false;
+        stub.url = url;
+        startConnection(stub);
+      },
+      close: function() {
+        stub.closed = true;
+        if (stub.reconnectTimeout) {
+          clearTimeout(stub.reconnectTimeout);
+          stub.reconnectTimeout = null;
+        }
+        if (stub.abortController) {
+          stub.abortController.abort();
+          stub.abortController = null;
+        }
+        stub.retryCount = 0;
+        dispatch(stub, "close", { type: "close" });
+      },
+      addEventListener: function(type, handler, options) {
+        stub.listeners.push({ type, handler, options });
+      }
+    };
+    return stub;
+  }
+  function startConnection(stub) {
+    var ac = new AbortController();
+    stub.abortController = ac;
+    var fetchOptions = {
+      method: stub.method,
+      signal: ac.signal,
+      headers: Object.assign({}, stub.headers || {})
+    };
+    if (stub.withCredentials) {
+      fetchOptions.credentials = "include";
+    }
+    if (stub.lastEventId) {
+      fetchOptions.headers["Last-Event-ID"] = stub.lastEventId;
+    }
+    fetch(stub.url, fetchOptions).then(function(response) {
+      if (ac.signal.aborted) return;
+      if (!response.ok) {
+        throw new Error("SSE connection failed with status " + response.status);
+      }
+      stub.retryCount = 0;
+      dispatch(stub, "open", { type: "open" });
+      return readStream(stub, response.body.getReader(), ac);
+    }).catch(function(err) {
+      if (ac.signal.aborted) return;
+      dispatch(stub, "error", { type: "error", error: err });
+      scheduleReconnect(stub);
+    });
+  }
+  async function readStream(stub, reader, ac) {
+    stub.reader = reader;
+    var baseDelay = 500;
+    try {
+      for await (var msg of parseSSE(reader)) {
+        if (ac.signal.aborted) break;
+        if (msg.id) stub.lastEventId = msg.id;
+        if (msg.retry != null) baseDelay = msg.retry;
+        var eventType = msg.event || "message";
+        var evt = {
+          type: eventType,
+          data: msg.data,
+          lastEventId: msg.id || stub.lastEventId || ""
+        };
+        dispatch(stub, eventType, evt);
+      }
+    } catch (err) {
+      if (!ac.signal.aborted) {
+        dispatch(stub, "error", { type: "error", error: err });
+      }
+    }
+    stub.reader = null;
+    if (!stub.closed && !ac.signal.aborted) {
+      scheduleReconnect(stub, baseDelay);
+    }
+  }
+  function scheduleReconnect(stub, baseDelay) {
+    if (stub.closed) return;
+    baseDelay = baseDelay || 500;
+    stub.retryCount = Math.min(7, stub.retryCount + 1);
+    var timeout = Math.random() * 2 ** stub.retryCount * baseDelay;
+    stub.reconnectTimeout = setTimeout(function() {
+      stub.reconnectTimeout = null;
+      if (!stub.closed) startConnection(stub);
+    }, timeout);
+  }
+  function dispatch(stub, eventType, evt) {
+    for (var i = 0; i < stub.listeners.length; i++) {
+      var listener = stub.listeners[i];
+      if (matchesEventPattern(listener.type, eventType)) {
+        try {
+          listener.handler(evt);
+        } catch (e) {
+          console.error("Error in SSE handler for '" + listener.type + "':", e);
+        }
+      }
+    }
+  }
+  function makeHandler(encoding, commandList, stub, feature) {
+    return function(evt) {
+      var data = decode(evt.data, encoding);
+      var context = feature.runtime.makeContext(stub, feature, stub);
+      context.event = evt;
+      context.result = data;
+      commandList.execute(context);
+    };
+  }
+  function decode(data, encoding) {
+    if (encoding.toLowerCase() === "json") {
+      return JSON.parse(data);
+    }
+    return data;
+  }
+  function createStream(response, runtime2, context) {
+    var element = context.me;
+    var reader = response.body.getReader();
+    var messages = [];
+    var waiting = null;
+    var done = false;
+    (async function() {
+      try {
+        for await (var msg of parseSSE(reader)) {
+          var eventType = msg.event || "message";
+          if (msg.event) {
+            runtime2.triggerEvent(element, eventType, {
+              data: msg.data,
+              lastEventId: msg.id || ""
+            });
+          } else {
+            messages.push(msg.data);
+            if (waiting) {
+              waiting.resolve({ value: msg.data, done: false });
+              waiting = null;
+            }
+          }
+        }
+      } catch (err) {
+        runtime2.triggerEvent(element, "stream-error", { error: err });
+      }
+      done = true;
+      if (waiting) {
+        waiting.resolve({ value: void 0, done: true });
+        waiting = null;
+      }
+      runtime2.triggerEvent(element, "streamEnd", {});
+    })();
+    var stream = {
+      element,
+      [Symbol.asyncIterator]: function() {
+        var index = 0;
+        return {
+          next: function() {
+            if (index < messages.length) {
+              return Promise.resolve({ value: messages[index++], done: false });
+            }
+            if (done) {
+              return Promise.resolve({ value: void 0, done: true });
+            }
+            return new Promise(function(resolve) {
+              waiting = { resolve };
+            }).then(function(result) {
+              if (!result.done) index++;
+              return result;
+            });
+          }
+        };
+      }
+    };
+    return stream;
+  }
+  var streamConversion = function(response, runtime2, context) {
+    return createStream(response, runtime2, context);
+  };
+  streamConversion._rawResponse = true;
+  function eventsourcePlugin(_hyperscript2) {
+    _hyperscript2.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
+    _hyperscript2.config.conversions.Stream = streamConversion;
+    addEventListener("hyperscript:beforeFetch", function(evt) {
+      if (evt.detail.conversion === "Stream") {
+        evt.detail.headers["Accept"] = "text/event-stream";
+      }
+    });
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(eventsourcePlugin);
+  }
+
+  // src/ext/tailwind.js
+  function tailwindPlugin(_hyperscript2) {
+    _hyperscript2.config.hideShowStrategies = {
+      twDisplay: function(op, element, arg) {
+        if (op === "toggle") {
+          if (element.classList.contains("hidden")) {
+            _hyperscript2.config.hideShowStrategies.twDisplay("show", element, arg);
+          } else {
+            _hyperscript2.config.hideShowStrategies.twDisplay("hide", element, arg);
+          }
+        } else if (op === "hide") {
+          element.classList.add("hidden");
+        } else {
+          element.classList.remove("hidden");
+        }
+      },
+      twVisibility: function(op, element, arg) {
+        if (op === "toggle") {
+          if (element.classList.contains("invisible")) {
+            _hyperscript2.config.hideShowStrategies.twVisibility("show", element, arg);
+          } else {
+            _hyperscript2.config.hideShowStrategies.twVisibility("hide", element, arg);
+          }
+        } else if (op === "hide") {
+          element.classList.add("invisible");
+        } else {
+          element.classList.remove("invisible");
+        }
+      },
+      twOpacity: function(op, element, arg) {
+        if (op === "toggle") {
+          if (element.classList.contains("opacity-0")) {
+            _hyperscript2.config.hideShowStrategies.twOpacity("show", element, arg);
+          } else {
+            _hyperscript2.config.hideShowStrategies.twOpacity("hide", element, arg);
+          }
+        } else if (op === "hide") {
+          element.classList.add("opacity-0");
+        } else {
+          element.classList.remove("opacity-0");
+        }
+      }
+    };
+  }
+  if (typeof self !== "undefined" && self._hyperscript) {
+    self._hyperscript.use(tailwindPlugin);
+  }
 })();
-//# sourceMappingURL=_hyperscript.js.map
+//# sourceMappingURL=_hyperscript-max.js.map
