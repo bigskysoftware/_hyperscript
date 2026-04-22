@@ -8,7 +8,7 @@ import { Command } from '../base.js';
  * BreakpointCommand - Pause execution in browser DevTools
  *
  * Parses: breakpoint
- * Executes: Triggers the JS debugger statement. Install hdb for a full debugger UI.
+ * Executes: Triggers the JS debugger statement.
  */
 export class BreakpointCommand extends Command {
     static keyword = "breakpoint";

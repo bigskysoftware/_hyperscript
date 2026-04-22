@@ -182,7 +182,7 @@ if (typeof document !== 'undefined') {
 
         // Wait for DOM ready, then parse external scripts and initialize.
         // Parsing is deferred until after ready() so plugins loaded via
-        // synchronous <script> tags (e.g. hdb.js) have registered their
+        // synchronous <script> tags (e.g. debugger.js) have registered their
         // commands before behavior files are evaluated.
         // See https://github.com/bigskysoftware/_hyperscript/issues/533
         ready(() => {

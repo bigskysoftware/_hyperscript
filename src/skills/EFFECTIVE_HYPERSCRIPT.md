@@ -1090,7 +1090,7 @@ Load after the core script:
 
 - **component.js** - components: custom elements with reactive templates and slots
 - **template.js** - `render` command for HTML templates with `${}` interpolation
-- **hdb.js** - hyperscript debugger (breakpoint UI)
+- **debugger.js** - time travel debugger (console API, activate via `?_ttd=true`)
 - **socket.js** - WebSocket support with RPC
 - **worker.js** - Web Worker support
 - **eventsource.js** - Server-Sent Events

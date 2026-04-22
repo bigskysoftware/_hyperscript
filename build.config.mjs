@@ -8,13 +8,12 @@ const OUT = process.env.HS_OUT_DIR || 'dist'
 
 const coreEntry = ['src/_hyperscript.js']
 const extEntries = [
-  'src/ext/hdb.js',
+  'src/ext/debugger.js',
   'src/ext/component.js',
   'src/ext/socket.js',
   'src/ext/worker.js',
   'src/ext/eventsource.js',
   'src/ext/tailwind.js',
-  'src/ext/ttd.js',
 ]
 
 const shared = {
