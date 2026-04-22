@@ -85,27 +85,31 @@ export class Runtime {
 
         unifiedExec(command, ctx) {
             while (true) {
-	            const target = ctx.meta.owner || ctx.me;
-            	const eventResult = this.triggerEvent(
-                    target,
-                    "hyperscript:beforeEval",
-                    { command: command, ctx: ctx },
-                );
-                if (!eventResult) {
-                    if (ctx.meta.onHalt) ctx.meta.onHalt();
-                    return;
-       	    	}
-                let afterFired = false;
+                if (config.debugMode) {
+                    var target = ctx.meta.owner || ctx.me;
+                    var eventResult = this.triggerEvent(
+                        target,
+                        "hyperscript:beforeEval",
+                        { command: command, ctx: ctx },
+                    );
+                    if (!eventResult) {
+                        if (ctx.meta.onHalt) ctx.meta.onHalt();
+                        return;
+                    }
+                }
+                var afterFired = false;
 
                 try {
                     var next = this.unifiedEval(command, ctx);
                 } catch (e) {
-		            this.triggerEvent(target, "hyperscript:afterEval", {
-                        command: command,
-                        ctx: ctx,
-                        error: e,
-                    });
-                    afterFired = true;
+                    if (config.debugMode) {
+                        this.triggerEvent(target, "hyperscript:afterEval", {
+                            command: command,
+                            ctx: ctx,
+                            error: e,
+                        });
+                        afterFired = true;
+                    }
 
                     if (ctx.meta.handlingFinally) {
                         console.error(" Exception in finally block: ", e);
@@ -124,8 +128,7 @@ export class Runtime {
                     }
                 }
 
-		        // afterEval should only fire once per unifiedEval invocation. if unifiedEval threw, don't fire the event again
-                if (!afterFired) {
+                if (config.debugMode && !afterFired) {
                     this.triggerEvent(target, "hyperscript:afterEval", {
                         command: command,
                         ctx: ctx,

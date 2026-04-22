@@ -1189,6 +1189,7 @@ class TTD {
 export default function ttdPlugin(_hyperscript) {
 	if (!shouldActivate()) return;
 
+	_hyperscript.config.debugMode = true;
 	const runtime = _hyperscript.internals.runtime;
 	const maxSteps = getMaxSteps();
 
