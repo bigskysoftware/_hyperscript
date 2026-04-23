@@ -49,10 +49,10 @@ Everything you need to know about _hyperscript
 <span>Fetch, Server-Sent Events, WebSockets</span>
 </a>
 
-<a href="/docs/getting-around/" class="docs-card">
-<img class="docs-card-icon" src="/img/Getting%20Around.png" alt="">
-<strong>Getting Around</strong>
-<span>Navigation, scrolling, and moving users around the page</span>
+<a href="/docs/debugger/" class="docs-card">
+<span class="docs-card-icon" aria-hidden="true">🐞</span>
+<strong>Debugging</strong>
+<span>Visual debugger, breakpoints, stepping, time travel, and the REPL</span>
 </a>
 
 <a href="/docs/templates/" class="docs-card">

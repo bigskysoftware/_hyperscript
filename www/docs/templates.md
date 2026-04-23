@@ -123,7 +123,7 @@ are for reusing the same template in multiple places.  Live templates are for dy
 single template in a specific spot.
 
 <div class="docs-page-nav">
-<a href="/docs/getting-around/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Getting Around</strong></a>
+<a href="/docs/debugger/" class="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg> <strong>Debugging</strong></a>
 <a href="/docs/reactivity/" class="next"><strong>Reactivity</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></a>
 </div>
 
