@@ -1739,6 +1739,7 @@
     disableSelector: "[disable-scripting], [data-disable-scripting]",
     fetchThrowsOn: [/4.*/, /5.*/],
     hideShowStrategies: {},
+    debugMode: false,
     logAll: false,
     mutatingMethods: {
       Array: ["push", "pop", "shift", "unshift", "splice", "sort", "reverse", "fill", "copyWithin"],
@@ -2137,9 +2138,30 @@
     // =================================================================
     unifiedExec(command, ctx) {
       while (true) {
+        if (config.debugMode) {
+          var target = ctx.meta.owner || ctx.me;
+          var eventResult = this.triggerEvent(
+            target,
+            "hyperscript:beforeEval",
+            { command, ctx }
+          );
+          if (!eventResult) {
+            if (ctx.meta.onHalt) ctx.meta.onHalt();
+            return;
+          }
+        }
+        var afterFired = false;
         try {
           var next = this.unifiedEval(command, ctx);
         } catch (e) {
+          if (config.debugMode) {
+            this.triggerEvent(target, "hyperscript:afterEval", {
+              command,
+              ctx,
+              error: e
+            });
+            afterFired = true;
+          }
           if (ctx.meta.handlingFinally) {
             console.error(" Exception in finally block: ", e);
             next = _Runtime.HALT;
@@ -2155,6 +2177,13 @@
               next = _Runtime.HALT;
             }
           }
+        }
+        if (config.debugMode && !afterFired) {
+          this.triggerEvent(target, "hyperscript:afterEval", {
+            command,
+            ctx,
+            next
+          });
         }
         if (next == null) {
           throw new Error("Command " + (command.type || "unknown") + " did not return a next element to execute");
@@ -10505,13 +10534,32 @@
           return res.text();
         })
       );
-      scriptTexts.forEach((sc) => _hyperscript(sc));
       ready(() => {
+        scriptTexts.forEach((sc) => _hyperscript(sc));
         _hyperscript.process(document.documentElement);
         document.dispatchEvent(new Event("hyperscript:ready"));
         new HtmxCompat(globalScope, _hyperscript).init();
       });
     })();
+  }
+  if (typeof document !== "undefined") {
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "." && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (_hyperscript.debugger) {
+          _hyperscript.debugger.toggle();
+        } else {
+          var cdnBase = document.querySelector('script[src*="hyperscript"]');
+          var src = cdnBase && cdnBase.src.replace(/\/[^/]+$/, "/ext/debugger.js") || "https://unpkg.com/hyperscript.org/dist/ext/debugger.js";
+          var script = document.createElement("script");
+          script.src = src;
+          script.onload = function() {
+            if (_hyperscript.debugger) _hyperscript.debugger.show();
+          };
+          document.head.appendChild(script);
+        }
+      }
+    });
   }
   if (typeof self !== "undefined") {
     self._hyperscript = _hyperscript;
