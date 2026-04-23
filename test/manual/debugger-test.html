@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debugger Test</title>
+    <style>
+        body { font-family: system-ui; padding: 2rem; }
+        .clicked { background: #eef; }
+        .counter { font-size: 2rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <h1>Debugger Test Page</h1>
+    <p>Press <kbd>Ctrl+.</kbd> to open the debugger.</p>
+
+    <button _="on click toggle .clicked on me">Toggle Class</button>
+
+    <div _="init set :count to 0">
+        <button _="on click increment :count then
+                            put :count into the next <span/>">+1</button>
+        <span class="counter">0</span>
+    </div>
+
+    <input type="text" placeholder="Type here..." _="on input put my value into #mirror" />
+    <p id="mirror" _="init put '' into me"></p>
+
+    <ul id="list">
+        <li _="on click remove me">Click to remove</li>
+        <li _="on click remove me">Click to remove</li>
+        <li _="on click remove me">Click to remove</li>
+    </ul>
+
+
+    <button _="on click
+                 get the first .selected-elt in the next <ul/> then
+                 get the next <li/> from it in its parentElement's children with wrapping then
+                 take .selected-elt for the result">
+        Cycle Selected
+    </button>
+    <ul>
+        <li class="selected-elt">First</li>
+        <li>Second</li>
+        <li>Third</li>
+    </ul>
+    <style>
+        .selected-elt {
+            border: 1px solid red;
+        }
+    </style>
+
+    <script src="../.bundle/_hyperscript.js"></script>
+</body>
+</html>

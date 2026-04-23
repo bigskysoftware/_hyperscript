@@ -197,6 +197,28 @@ if (typeof document !== 'undefined') {
     })();
 }
 
+// Ctrl+_ toggles the debugger panel, lazy-loading the extension if needed
+if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '.' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            if (_hyperscript.debugger) {
+                _hyperscript.debugger.toggle();
+            } else {
+                var cdnBase = document.querySelector('script[src*="hyperscript"]');
+                var src = cdnBase && cdnBase.src.replace(/\/[^/]+$/, '/ext/debugger.js')
+                       || 'https://unpkg.com/hyperscript.org/dist/ext/debugger.js';
+                var script = document.createElement('script');
+                script.src = src;
+                script.onload = function() {
+                    if (_hyperscript.debugger) _hyperscript.debugger.show();
+                };
+                document.head.appendChild(script);
+            }
+        }
+    });
+}
+
 // Also set on global for script tag usage
 if (typeof self !== 'undefined') {
     self._hyperscript = _hyperscript;

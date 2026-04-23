@@ -127,6 +127,8 @@ if (dev) {
   const allConfigs = [...coreBuildConfigs, ...maxBuildConfigs, ...extBuildConfigs]
   await Promise.all(allConfigs.map(c => esbuild.build(c)))
   copyPlatformScripts()
+  mkdirSync(`${OUT}/fonts`, { recursive: true })
+  cpSync('www/fonts/ChicagoFLF.woff', `${OUT}/fonts/ChicagoFLF.woff`)
   brotliCompress()
   console.log(`Built ${OUT}/`)
 }
