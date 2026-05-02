@@ -1196,7 +1196,7 @@ function injectFont() {
 	if (document.querySelector('style[data-hs-debugger-font]')) return;
 	var style = document.createElement('style');
 	style.setAttribute('data-hs-debugger-font', '');
-	style.textContent = '@font-face { font-family: "ChicagoFLF"; src: url("https://hyperscript.org/fonts/ChicagoFLF.woff") format("woff"); font-display: swap; }' +
+	style.textContent = 
 		'.hs-dbg-bp-glyph{background:#c03030;border-radius:50%;width:10px!important;height:10px!important;margin-top:4px;margin-left:4px}' +
 		'.hs-dbg-bp-line{background:rgba(192,48,48,.1)}' +
 		'.hs-dbg-current-line{background:rgba(255,210,60,.6)!important}' +
@@ -1208,7 +1208,7 @@ function injectStyles() {
 	if (document.getElementById('hs-debugger-styles')) return;
 	var style = document.createElement('style');
 	style.id = 'hs-debugger-styles';
-	style.textContent = '#hs-debugger{all:initial;display:block;position:fixed;z-index:2147483647;font-family:"IBM Plex Sans",-apple-system,"Segoe UI",system-ui,sans-serif;font-size:13px;color:#222;line-height:1.4}' +
+	style.textContent = '#hs-debugger{all:initial;display:block;position:fixed;z-index:2147483647;overflow:auto;overscroll-behavior:none;font-family:"IBM Plex Sans",-apple-system,"Segoe UI",system-ui,sans-serif;font-size:13px;color:#222;line-height:1.4}' +
 		'#hs-debugger.hs-bottom{left:0;right:0;bottom:0;height:320px}' +
 		'#hs-debugger.hs-right{top:0;right:0;bottom:0;width:420px}' +
 		'#hs-debugger.hs-hidden{display:none!important}' +
@@ -1220,7 +1220,7 @@ function injectStyles() {
 		'#hs-debugger .d-resize:hover{background:#4a84c4;opacity:.3}' +
 		'#hs-debugger .d-toolbar{display:flex;align-items:center;gap:4px;padding:3px 10px;background:#ebebeb;border-bottom:1px solid #b0b0b0;user-select:none;flex-shrink:0}' +
 		'#hs-debugger .d-logo{height:32px;width:auto;margin-right:8px}' +
-		'#hs-debugger .d-title{font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:20px;font-weight:bold;margin-right:auto}' +
+		'#hs-debugger .d-title{font-family:system-ui,sans-serif;font-size:20px;font-weight:bold;margin-right:auto}' +
 		'#hs-debugger .d-title em{color:#4a84c4;font-style:normal}' +
 		'#hs-debugger .d-btn{background:none;border:1px solid #d4d4d4;color:#666;cursor:pointer;padding:2px 8px;border-radius:3px;font:inherit;font-size:12px}' +
 		'#hs-debugger .d-btn:hover{color:#222;background:#e0e8f4;border-color:#b0b0b0}' +
@@ -1256,16 +1256,16 @@ function injectStyles() {
 		'@keyframes hs-dbg-flash{0%{box-shadow:0 0 0 0 rgba(255,200,80,0)}25%{box-shadow:0 0 0 4px rgba(255,200,80,.85)}100%{box-shadow:0 0 0 0 rgba(255,200,80,0)}}' +
 		'#hs-debugger .d-editor.hs-dbg-flash{animation:hs-dbg-flash .5s ease-out}' +
 		'#hs-debugger.hs-paused .d-editor{border-color:#4a84c4;box-shadow:0 0 0 2px rgba(74,132,196,.5)}' +
-		'#hs-debugger .d-label{font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px}' +
+		'#hs-debugger .d-label{font-family:system-ui,sans-serif;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px}' +
 		'#hs-debugger .d-label+.d-label,#hs-debugger .d-code+.d-label{margin-top:12px}' +
 		'#hs-debugger .d-console{display:flex;flex-direction:column;border-left:2px solid #b0b0b0;background:#1a0e00;min-width:0;min-height:0;overflow:hidden;cursor:text}' +
 		'#hs-debugger.hs-right .d-console{border-left:none;border-top:2px solid #b0b0b0}' +
-		'#hs-debugger .d-con-hdr{padding:4px 10px;font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:11px;color:#ffdd60;border-bottom:1px solid #3a2800;text-transform:uppercase;letter-spacing:.08em;user-select:none;flex-shrink:0}' +
+		'#hs-debugger .d-con-hdr{padding:4px 10px;font-family:system-ui,sans-serif;font-size:11px;color:#ffdd60;border-bottom:1px solid #3a2800;text-transform:uppercase;letter-spacing:.08em;user-select:none;flex-shrink:0}' +
 		'#hs-debugger .d-con-scroll{flex:1;min-height:0;overflow-y:auto}' +
 		'#hs-debugger .d-con-out{padding:6px 10px;font-family:"IBM Plex Mono","SF Mono","Consolas",monospace;font-size:13px;font-weight:700;color:#ffe060;background-image:repeating-linear-gradient(0deg,transparent,transparent 10px,rgba(255,160,30,.06) 10px,rgba(255,160,30,.06) 20px);background-attachment:local}' +
 		'#hs-debugger .d-con-entry{padding:3px 0}' +
 		'#hs-debugger .d-con-in{display:flex;align-items:center;padding:2px 10px 6px}' +
-		'#hs-debugger .d-prompt{padding:0 6px 0 0;color:#ffdd60;font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;user-select:none;font-size:13px;font-weight:700;line-height:1.5;white-space:nowrap}' +
+		'#hs-debugger .d-prompt{padding:0 6px 0 0;color:#ffdd60;font-family:system-ui,sans-serif;user-select:none;font-size:13px;font-weight:700;line-height:1.5;white-space:nowrap}' +
 		'#hs-debugger .d-input{flex:1;background:transparent;border:none;color:#ffdd60;font-family:"IBM Plex Mono","SF Mono","Consolas",monospace;font-size:13px;font-weight:700;padding:0;outline:none;caret-color:#ffdd60}' +
 		'#hs-debugger .d-log-input{color:#ffdd60;font-weight:700}' +
 		'#hs-debugger .d-log-result{color:#ffdd60;font-weight:700}' +
@@ -1282,10 +1282,10 @@ function injectStyles() {
 		'#hs-debugger .d-con-collapsed{min-width:0;min-height:0}' +
 		'#hs-debugger.hs-bottom .d-con-collapsed{width:24px}' +
 		'#hs-debugger.hs-right .d-con-collapsed{height:24px;width:auto}' +
-		'#hs-debugger .d-con-vlabel{display:none;writing-mode:vertical-rl;text-orientation:mixed;font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:11px;color:#ffb030;letter-spacing:.08em;text-transform:uppercase;padding:10px 4px;user-select:none;cursor:pointer}' +
+		'#hs-debugger .d-con-vlabel{display:none;writing-mode:vertical-rl;text-orientation:mixed;font-family:system-ui,sans-serif;font-size:11px;color:#ffb030;letter-spacing:.08em;text-transform:uppercase;padding:10px 4px;user-select:none;cursor:pointer}' +
 		'#hs-debugger.hs-right .d-con-vlabel{writing-mode:horizontal-tb;padding:4px 10px;text-align:center}' +
 		'#hs-debugger .d-con-collapsed .d-con-vlabel{display:block}' +
-		'#hs-debugger .d-empty{color:#666;text-align:center;padding:20px;font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:12px}' +
+		'#hs-debugger .d-empty{color:#666;text-align:center;padding:20px;font-family:system-ui,sans-serif;font-size:12px}' +
 		'#hs-debugger .d-dbg-btn{background:#fff;border:1px solid #c0c0c0;box-shadow:0 1px 2px rgba(0,0,0,.1);cursor:pointer;padding:3px 8px;border-radius:3px;font-size:13px;line-height:1;color:#888}' +
 		'#hs-debugger .d-dbg-btn:hover{background:#f4f4f4;box-shadow:0 1px 3px rgba(0,0,0,.15)}' +
 		'#hs-debugger .d-dbg-btn:active{box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}' +
@@ -1296,7 +1296,7 @@ function injectStyles() {
 		'#hs-debugger .d-vars table{width:100%;border-collapse:collapse}' +
 		'#hs-debugger .d-vars td{padding:2px 4px;border-bottom:1px solid #eee;font-family:"IBM Plex Mono","SF Mono","Consolas",monospace;font-size:11px}' +
 		'#hs-debugger .d-vars td:first-child{color:#c05020;white-space:nowrap}' +
-		'#hs-debugger .d-var-scope{color:#888!important;font-family:"ChicagoFLF","Chicago","Geneva",system-ui,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding-top:6px!important;border-bottom:none!important}';
+		'#hs-debugger .d-var-scope{color:#888!important;font-family:system-ui,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding-top:6px!important;border-bottom:none!important}';
 	document.head.appendChild(style);
 }
 
