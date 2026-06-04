@@ -124,20 +124,6 @@ _hyperscript.debugger.step()      // programmatic F10
 _hyperscript.debugger.continue()  // programmatic F8
 ```
 
-The headless time-travel data API lives at `_hyperscript.debugger.ttd`. It performs no console
-output — it returns plain data structures that the Timeline panel renders. It's handy for
-scripting or building your own tooling on top of the recorder:
-
-```js
-const ttd = _hyperscript.debugger.ttd;
-ttd.length     // total recorded steps
-ttd.current    // current step index
-ttd.steps()    // array of recorded step objects
-ttd.goto(n)    // time-travel to step n (returns true on success)
-ttd.resume()   // leave time-travel, return to live execution
-ttd.clear()    // wipe recorded history (no-op while time traveling)
-```
-
 ### See Also {#see-also}
 
 The [`breakpoint` command](/commands/breakpoint) and its associated HDB extension offer an

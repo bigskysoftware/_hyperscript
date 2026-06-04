@@ -101,16 +101,6 @@ debugger panel.</p>
 <h2>Quick Reference</h2>
 <p>Open the debugger with <kbd>Ctrl</kbd>+<kbd>.</kbd>. The Timeline pane is always visible
 on the right; click any step row to time-travel to it.</p>
-<p>The headless data API is available at <code>_hyperscript.debugger.ttd</code>:</p>
-<pre>
-var ttd = _hyperscript.debugger.ttd;
-ttd.length       // total recorded steps
-ttd.current      // current step index
-ttd.steps()      // array of all recorded steps
-ttd.goto(n)      // time-travel to step n
-ttd.resume()     // return to live execution
-ttd.clear()      // wipe recorded history
-</pre>
 
 </body>
 </html>

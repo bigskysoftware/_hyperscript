@@ -76,14 +76,6 @@ end
 <p>Open the debugger with <kbd>Ctrl</kbd>+<kbd>.</kbd>. The Timeline pane shows the
 interleaved steps from both workers; click any row to step through the recorded DOM
 changes.</p>
-<p>The same data is available headlessly at <code>_hyperscript.debugger.ttd</code>:</p>
-<pre>
-var ttd = _hyperscript.debugger.ttd;
-ttd.steps()       // the interleaved timeline
-ttd.goto(n)       // time-travel to step n
-ttd.resume()      // return to live execution
-ttd.clear()       // wipe recorded history
-</pre>
 
 </body>
 </html>
