@@ -726,6 +726,19 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		}
 	}
 
+	// Reserve space at the bottom of the page so content isn't hidden behind
+	// the panel when it's open in bottom dock.  Right dock leaves the page
+	// alone (per design).  Stomps any existing inline body.style.paddingBottom
+	// while open; reverts on close.
+	function applyPageOffset() {
+		if (!document.body) return;
+		if (position === 'bottom' && !root.classList.contains('hs-hidden')) {
+			document.body.style.paddingBottom = root.getBoundingClientRect().height + 'px';
+		} else {
+			document.body.style.paddingBottom = '';
+		}
+	}
+
 	// Dock
 	function setDock(pos) {
 		position = pos;
@@ -734,17 +747,18 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		applyGridTracks();
 		for (var b of $$('.d-dock')) b.classList.toggle('active', b.dataset.dock === pos);
 		if (typeof renderTimeline === 'function') renderTimeline();
+		applyPageOffset();
 		saveState();
 	}
 	for (var b of $$('.d-dock')) b.addEventListener('click', function() { setDock(this.dataset.dock); });
-	$('.d-btn-close').addEventListener('click', function() { root.classList.add('hs-hidden'); hideHL(); });
+	$('.d-btn-close').addEventListener('click', function() { root.classList.add('hs-hidden'); hideHL(); applyPageOffset(); });
 
 	// Resize the whole debugger panel from its outer edge.
 	$('.d-resize').addEventListener('mousedown', function(e) {
 		e.preventDefault();
 		var sx = e.clientX, sy = e.clientY, sw = root.offsetWidth, sh = root.offsetHeight;
 		function mv(e) { if (position === 'bottom') root.style.height = Math.max(100, sh + sy - e.clientY) + 'px'; else root.style.width = Math.max(200, sw + sx - e.clientX) + 'px'; }
-		function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); }
+		function up() { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); applyPageOffset(); }
 		document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
 	});
 
@@ -1875,10 +1889,11 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		toggle: function() {
 			if (root.classList.contains('hs-hidden')) { root.classList.remove('hs-hidden'); refreshElements(); renderTimeline(); }
 			else { root.classList.add('hs-hidden'); hideHL(); }
+			applyPageOffset();
 			saveState();
 		},
-		show: function() { root.classList.remove('hs-hidden'); refreshElements(); renderTimeline(); saveState(); },
-		hide: function() { root.classList.add('hs-hidden'); hideHL(); saveState(); },
+		show: function() { root.classList.remove('hs-hidden'); refreshElements(); renderTimeline(); applyPageOffset(); saveState(); },
+		hide: function() { root.classList.add('hs-hidden'); hideHL(); applyPageOffset(); saveState(); },
 		refresh: refreshElements,
 		step: stepForward,
 		stepOver: stepOver,

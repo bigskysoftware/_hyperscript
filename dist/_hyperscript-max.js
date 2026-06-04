@@ -11768,6 +11768,14 @@
         body.style.gridTemplateRows = "";
       }
     }
+    function applyPageOffset() {
+      if (!document.body) return;
+      if (position === "bottom" && !root.classList.contains("hs-hidden")) {
+        document.body.style.paddingBottom = root.getBoundingClientRect().height + "px";
+      } else {
+        document.body.style.paddingBottom = "";
+      }
+    }
     function setDock(pos) {
       position = pos;
       root.className = "hs-" + pos;
@@ -11776,6 +11784,7 @@
       applyGridTracks();
       for (var b2 of $$(".d-dock")) b2.classList.toggle("active", b2.dataset.dock === pos);
       if (typeof renderTimeline === "function") renderTimeline();
+      applyPageOffset();
       saveState();
     }
     for (var b of $$(".d-dock")) b.addEventListener("click", function() {
@@ -11784,6 +11793,7 @@
     $(".d-btn-close").addEventListener("click", function() {
       root.classList.add("hs-hidden");
       hideHL();
+      applyPageOffset();
     });
     $(".d-resize").addEventListener("mousedown", function(e) {
       e.preventDefault();
@@ -11795,6 +11805,7 @@
       function up() {
         document.removeEventListener("mousemove", mv);
         document.removeEventListener("mouseup", up);
+        applyPageOffset();
       }
       document.addEventListener("mousemove", mv);
       document.addEventListener("mouseup", up);
@@ -12988,17 +12999,20 @@
           root.classList.add("hs-hidden");
           hideHL();
         }
+        applyPageOffset();
         saveState();
       },
       show: function() {
         root.classList.remove("hs-hidden");
         refreshElements();
         renderTimeline();
+        applyPageOffset();
         saveState();
       },
       hide: function() {
         root.classList.add("hs-hidden");
         hideHL();
+        applyPageOffset();
         saveState();
       },
       refresh: refreshElements,
