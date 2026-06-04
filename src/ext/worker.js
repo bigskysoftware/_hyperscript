@@ -16,7 +16,7 @@ var workerFunc = function (self) {
 				self.importScripts.apply(self, e.data.extraScripts);
 				const _hyperscript = self['_hyperscript']
 				var hyperscript = _hyperscript.parse(e.data.src);
-				hyperscript.apply(self, self);
+				hyperscript.apply(self, self, null, _hyperscript.internals.runtime);
 				postMessage({ type: "didInit" });
 				break;
 			case "call":
@@ -117,7 +117,7 @@ class WorkerFeature extends Feature {
 
 			worker.postMessage({
 				type: "init",
-				_hyperscript: document.currentScript?.src || '/dist/_hyperscript.js',
+				_hyperscript: document.currentScript?.src || new URL('/dist/_hyperscript.js', location.href).href,
 				extraScripts: extraScripts,
 				src: bodySrc,
 			});

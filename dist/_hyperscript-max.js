@@ -13461,7 +13461,7 @@
           self2.importScripts.apply(self2, e.data.extraScripts);
           const _hyperscript2 = self2["_hyperscript"];
           var hyperscript = _hyperscript2.parse(e.data.src);
-          hyperscript.apply(self2, self2);
+          hyperscript.apply(self2, self2, null, _hyperscript2.internals.runtime);
           postMessage({ type: "didInit" });
           break;
         case "call":
@@ -13541,7 +13541,7 @@
         var worker = new Worker(workerUri);
         worker.postMessage({
           type: "init",
-          _hyperscript: document.currentScript?.src || "/dist/_hyperscript.js",
+          _hyperscript: document.currentScript?.src || new URL("/dist/_hyperscript.js", location.href).href,
           extraScripts,
           src: bodySrc
         });
