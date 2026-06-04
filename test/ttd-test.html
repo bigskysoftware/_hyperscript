@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<title>TTD - Time Travel Debugger Test</title>
 	<script type="module" src="../src/_hyperscript.js"></script>
-	<script type="module" src="../src/ext/debugger.js"></script>
+	<script type="module" src="../dist/ext/debugger.js"></script>
 	<style>
 		body { font-family: sans-serif; max-width: 700px; margin: 2em auto; }
 		button { padding: .5em 1em; margin: .25em; font-size: 1em; }
@@ -21,8 +21,8 @@
 <body>
 
 <h1>TTD Test Page</h1>
-<p>Open with <code>?_ttd</code> to activate. Open the console to use the TTD API.</p>
-<p><a href="?_ttd">Activate TTD</a> | <a href="?">Deactivate</a></p>
+<p>Press <kbd>Ctrl</kbd>+<kbd>.</kbd> to open the
+debugger panel.</p>
 
 <!-- Test 1: Simple variable mutation + DOM update -->
 <section>
@@ -41,7 +41,7 @@
 <!-- Test 2: Class toggling -->
 <section>
 	<h2>Test 2: Class Toggle</h2>
-	<button _="on click toggle .red on #the-box">Toggle Red</button>
+	<button _="on click breakpoint then toggle .red on #the-box">Toggle Red</button>
 	<button _="on click toggle .big on #the-box">Toggle Big</button>
 	<button _="on click toggle .hidden on #the-box">Toggle Hidden</button>
 	<div id="the-box" class="box"></div>
@@ -98,18 +98,18 @@
 </section>
 
 <hr>
-<h2>Console Quick Reference</h2>
+<h2>Quick Reference</h2>
+<p>Open the debugger with <kbd>Ctrl</kbd>+<kbd>.</kbd>. The Timeline pane is always visible
+on the right; click any step row to time-travel to it.</p>
+<p>The headless data API is available at <code>_hyperscript.debugger.ttd</code>:</p>
 <pre>
-ttd.help()         // Full help
-ttd.steps()        // Show all recorded steps
-ttd.inspect(n)     // Inspect step n
-ttd.back()         // Step backward (with DOM restoration)
-ttd.forward()      // Step forward
-ttd.goto(n)        // Jump to step n
-ttd.resume()       // Return to live execution
-ttd.find("set")    // Find steps matching pattern
-ttd.findVar("x")   // Find where variable x changed
-ttd.streams        // List execution streams
+var ttd = _hyperscript.debugger.ttd;
+ttd.length       // total recorded steps
+ttd.current      // current step index
+ttd.steps()      // array of all recorded steps
+ttd.goto(n)      // time-travel to step n
+ttd.resume()     // return to live execution
+ttd.clear()      // wipe recorded history
 </pre>
 
 </body>
