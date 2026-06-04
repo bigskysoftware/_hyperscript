@@ -10702,6 +10702,18 @@
         border-color: #4a84c4;
     }
 
+    .d-dock {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 6px;
+        line-height: 0;
+    }
+
+    .d-dock svg {
+        display: block;
+    }
+
     .d-btn-close {
         font-size: 16px;
         padding: 0 4px;
@@ -11736,7 +11748,7 @@
     }
     var root = document.createElement("div");
     root.id = "hs-debugger";
-    root.innerHTML = '<div class="d-resize"></div><div class="d-root"><div class="d-toolbar"><img class="d-logo" src="' + LOGO_DATA + '" alt=""><span class="d-title">hyper<em>s</em>cript</span><button class="d-btn d-dock" data-dock="bottom" title="Dock bottom">\u2581</button><button class="d-btn d-dock" data-dock="right" title="Dock right">\u2595</button><button class="d-btn d-btn-close" title="Close (Ctrl+.)">\xD7</button></div><div class="d-body"><div class="d-el-list"><input class="d-el-search" placeholder="Filter elements\u2026" spellcheck="false" autocomplete="off"><div class="d-el-items"></div></div><div class="d-split" data-pane="list"></div><div class="d-detail"><div class="d-detail-toolbar"><div class="d-dbg-btns"><button class="d-dbg-btn d-step-back" title="Step Back (F9)">\u25C0</button><button class="d-dbg-btn d-step" title="Step (F10)">\u25B6</button><button class="d-dbg-btn d-step-over" title="Step Over (F11)">\u21BB</button><button class="d-dbg-btn d-continue" title="Continue (F8)">\u25B6\u25B6</button><button class="d-dbg-btn d-stop" title="Stop">\u25A0</button></div></div><div class="d-detail-content"><div class="d-empty">Select an element to inspect</div></div></div><div class="d-split" data-pane="timeline"></div><div class="d-timeline"><div class="d-tl-hdr"><span class="d-tl-title">Timeline</span><span class="d-tl-spacer"></span><button class="d-tl-btn d-tl-live" title="Resume live execution">Live</button><button class="d-tl-btn d-tl-clear" title="Clear recorded timeline">Clear</button></div><div class="d-tl-body"><div class="d-tl-track-wrap"><div class="d-tl-track"></div></div></div></div><div class="d-split" data-pane="console"></div><div class="d-console"><div class="d-con-scroll"><div class="d-con-out"></div><div class="d-con-in"><span class="d-prompt">_ &gt;</span><input class="d-input" spellcheck="false" autocomplete="off"></div></div></div></div></div>';
+    root.innerHTML = '<div class="d-resize"></div><div class="d-root"><div class="d-toolbar"><img class="d-logo" src="' + LOGO_DATA + '" alt=""><span class="d-title">hyper<em>s</em>cript</span><button class="d-btn d-dock" data-dock="bottom" title="Dock bottom"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5"/><rect x="1.5" y="9" width="11" height="3.5" rx="1.5" fill="currentColor" stroke="none"/></svg></button><button class="d-btn d-dock" data-dock="right" title="Dock right"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5"/><rect x="9" y="1.5" width="3.5" height="11" rx="1.5" fill="currentColor" stroke="none"/></svg></button><button class="d-btn d-btn-close" title="Close (Ctrl+.)">\xD7</button></div><div class="d-body"><div class="d-el-list"><input class="d-el-search" placeholder="Filter elements\u2026" spellcheck="false" autocomplete="off"><div class="d-el-items"></div></div><div class="d-split" data-pane="list"></div><div class="d-detail"><div class="d-detail-toolbar"><div class="d-dbg-btns"><button class="d-dbg-btn d-step-back" title="Step Back (F9)">\u25C0</button><button class="d-dbg-btn d-step" title="Step (F10)">\u25B6</button><button class="d-dbg-btn d-step-over" title="Step Over (F11)">\u21BB</button><button class="d-dbg-btn d-continue" title="Continue (F8)">\u25B6\u25B6</button><button class="d-dbg-btn d-stop" title="Stop">\u25A0</button></div></div><div class="d-detail-content"><div class="d-empty">Select an element to inspect</div></div></div><div class="d-split" data-pane="timeline"></div><div class="d-timeline"><div class="d-tl-hdr"><span class="d-tl-title">Timeline</span><span class="d-tl-spacer"></span><button class="d-tl-btn d-tl-live" title="Resume live execution">Live</button><button class="d-tl-btn d-tl-clear" title="Clear recorded timeline">Clear</button></div><div class="d-tl-body"><div class="d-tl-track-wrap"><div class="d-tl-track"></div></div></div></div><div class="d-split" data-pane="console"></div><div class="d-console"><div class="d-con-scroll"><div class="d-con-out"></div><div class="d-con-in"><span class="d-prompt">_ &gt;</span><input class="d-input" spellcheck="false" autocomplete="off"></div></div></div></div></div>';
     document.body.appendChild(root);
     var $ = function(s) {
       return root.querySelector(s);

@@ -636,8 +636,18 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 			'<div class="d-toolbar">' +
 				'<img class="d-logo" src="' + LOGO_DATA + '" alt="">' +
 				'<span class="d-title">hyper<em>s</em>cript</span>' +
-				'<button class="d-btn d-dock" data-dock="bottom" title="Dock bottom">\u2581</button>' +
-				'<button class="d-btn d-dock" data-dock="right" title="Dock right">\u2595</button>' +
+				'<button class="d-btn d-dock" data-dock="bottom" title="Dock bottom">' +
+					'<svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2">' +
+						'<rect x="1.5" y="1.5" width="11" height="11" rx="1.5"/>' +
+						'<rect x="1.5" y="9" width="11" height="3.5" rx="1.5" fill="currentColor" stroke="none"/>' +
+					'</svg>' +
+				'</button>' +
+				'<button class="d-btn d-dock" data-dock="right" title="Dock right">' +
+					'<svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2">' +
+						'<rect x="1.5" y="1.5" width="11" height="11" rx="1.5"/>' +
+						'<rect x="9" y="1.5" width="3.5" height="11" rx="1.5" fill="currentColor" stroke="none"/>' +
+					'</svg>' +
+				'</button>' +
 				'<button class="d-btn d-btn-close" title="Close (Ctrl+.)">\u00d7</button>' +
 			'</div>' +
 			'<div class="d-body">' +

@@ -124,6 +124,18 @@
         border-color: #4a84c4;
     }
 
+    .d-dock {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 6px;
+        line-height: 0;
+    }
+
+    .d-dock svg {
+        display: block;
+    }
+
     .d-btn-close {
         font-size: 16px;
         padding: 0 4px;
