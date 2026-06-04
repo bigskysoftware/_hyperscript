@@ -1155,6 +1155,16 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		}
 	});
 
+	// Route hyperscript `breakpoint` commands to the GUI panel when it is
+	// open, instead of letting the JS `debugger` statement fire.  We arm the
+	// existing `breakOnNext` flag so that the very next command's
+	// hyperscript:beforeEval pauses in the panel via the listener above.
+	document.addEventListener('hyperscript:breakpoint', function(evt) {
+		if (root.classList.contains('hs-hidden')) return; // panel closed -> fall through to `debugger;`
+		breakOnNext = true;
+		evt.preventDefault();
+	});
+
 	// Render a recorded timeline step (used during time-travel navigation).
 	// Always ensures the paused UI (buttons, vars panel) is visible and updates
 	// the current-line decoration *synchronously* when the editor is already up.
