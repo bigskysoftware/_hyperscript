@@ -7,9 +7,11 @@
 import css from './debugger.module.css' with { type: 'text' };
 import logoBase64 from './debugger-logo.b64' with { type: 'text' };
 
-const style = document.createElement('style');
-style.textContent = css;
-document.head.appendChild(style);
+if (typeof document !== 'undefined') {
+	const style = document.createElement('style');
+	style.textContent = css;
+	document.head.appendChild(style);
+}
 
 // ==========================================================================
 // Configuration
