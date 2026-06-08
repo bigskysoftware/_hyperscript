@@ -9102,7 +9102,18 @@
       return new _BreakpointCommand();
     }
     resolve(ctx) {
-      debugger;
+      var handled = false;
+      if (config.debugMode) {
+        var runtime2 = ctx.meta.runtime;
+        var target = ctx.meta.owner || ctx.me;
+        handled = !runtime2.triggerEvent(target, "hyperscript:breakpoint", {
+          command: this,
+          ctx
+        });
+      }
+      if (!handled) {
+        debugger;
+      }
       return this.findNext(ctx);
     }
   };

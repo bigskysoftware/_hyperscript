@@ -72,7 +72,7 @@ var workerFunc = function(self2) {
         self2.importScripts.apply(self2, e.data.extraScripts);
         const _hyperscript = self2["_hyperscript"];
         var hyperscript = _hyperscript.parse(e.data.src);
-        hyperscript.apply(self2, self2);
+        hyperscript.apply(self2, self2, null, _hyperscript.internals.runtime);
         postMessage({ type: "didInit" });
         break;
       case "call":
@@ -152,7 +152,7 @@ var WorkerFeature = class _WorkerFeature extends Feature {
       var worker = new Worker(workerUri);
       worker.postMessage({
         type: "init",
-        _hyperscript: document.currentScript?.src || "/dist/_hyperscript.js",
+        _hyperscript: document.currentScript?.src || new URL("/dist/_hyperscript.js", location.href).href,
         extraScripts,
         src: bodySrc
       });

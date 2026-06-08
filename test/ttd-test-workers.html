@@ -6,7 +6,7 @@
 	<!-- dist IIFE builds required: workers use importScripts('/dist/_hyperscript.js') -->
 	<script src="/dist/_hyperscript.js"></script>
 	<script src="/dist/ext/worker.js"></script>
-	<script src="/dist/ext/debugger.js"></script>
+	<script src="/dist/ext/debugger.js" defer></script>
 	<style>
 		body { font-family: sans-serif; max-width: 600px; margin: 2em auto; }
 		button { padding: .5em 1em; font-size: 1em; }
@@ -25,7 +25,7 @@
 </p>
 <p>
 	<b>Serve from project root:</b> <code>npx serve .</code><br>
-	<b>Open with:</b> <code>/test/ttd-test-workers.html?_ttd</code>
+	<b>Open with:</b> <code>/test/ttd-test-workers.html</code>
 </p>
 
 <script type="text/hyperscript">
@@ -72,20 +72,10 @@ end
 	put 'Done' into #status
 "></div>
 
-<h2>Try in the console</h2>
-<pre>
-ttd.steps()          // see the interleaved timeline
-ttd.streams          // see all execution streams
-ttd.back()           // undo last DOM change
-ttd.back()           // undo the one before that
-ttd.forward()        // redo
-ttd.forward()        // redo
-ttd.resume()         // return to live execution
-
-// run the race again, then:
-ttd.find("Alpha")    // find all Alpha-related steps
-ttd.find("Beta")     // find all Beta-related steps
-</pre>
+<h2>Inspect the run</h2>
+<p>Open the debugger with <kbd>Ctrl</kbd>+<kbd>.</kbd>. The Timeline pane shows the
+interleaved steps from both workers; click any row to step through the recorded DOM
+changes.</p>
 
 </body>
 </html>
