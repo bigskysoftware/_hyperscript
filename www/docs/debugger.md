@@ -52,8 +52,8 @@ Click in the editor's gutter (next to a line number) to toggle a breakpoint on t
 Breakpoints are per-element and survive reloads.
 
 When execution reaches a breakpoint it pauses *before* running that command. The editor
-grows a blue outline and flashes briefly; the debug toolbar lights up; the variables panel
-shows the current locals, `result`, and element-scoped variables.
+grows a blue outline and flashes briefly and the debug toolbar enables stepping. You can
+inspect any value from the paused context by typing expressions into the REPL console.
 
 ### Stepping {#stepping}
 
@@ -70,19 +70,28 @@ panel has focus:
 
 ### Time Travel {#time-travel}
 
-Step Back rewinds through the **recorded timeline** of commands in the current event-handler
-invocation. DOM mutations are undone, locals / `result` are restored from the step's snapshot,
-and the highlight moves back one command. Step again to go further back. Step forward to replay
-toward the present; stepping forward past the last recorded command exits time-travel and
-restores the live paused view, at which point Continue resumes normal execution.
+Step Back rewinds through the **recorded timeline** of commands. DOM mutations are undone, the
+highlight moves back one command, and you can keep going all the way to the first recorded
+step. Step forward to replay toward the present; stepping forward past the last recorded
+command exits time-travel and restores the live paused view (if there is one), at which point
+Continue resumes normal execution.
 
-Time-travel is scoped to the current event stream — so stepping back from inside a click
-handler won't take you into an `init` that ran at page load.
+### The Timeline Panel {#timeline}
+
+The **Timeline** panel sits at the bottom of the debugger and shows a scrollable, vertical
+list of every command that has run on the page. Each row shows the step's index and the
+command source; the row you're currently viewing is highlighted, errored steps are red, and
+async steps are marked.
+
+Click any row to time-travel straight to that step: the DOM, editor highlight, and selected
+element all jump to that moment. Hovering a row highlights its owner element on the page.
+
+Use the **Live** button to leave time-travel and return to the present, and **Clear** to wipe
+the recorded history. The timeline records continuously while the debugger is loaded, so you
+can open it after the fact to see what already happened.
 
 Additional URL parameters:
 
-- `?_ttd=true` — force time-travel recording on (useful when the debugger is loaded lazily).
-- `?_ttd_max=20000` — override the ring buffer size (default 10000 commands).
 
 ### The Paused REPL {#repl}
 
@@ -105,23 +114,12 @@ Hold <kbd>Shift</kbd> while the debugger is visible and your focus is *on the pa
 debugger): every hyperscript element on the page gets a blue halo. Middle-click any of them to
 jump straight to it in the element panel.
 
-### Console API {#api}
-
-The full time-travel API is also available programmatically as `globalThis.ttd`:
-
-```js
-ttd.help()          // print the full console API
-ttd.steps()         // tabulate every recorded command
-ttd.back(5)         // rewind 5 steps
-ttd.goto(42)        // jump to step 42
-ttd.find('set')     // find steps whose source matches a pattern
-ttd.findVar('count') // find steps where a variable changed
-```
+### Programmatic API {#api}
 
 The debugger panel object is `_hyperscript.debugger`:
 
 ```js
-_hyperscript.debugger.toggle()    // show/hide
+_hyperscript.debugger.toggle()    // show/hide the panel
 _hyperscript.debugger.step()      // programmatic F10
 _hyperscript.debugger.continue()  // programmatic F8
 ```

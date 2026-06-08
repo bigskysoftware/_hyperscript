@@ -1,0 +1,684 @@
+@scope (#hs-debugger) {
+
+    :scope {
+        all: initial;
+        display: block;
+        position: fixed;
+        z-index: 2147483647;
+        overflow: auto;
+        overscroll-behavior: none;
+        font-family: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+        font-size: 13px;
+        color: #222;
+        line-height: 1.4;
+    }
+
+    :scope.hs-bottom {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 320px;
+    }
+
+    :scope.hs-right {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 420px;
+    }
+
+    :scope.hs-hidden {
+        display: none !important;
+    }
+
+    .d-root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #fff;
+        border-top: 2px solid #b0b0b0;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, .12);
+    }
+
+    :scope.hs-right .d-root {
+        border-top: none;
+        border-left: 2px solid #b0b0b0;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, .12);
+    }
+
+    .d-resize {
+        position: absolute;
+        z-index: 1;
+    }
+
+    :scope.hs-bottom .d-resize {
+        top: -4px;
+        left: 0;
+        right: 0;
+        height: 8px;
+        cursor: ns-resize;
+    }
+
+    :scope.hs-right .d-resize {
+        top: 0;
+        left: -4px;
+        bottom: 0;
+        width: 8px;
+        cursor: ew-resize;
+    }
+
+    .d-resize:hover {
+        background: #4a84c4;
+        opacity: .3;
+    }
+
+    .d-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        background: #ebebeb;
+        border-bottom: 1px solid #b0b0b0;
+        user-select: none;
+        flex-shrink: 0;
+    }
+
+    .d-logo {
+        height: 32px;
+        width: auto;
+        margin-right: 8px;
+    }
+
+    .d-title {
+        font-family: system-ui, sans-serif;
+        font-size: 20px;
+        font-weight: bold;
+        margin-right: auto;
+    }
+
+    .d-title em {
+        color: #4a84c4;
+        font-style: normal;
+    }
+
+    .d-btn {
+        background: none;
+        border: 1px solid #d4d4d4;
+        color: #666;
+        cursor: pointer;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font: inherit;
+        font-size: 12px;
+    }
+
+    .d-btn:hover {
+        color: #222;
+        background: #e0e8f4;
+        border-color: #b0b0b0;
+    }
+
+    .d-btn.active {
+        color: #4a84c4;
+        background: #e8f0fb;
+        border-color: #4a84c4;
+    }
+
+    .d-dock {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 6px;
+        line-height: 0;
+    }
+
+    .d-dock svg {
+        display: block;
+    }
+
+    .d-btn-close {
+        font-size: 16px;
+        padding: 0 4px;
+        margin-left: 4px;
+        border: none
+    }
+
+    /* Body lays out four panes inline (bottom dock) or stacked (right dock):
+       list · split · detail · split · timeline · split · console.
+       Track sizes are set inline by the splitter logic; this is the fallback. */
+    .d-body {
+        display: grid;
+        grid-template-columns: 200px 6px 1fr 6px 260px 6px 300px;
+        flex: 1;
+        overflow: hidden;
+        min-height: 0
+    }
+
+    :scope.hs-right .d-body {
+        grid-template-columns: 1fr;
+        grid-template-rows: 200px 6px 1fr 6px 260px 6px 300px
+    }
+
+    .d-el-list {
+        min-width: 0;
+        min-height: 0;
+        border-right: 1px solid #d4d4d4;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden
+    }
+
+    :scope.hs-right .d-el-list {
+        border-right: none;
+        border-bottom: 1px solid #d4d4d4
+    }
+
+    .d-el-search {
+        display: block;
+        box-sizing: border-box;
+        padding: 4px 8px;
+        margin: 6px;
+        width: calc(100% - 12px);
+        border: 1px solid #8a8a8a;
+        border-radius: 3px;
+        background: #fff;
+        color: #222;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 11px;
+        outline: none;
+        flex-shrink: 0;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, .28)
+    }
+
+    .d-el-search::placeholder {
+        color: #999
+    }
+
+    .d-el-search:focus {
+        border-color: #4a84c4;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, .28), 0 0 0 2px rgba(74, 132, 196, .25)
+    }
+
+    .d-el-items {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto
+    }
+
+    .d-el-item {
+        padding: 4px 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #d4d4d4;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis
+    }
+
+    .d-el-item:hover {
+        background: #e0e8f4
+    }
+
+    .d-el-item.selected {
+        background: #4a84c4;
+        color: #fff
+    }
+
+    .d-el-item.selected :is(.d-tag,.d-id,.d-cls) {
+        color: inherit
+    }
+
+    .d-tag {
+        color: #4a84c4
+    }
+
+    .d-id {
+        color: #2b6b1f
+    }
+
+    .d-cls {
+        color: #8a6d00
+    }
+
+    .d-detail {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden
+    }
+
+    /* Persistent, always-visible debug toolbar row pinned at the top of the
+       detail pane. Never wiped or moved, so the controls stay put. */
+    .d-detail-toolbar {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-bottom: 1px solid #e2e2e2;
+        background: #f4f4f4
+    }
+
+    /* Scrollable area below the toolbar that selectElement/resetDetail rebuild. */
+    .d-detail-content {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 10px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column
+    }
+
+    .d-dbg-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 26px;
+        margin: 12px 0 6px
+    }
+
+    .d-dbg-toolbar .d-label {
+        margin: 0
+    }
+
+    .d-dbg-btns {
+        display: flex;
+        gap: 2px
+    }
+
+    :scope.hs-right .d-detail {
+        min-width: auto
+    }
+
+    .d-code {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        padding: 8px;
+        background: #f6f6f6;
+        border-radius: 4px;
+        border: 1px solid #d4d4d4
+    }
+
+    .d-code-area {
+        display: flex;
+        flex: 1;
+        min-height: 80px;
+        gap: 8px
+    }
+
+    .d-editor {
+        flex: 1;
+        border: 1px solid #d4d4d4;
+        border-radius: 4px;
+        overflow: hidden
+    }
+
+    @keyframes hs-dbg-flash {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255, 200, 80, 0)
+        }
+
+        25% {
+            box-shadow: 0 0 0 4px rgba(255, 200, 80, .85)
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255, 200, 80, 0)
+        }
+    }
+
+    .d-editor.hs-dbg-flash {
+        animation: hs-dbg-flash .5s ease-out
+    }
+
+    :scope.hs-paused .d-editor {
+        border-color: #4a84c4;
+        box-shadow: 0 0 0 2px rgba(74, 132, 196, .5)
+    }
+
+    .d-label {
+        font-family: system-ui, sans-serif;
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin: 0 0 4px
+    }
+
+    .d-label+.d-label,
+    .d-code+.d-label {
+        margin-top: 12px
+    }
+
+    .d-console {
+        display: flex;
+        flex-direction: column;
+        border-left: 2px solid #b0b0b0;
+        background: #1a0e00;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        cursor: text
+    }
+
+    :scope.hs-right .d-console {
+        border-left: none;
+        border-top: 2px solid #b0b0b0
+    }
+
+    .d-con-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto
+    }
+
+    .d-con-out {
+        padding: 6px 10px;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffe060;
+        background-image: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255, 160, 30, .06) 10px, rgba(255, 160, 30, .06) 20px);
+        background-attachment: local
+    }
+
+    .d-con-entry {
+        padding: 3px 0
+    }
+
+    .d-con-in {
+        display: flex;
+        align-items: center;
+        padding: 2px 10px 6px
+    }
+
+    .d-prompt {
+        padding: 0 6px 0 0;
+        color: #ffdd60;
+        font-family: system-ui, sans-serif;
+        user-select: none;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.5;
+        white-space: nowrap
+    }
+
+    .d-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #ffdd60;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 0;
+        outline: none;
+        caret-color: #ffdd60
+    }
+
+    .d-log-input {
+        color: #ffdd60;
+        font-weight: 700
+    }
+
+    .d-log-result {
+        color: #ffdd60;
+        font-weight: 700
+    }
+
+    .d-log-error {
+        color: #ff6040;
+        font-weight: 700
+    }
+
+    .d-log-coll {
+        color: #ffdd60;
+        font-weight: 700
+    }
+
+    .d-log-coll-item {
+        padding: 1px 0 1px 12px;
+        cursor: pointer;
+        color: #ffdd60;
+        font-weight: 700
+    }
+
+    .d-log-coll-item:hover {
+        text-decoration: underline
+    }
+
+    /* Generic pane splitter — col-resize in horizontal (bottom) dock,
+       row-resize in vertical (right) dock. */
+    .d-split {
+        cursor: col-resize;
+        background: #b0b0b0
+    }
+
+    .d-split:hover {
+        background: #4a84c4
+    }
+
+    :scope.hs-right .d-split {
+        cursor: row-resize
+    }
+
+    .d-empty {
+        color: #666;
+        text-align: center;
+        padding: 20px;
+        font-family: system-ui, sans-serif;
+        font-size: 12px
+    }
+
+    .d-dbg-btn {
+        background: #fff;
+        border: 1px solid #c0c0c0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+        cursor: pointer;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 13px;
+        line-height: 1;
+        color: #888
+    }
+
+    .d-dbg-btn:hover:not(:disabled) {
+        background: #f4f4f4;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
+    }
+
+    .d-dbg-btn:active:not(:disabled) {
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, .12)
+    }
+
+    .d-dbg-btn:disabled {
+        opacity: .4;
+        cursor: default;
+        box-shadow: none
+    }
+
+    .d-step,
+    .d-continue,
+    .d-step-back,
+    .d-step-over {
+        color: #2b8a3e
+    }
+
+    .d-stop {
+        color: #c03030
+    }
+
+    .hs-dbg-bp-glyph {
+        background: #c03030;
+        border-radius: 50%;
+        width: 10px !important;
+        height: 10px !important;
+        margin-top: 4px;
+        margin-left: 4px
+    }
+
+    .hs-dbg-bp-line {
+        background: rgba(192, 48, 48, .1)
+    }
+
+    .hs-dbg-current-line {
+        background: rgba(255, 210, 60, .6) !important
+    }
+
+    .hs-dbg-current-glyph {
+        background: #ffc850;
+        border-radius: 2px;
+        width: 10px !important;
+        height: 10px !important;
+        margin-top: 4px;
+        margin-left: 4px
+    }
+
+    /* ============================================================ */
+    /* Timeline panel                                               */
+    /* ============================================================ */
+
+    /* Timeline is one of the four panes in .d-body. Fills its grid track. */
+    .d-timeline {
+        display: flex;
+        flex-direction: column;
+        background: #fafafa;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .d-tl-hdr {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        background: #ececec;
+        border-bottom: 1px solid #ddd;
+        flex: 0 0 auto;
+    }
+
+    .d-tl-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #555;
+    }
+
+    .d-tl-spacer {
+        flex: 1;
+    }
+
+    .d-tl-btn {
+        all: unset;
+        cursor: pointer;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 3px;
+        background: #fff;
+        border: 1px solid #ccc;
+        color: #444;
+    }
+
+    .d-tl-btn:hover {
+        background: #4a84c4;
+        border-color: #4a84c4;
+        color: #fff;
+    }
+
+    .d-tl-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    /* Vertical, scrollable list filling the timeline body. */
+    .d-tl-track-wrap {
+        flex: 1;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        background: #f3f3f3;
+    }
+
+    .d-tl-track {
+        display: flex;
+        flex-direction: column;
+        padding: 4px 0;
+    }
+
+    .d-tl-tick {
+        all: unset;
+        cursor: pointer;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-family: "IBM Plex Mono", "SF Mono", "Consolas", monospace;
+        font-size: 11px;
+        padding: 3px 10px;
+        border-left: 2px solid transparent;
+        color: #444;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .d-tl-tick:hover {
+        background: #e6eef7;
+        color: #2b4a6b;
+    }
+
+    .d-tl-tick-idx {
+        color: #999;
+        font-size: 10px;
+        flex: 0 0 auto;
+        min-width: 28px;
+    }
+
+    .d-tl-tick-src {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1 1 auto;
+    }
+
+    .d-tl-tick.async .d-tl-tick-idx::after {
+        content: ' \2933';
+    }
+
+    .d-tl-tick.err {
+        background: #fbe9e9;
+        color: #c03030;
+    }
+
+    .d-tl-tick.err .d-tl-tick-idx {
+        color: #c03030;
+    }
+
+    .d-tl-tick.selected {
+        background: #ffc850;
+        color: #5a4500;
+        font-weight: 600;
+    }
+
+    .d-tl-tick.selected .d-tl-tick-idx {
+        color: #5a4500;
+    }
+
+    .d-tl-tick.current {
+        border-left-color: #4a84c4;
+    }
+
+    .d-tl-empty {
+        padding: 6px 8px;
+        color: #999;
+        font-size: 11px;
+    }
+
+}
