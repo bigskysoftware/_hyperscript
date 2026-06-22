@@ -1,0 +1,2982 @@
+==================
+number literal (docs: 1 3.14)
+==================
+
+set x to 1
+set y to 3.14
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+string literal single-quoted (docs: strings)
+==================
+
+set hello to 'hello'
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (string)))))))
+
+==================
+string literal double-quoted (docs: strings)
+==================
+
+set world to "world"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (string)))))))
+
+==================
+template string (docs: template strings)
+==================
+
+set helloWorld to `${hello} ${world}`
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (backtick_string
+              (template_substitution
+                (interpolation_start)
+                (expression
+                  (identifier))
+                (interpolation_end))
+              (template_substitution
+                (interpolation_start)
+                (expression
+                  (identifier))
+                (interpolation_end)))))))))
+
+==================
+template with dollar shorthand (expr: $world)
+==================
+
+on click set world to 'hyperscript'
+  put 'Hello $world' into my innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (identifier))
+                (expression
+                  (string))))
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+boolean literals (docs: true false)
+==================
+
+set x to true
+set y to false
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (boolean))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (boolean)))))))
+
+==================
+null literal (docs: null)
+==================
+
+set x to null
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (null)))))))
+
+==================
+array literal (docs: [1, 2, 3])
+==================
+
+set myArr to [1, 2, 3]
+log myArr[0]
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (array_literal
+              (expression
+                (number))
+              (expression
+                (number))
+              (expression
+                (number))))))
+      (command_statement
+        (log_command
+          (expression
+            (identifier)
+            (index_access
+              (expression
+                (number)))))))))
+
+==================
+object literal (docs: objects)
+==================
+
+set x to {name: "Joe", age: 35}
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (object_literal
+              (object_pair
+                (identifier)
+                (expression
+                  (string)))
+              (object_pair
+                (identifier)
+                (expression
+                  (number))))))))))
+
+==================
+object literal with hyphens (expr: CSS props)
+==================
+
+add { font-weight: bold } to the #element in me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (add_command
+          (expression
+            (object_literal
+              (object_pair
+                (hyphenated_identifier)
+                (expression
+                  (identifier)))))
+          (expression
+            (the_expression
+              (id_literal))
+            (in_expression
+              (special_identifier))))))))
+
+==================
+object with computed key (expr: [computeKey()])
+==================
+
+set x to {foo:"bar", [computeKey()]: computeValue()}
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (object_literal
+              (object_pair
+                (identifier)
+                (expression
+                  (string)))
+              (object_pair
+                (computed_key
+                  (expression
+                    (identifier)
+                    (argument_list)))
+                (expression
+                  (identifier)
+                  (argument_list))))))))))
+
+==================
+id literal (expr: #example)
+==================
+
+on click put 'Clicked!' into #example.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (id_literal)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+class literal (expr: .example)
+==================
+
+on click put 'Clicked!' into .example.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (class_literal)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+query literal (expr: <div/>)
+==================
+
+on click put 'Clicked!' into <div/>.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (query_literal)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+query with :not (expr: <div:not(.example)/>)
+==================
+
+on click put 'Clicked!' into <div:not(.example)/>.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (query_literal)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+attribute literal bare (expr: @foo)
+==================
+
+on click put @foo into me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (attribute_literal))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+attribute literal in query (expr: [@foo='bar'])
+==================
+
+on click toggle [@foo='bar']
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (attribute_query_literal
+                    (attribute_name)
+                    (expression
+                      (string))))))))))))
+
+==================
+attribute query in for (expr: for anchor in [@href])
+==================
+
+for anchor in [@href]
+  log anchor@href
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (identifier)
+          (expression
+            (attribute_query_literal
+              (attribute_name)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier)
+                  (attr_access
+                    (attribute_name)))))))))))
+
+==================
+dynamic id (expr: #{expression})
+==================
+
+on click log #{myId}
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (templated_id_literal
+                    (expression
+                      (identifier))))))))))))
+
+==================
+dynamic class (expr: .{expression})
+==================
+
+on click toggle .{myClass}
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (templated_class_literal
+                    (expression
+                      (identifier))))))))))))
+
+==================
+style literal (expr: *display)
+==================
+
+on click toggle the *display of the next <p/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (of_expression
+                    (the_expression
+                      (style_property))
+                    (the_expression
+                      (query_literal))))))))))))
+
+==================
+time expression ms (expr: 200ms)
+==================
+
+wait 200ms
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (wait_command
+          (time_literal
+            (duration)))))))
+
+==================
+time expression seconds (expr: 2s)
+==================
+
+wait 2s
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (wait_command
+          (time_literal
+            (duration)))))))
+
+==================
+css measurement (docs: DOM literals)
+==================
+
+set x to 10px
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (css_measurement)))))))
+
+==================
+possessive with 's (poss: the window's location)
+==================
+
+on click put the window's location into me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (the_expression
+                    (identifier))
+                  (possessive_access
+                    (identifier)))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+possessive x's name (poss: x's name)
+==================
+
+log x's name
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (identifier)
+            (possessive_access
+              (identifier))))))))
+
+==================
+possessive its (docs: its property)
+==================
+
+set divs to <div/>
+set divParents to divs.parentElement
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (query_literal))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (member_access
+              (identifier))))))))
+
+==================
+pronoun my (docs: my.style.color)
+==================
+
+set my.style.color to 'red'
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (pronoun_possessive_primary
+              (identifier)
+              (identifier)))
+          (expression
+            (string)))))))
+
+==================
+my property chain (docs: my.style.color)
+==================
+
+log my.style.color
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (pronoun_possessive_primary
+              (identifier)
+              (identifier))))))))
+
+==================
+put into my.innerHTML (docs: put into my.innerHTML)
+==================
+
+put it into my.innerHTML
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (special_identifier))
+          (expression
+            (pronoun_possessive_primary
+              (identifier))))))))
+
+==================
+possessive attribute (poss: anchor's @href)
+==================
+
+for anchor in <a/>
+  log the anchor's @href
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (identifier)
+          (expression
+            (query_literal))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (identifier))
+                  (possessive_access
+                    (attribute_name)))))))))))
+
+==================
+of expression (expr: the name of x)
+==================
+
+set x to {name: "Joe", age: 35}
+log the name of x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (object_literal
+              (object_pair
+                (identifier)
+                (expression
+                  (string)))
+              (object_pair
+                (identifier)
+                (expression
+                  (number)))))))
+      (command_statement
+        (log_command
+          (expression
+            (of_expression
+              (the_expression
+                (identifier))
+              (identifier))))))))
+
+==================
+of expression location (expr: the location of window)
+==================
+
+reload() the location of the window
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (invocation_command
+          (identifier)
+          (argument_list)
+          (expression
+            (of_expression
+              (the_expression
+                (identifier))
+              (the_expression
+                (identifier)))))))))
+
+==================
+closest query (clos: closest <section/>)
+==================
+
+on click add .clicked to the closest <section/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))
+                (expression
+                  (the_expression
+                    (closest_expression
+                      (query_literal))))))))))))
+
+==================
+closest parent (clos: closest parent <div/>)
+==================
+
+on click log the closest parent <div/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (closest_expression
+                      (query_literal))))))))))))
+
+==================
+closest attribute (clos: closest @data-example)
+==================
+
+on click log the closest @data-example
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (closest_expression
+                      (attribute_literal))))))))))))
+
+==================
+first positional (pos: first <section/>)
+==================
+
+on click log the first <section/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (positional_expression
+                      (query_literal))))))))))))
+
+==================
+last positional (pos: last in me)
+==================
+
+on click log last in me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (positional_expression
+                    (in_expression
+                      (special_identifier))))))))))))
+
+==================
+random positional (pos: random in myArr)
+==================
+
+log random in myArr
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (positional_expression
+              (in_expression
+                (identifier)))))))))
+
+==================
+next relative (rel: next <div.header/>)
+==================
+
+on click add .focused to the next <div.header/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+previous relative (rel: previous)
+==================
+
+on click log the previous <input/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+next output (docs: put into the next <output/>)
+==================
+
+on click increment :x then put it into the next <output/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+in expression (expr: <p/> in me)
+==================
+
+on click put 'Clicked!' into (<p/> in me).innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (parenthesized_expression
+                    (expression
+                      (query_literal)
+                      (in_expression
+                        (special_identifier))))
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+in query (expr: .example in me)
+==================
+
+log no .example in me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (unary_expression
+              (class_literal)
+              (in_expression
+                (special_identifier)))))))))
+
+==================
+as Int (expr: conversions)
+==================
+
+get the (value of the next <input/>) as an Int
+increment it
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (the_expression
+              (parenthesized_expression
+                (expression
+                  (of_expression
+                    (identifier)
+                    (the_expression
+                      (query_literal))))))
+            (as_expression
+              (identifier)))))
+      (command_statement
+        (generic_command
+          (identifier)
+          (special_identifier))))))
+
+==================
+as String (expr: as String)
+==================
+
+log 10 as String
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (number)
+            (as_expression
+              (identifier))))))))
+
+==================
+as Float (expr: as Float)
+==================
+
+log "10.3" as Float
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (string)
+            (as_expression
+              (identifier))))))))
+
+==================
+> comparison (docs: x > 10)
+==================
+
+if x > 10
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+is comparison (expr: a is b)
+==================
+
+if x is 1
+  log 'one'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is not (expr: a is not b)
+==================
+
+if x is not 1
+  log 'not one'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+am comparison (docs: if I am the result)
+==================
+
+get chosenElement()
+if I am the result then remove me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (identifier)
+            (argument_list))))
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (special_identifier)
+              (comparison_operator)
+              (the_expression
+                (special_identifier))))
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+match comparison (expr: I match <:checked/>)
+==================
+
+if I match <:checked/> and the closest <form/> is <:focus/>
+  add .highlight to the closest <form/>
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (logical_expression
+              (comparison_expression
+                (special_identifier)
+                (comparison_operator)
+                (query_literal))
+              (comparison_expression
+                (the_expression
+                  (closest_expression
+                    (query_literal)))
+                (comparison_operator)
+                (query_literal))))
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))
+                (expression
+                  (the_expression
+                    (closest_expression
+                      (query_literal))))))))))))
+
+==================
+contains comparison (expr: it contains)
+==================
+
+if it contains <:focus/>
+  log 'has focus'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (special_identifier)
+              (comparison_operator)
+              (query_literal)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is greater than (expr: x is greater than y)
+==================
+
+if @data-counter as Int is greater than 4
+  add @disabled
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (attribute_literal)
+              (as_expression
+                (identifier))
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (attribute_literal))))))))))
+
+==================
+is less than (expr: x is less than y)
+==================
+
+if x is less than 5
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+is empty (comp: is empty)
+==================
+
+if myArray is empty
+  log 'empty'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (empty_value)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is not empty (comp: is not empty)
+==================
+
+if x is not empty
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (empty_value)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+exists (comp: exists)
+==================
+
+if x exists
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (identifier)
+            (exists_expression))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+do not match (expr: does not match)
+==================
+
+if I do not match <:hover/>
+  log 'not hovering'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (special_identifier)
+              (comparison_operator)
+              (query_literal)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+and operator (docs: x and y)
+==================
+
+if x and y
+  log 'both'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (logical_expression
+              (identifier)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+or operator (docs: x or y)
+==================
+
+if x or y
+  log 'either'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (logical_expression
+              (identifier)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+not operator (docs: not expression)
+==================
+
+if not x
+  log 'falsy'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (unary_expression
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+no expression (docs: no element.children)
+==================
+
+if no element.children
+  log 'no children'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (unary_expression
+              (identifier)
+              (member_access
+                (identifier))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+no in (expr: no .example in me)
+==================
+
+log no .example in me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (unary_expression
+              (class_literal)
+              (in_expression
+                (special_identifier)))))))))
+
+==================
+addition (docs: set sum to x + y)
+==================
+
+set x to 10
+set y to 20
+set sum to x + y
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (math_expression
+              (identifier)
+              (identifier))))))))
+
+==================
+subtraction (docs: set diff to x - y)
+==================
+
+set diff to x - y
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (math_expression
+              (identifier)
+              (identifier))))))))
+
+==================
+multiplication (docs: set product to x * y)
+==================
+
+set product to x * y
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (math_expression
+              (identifier)
+              (identifier))))))))
+
+==================
+mod keyword (docs: set x to 10 mod 3)
+==================
+
+set x to 10 mod 3
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (math_expression
+              (number)
+              (number))))))))
+
+==================
+parenthesized math (docs: (x * x) + (y * y))
+==================
+
+set sumOfSquares to (x * x) + (y * y)
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (math_expression
+              (parenthesized_expression
+                (expression
+                  (math_expression
+                    (identifier)
+                    (identifier))))
+              (parenthesized_expression
+                (expression
+                  (math_expression
+                    (identifier)
+                    (identifier)))))))))))
+
+==================
+block literal (expr: \ s -> s.length)
+==================
+
+set strs to ["a", "ab", "abc"]
+set lens to strs.map( \ s -> s.length )
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (array_literal
+              (expression
+                (string))
+              (expression
+                (string))
+              (expression
+                (string))))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (member_access
+              (identifier))
+            (argument_list
+              (expression
+                (block_literal
+                  (identifier)
+                  (expression
+                    (identifier)
+                    (member_access
+                      (identifier))))))))))))
+
+==================
+async expression (expr: async waitThenReturn10())
+==================
+
+on click call handleAPromise(async waitThenReturn10())
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list
+                    (expression
+                      (unary_expression
+                        (identifier)
+                        (argument_list)))))))))))))
+
+==================
+cookies symbol (expr: set cookies.myCookie)
+==================
+
+set cookies.myCookie to 'foo'
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier)
+            (member_access
+              (identifier)))
+          (expression
+            (string)))))))
+
+==================
+me / my / I (docs: zoo)
+==================
+
+log me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+it / result (docs: zoo)
+==================
+
+fetch /data then log it
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)))
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+event (docs: zoo)
+==================
+
+on click log event
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+target (docs: zoo)
+==================
+
+on click log target
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+body (docs: zoo)
+==================
+
+on click log body
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+cook: concat two strings (cook: hello world)
+==================
+
+on click set my.innerText to #first.innerText + ' ' + #second.innerText
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))
+                (expression
+                  (math_expression
+                    (math_expression
+                      (id_literal)
+                      (member_access
+                        (identifier))
+                      (string))
+                    (id_literal)
+                    (member_access
+                      (identifier))))))))))))
+
+==================
+cook: set indeterminate (cook: checkbox)
+==================
+
+on load set my.indeterminate to true
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))
+                (expression
+                  (boolean))))))))))
+
+==================
+cook: drag start (cook: drag-n-drop)
+==================
+
+on dragstart call event.dataTransfer.setData('text/plain',target.textContent)
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (special_identifier)
+                  (member_access
+                    (identifier))
+                  (member_access
+                    (identifier))
+                  (argument_list
+                    (expression
+                      (string))
+                    (expression
+                      (identifier)
+                      (member_access
+                        (identifier)))))))))))))
+
+==================
+cook: drag over halt (cook: drag-n-drop)
+==================
+
+on dragover or dragenter halt the event
+  then set the target's style.background to 'lightgray'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier)))
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (halt_command
+                (expression
+                  (the_expression
+                    (special_identifier)))))
+            (command_statement
+              (set_command
+                (expression
+                  (the_expression
+                    (identifier))
+                  (possessive_access
+                    (identifier))
+                  (member_access
+                    (identifier)))
+                (expression
+                  (string))))))))))
+
+==================
+cook: event filter altKey (cook: event filter)
+==================
+
+on click[event.altKey] remove .primary then settle then add .primary
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (filter_clause
+              (expression
+                (special_identifier)
+                (member_access
+                  (identifier))))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))))
+            (command_statement
+              (settle_command))
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+cook: filter table rows (cook: filter)
+==================
+
+on input
+  show <tbody>tr/> in closest <table/>
+    when its textContent.toLowerCase() contains my value.toLowerCase()
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (show_command
+                (expression
+                  (query_literal))
+                (expression
+                  (closest_expression
+                    (query_literal)))
+                (expression
+                  (comparison_expression
+                    (pronoun_possessive_primary
+                      (identifier)
+                      (identifier))
+                    (argument_list)
+                    (comparison_operator)
+                    (pronoun_possessive_primary
+                      (identifier)
+                      (identifier))
+                    (argument_list)))))))))))
+
+==================
+time milliseconds (expr: verbose time)
+==================
+
+wait 500 milliseconds
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (wait_command
+          (time_literal
+            (duration
+              (number))))))))
+
+==================
+time seconds (expr: verbose seconds)
+==================
+
+wait 3 seconds
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (wait_command
+          (time_literal
+            (duration
+              (number))))))))
+
+==================
+as Number (expr: as Number)
+==================
+
+set n to value as Number
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (as_expression
+              (identifier))))))))
+
+==================
+as Date (expr: as Date)
+==================
+
+set d to value as Date
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (as_expression
+              (identifier))))))))
+
+==================
+as Array (expr: as Array)
+==================
+
+set a to x as Array
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (as_expression
+              (identifier))))))))
+
+==================
+!= operator (expr: not equal)
+==================
+
+if x != null log x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (null)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+<= operator (expr: less than or equal)
+==================
+
+if x <= 10 log x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+>= operator (expr: greater than or equal)
+==================
+
+if x >= 10 log x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+am not (expr: am not)
+==================
+
+if I am not .active log "not active"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (special_identifier)
+              (comparison_operator)
+              (class_literal)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+does not contain (expr: does not contain)
+==================
+
+if str does not contain "foo" log "nope"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (string)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+includes (expr: includes operator)
+==================
+
+if list includes item log "found"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+does not include (expr: does not include)
+==================
+
+if list does not include item log "not found"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is a (expr: type check)
+==================
+
+if x is a String log "string"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is not a (expr: type check negated)
+==================
+
+if x is not a Number log "not a number"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is in (expr: membership check)
+==================
+
+if x is in myArray log "found"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+equals (expr: equals operator)
+==================
+
+if x equals y log "equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+really equals (expr: strict equals)
+==================
+
+if x really equals y log "really equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is equal to (expr: verbose equality)
+==================
+
+if x is equal to y log "equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is not equal to (expr: verbose inequality)
+==================
+
+if x is not equal to y log "not equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is really equal to (expr: verbose strict equality)
+==================
+
+if x is really equal to y log "really equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+operator === (expr: strict equality)
+==================
+
+if x === y log "strict equal"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is not really equal to (expr: verbose strict inequality)
+==================
+
+if x is not really equal to y log "nope"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is greater than or equal to (expr: >=)
+==================
+
+if x is greater than or equal to 10 log "big"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+is less than or equal to (expr: <=)
+==================
+
+if x is less than or equal to 10 log "small"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+closest without the (expr: closest bare)
+==================
+
+log closest <section/>
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (closest_expression
+              (query_literal))))))))
+
+==================
+first from (expr: first from query)
+==================
+
+log first from <div/>
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (positional_expression
+              (query_literal))))))))
+
+==================
+cookies bracket notation (expr: cookies['key'])
+==================
+
+set val to cookies['My-Cookie']
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (identifier)
+            (index_access
+              (expression
+                (string)))))))))
+
+==================
+cookies clear (expr: cookies.clear())
+==================
+
+call cookies.clear()
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (identifier)
+            (member_access
+              (identifier))
+            (argument_list)))))))
+
+==================
+cookies clearAll (expr: cookies.clearAll())
+==================
+
+call cookies.clearAll()
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (identifier)
+            (member_access
+              (identifier))
+            (argument_list)))))))
+
+==================
+sender magic value (expr: sender)
+==================
+
+on myEvent log sender
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+detail magic value (expr: event.detail)
+==================
+
+on myEvent log detail
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+elsewhere (expr: elsewhere)
+==================
+
+on click from elsewhere log "elsewhere"
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (expression
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+block literal no params (expr: \ -> body)
+==================
+
+set fn to \ -> 42
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (block_literal
+              (expression
+                (number)))))))))
+
+==================
+does not exist (expr: negated exists)
+==================
+
+if x does not exist log "missing"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (not_exists_expression
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+possessive attribute stringLike (poss: x's attribute 'data-demo')
+==================
+
+put #foo's attribute 'data-demo' into me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (id_literal)
+            (possessive_access
+              (string_like
+                (string))))
+          (expression
+            (special_identifier)))))))
+
+==================
+css measurement percent (expr: 100%)
+==================
+
+set x to 100%
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (css_measurement)))))))
+
+==================
+next from expression (rel: next <div/> from me)
+==================
+
+on click log the next <div/> from me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (query_literal)
+                    (expression
+                      (special_identifier))))))))))))
+
+==================
+next within wrapping (rel: within with wrapping)
+==================
+
+on click log the next <input/> from me within <form/> with wrapping
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (the_expression
+                    (query_literal)
+                    (expression
+                      (special_identifier))
+                    (expression
+                      (query_literal))))))))))))
+
+==================
+block literal two params (expr: \ x, y -> x + y)
+==================
+
+set fn to \ x, y -> x + y
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (block_literal
+              (identifier)
+              (identifier)
+              (expression
+                (math_expression
+                  (identifier)
+                  (identifier))))))))))

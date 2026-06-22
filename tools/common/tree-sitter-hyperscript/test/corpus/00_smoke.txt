@@ -1,0 +1,184 @@
+==================
+empty input
+==================
+
+
+
+---
+
+(source_file)
+
+==================
+semicolons only
+==================
+
+;;
+
+---
+
+(source_file)
+
+==================
+comment (docs: --)
+==================
+
+-- this is a comment
+log "Yep, that was a comment"
+
+---
+
+(source_file
+  (comment)
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (string)))))))
+
+==================
+blank lines and semicolons
+==================
+
+set x to 1
+
+;
+log x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (log_command
+          (expression
+            (identifier)))))))
+
+==================
+leading separators
+==================
+
+;
+;set x to 1
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+multi-feature (on: click + mouseleave)
+==================
+
+on click add .clicked end
+on mouseenter log "entered"
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal)))))))
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+multi-command (docs: set and log)
+==================
+
+set x to 10
+log x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (log_command
+          (expression
+            (identifier)))))))
+
+==================
+then separator (docs: log then log)
+==================
+
+log "Hello" then log "World"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (string))))
+      (command_statement
+        (log_command
+          (expression
+            (string)))))))
+
+==================
+feature with end (docs: on click...end)
+==================
+
+on click
+  log "Clicked!"
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
