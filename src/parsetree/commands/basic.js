@@ -570,7 +570,13 @@ export class FetchCommand extends Command {
 
     static parse(parser) {
         if (!parser.matchToken("fetch")) return;
-        var url = parser.parseURLOrExpression();
+
+        parser.pushFollow("as");
+        try {
+            var url = parser.parseURLOrExpression();
+        } finally {
+            parser.popFollow();
+        }
 
         if (parser.matchToken("as")) {
             var conversionInfo = FetchCommand.parseConversionInfo(parser);
@@ -592,10 +598,10 @@ export class FetchCommand extends Command {
             parser.requireToken("throw");
             dontThrow = true;
         } else if (parser.currentToken().value === "don" &&
-                   parser.token(1).value === "'" &&
-                   parser.token(2).value === "t" &&
-                   parser.token(1).start === parser.currentToken().end &&
-                   parser.token(2).start === parser.token(1).end) {
+            parser.token(1).value === "'" &&
+            parser.token(2).value === "t" &&
+            parser.token(1).start === parser.currentToken().end &&
+            parser.token(2).start === parser.token(1).end) {
             parser.consumeToken(); // don
             parser.consumeToken(); // '
             parser.consumeToken(); // t
