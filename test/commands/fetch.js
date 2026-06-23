@@ -196,6 +196,24 @@ test.describe("the fetch command", () => {
 		await expect(find('div')).toHaveText("the body");
 	});
 
+	test("does not throw on 204 No Content", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 204, body: '' });
+		});
+		await html("<div _='on click fetch /test then put \"ok\" into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("ok");
+	});
+
+	test("does not throw on 304 Not Modified", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 304, body: '' });
+		});
+		await html("<div _='on click fetch /test then put \"ok\" into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("ok");
+	});
+
 	test("as response does not throw on 404", async ({html, find, page}) => {
 		await page.route('**/test', async (route) => {
 			await route.fulfill({ status: 404, body: 'not found' });
