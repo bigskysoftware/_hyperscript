@@ -11,8 +11,8 @@ The `socket` feature lets you create WebSocket connections declaratively in hype
 The `socket` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.92/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.92/dist/ext/socket.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@__VERSION__/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@__VERSION__/dist/ext/socket.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/socket.js'` after importing hyperscript.
