@@ -1,0 +1,3717 @@
+==================
+add class (add: add .clicked)
+==================
+
+on click add .clicked
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+add class to target (add: add .clicked to #another-div)
+==================
+
+on click add .clicked to #another-div
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal))))))))))
+
+==================
+add attribute (add: add @disabled)
+==================
+
+on click add @disabled
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (attribute_literal))))))))))
+
+==================
+add multiple classes (docs: add .foo to .bar)
+==================
+
+add .foo to .bar
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (add_command
+          (expression
+            (class_literal))
+          (expression
+            (class_literal)))))))
+
+==================
+remove me (rem: remove me)
+==================
+
+on click remove me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+remove class (rem: remove .not-clicked)
+==================
+
+on click remove .not-clicked
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+remove class from (rem: remove from #another-div)
+==================
+
+on click remove .not-clacked from #another-div
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal))))))))))
+
+==================
+remove multiple classes (rem: .foo .bar)
+==================
+
+on click remove .foo .bar from #another-div
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))
+                (class_literal)
+                (expression
+                  (id_literal))))))))))
+
+==================
+remove attribute (rem: remove @disabled)
+==================
+
+on click remove @disabled from the next <button/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (attribute_literal))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+toggle class on me (docs intro)
+==================
+
+on click toggle .red on me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+toggle class on target (tog: on #another-div)
+==================
+
+on click toggle .toggled on #another-div
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal))))))))))
+
+==================
+toggle attribute (tog: toggle [@disabled='true'])
+==================
+
+on click toggle [@disabled='true']
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (attribute_query_literal
+                    (attribute_name)
+                    (expression
+                      (string))))))))))))
+
+==================
+toggle for duration (tog: toggle .toggled for 2s)
+==================
+
+on click toggle .toggled for 2s
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (time_literal
+                  (duration))))))))))
+
+==================
+toggle until event (tog: until mouseleave)
+==================
+
+on mouseenter toggle .visible on #help until mouseleave
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal))
+                (event_name
+                  (identifier))))))))))
+
+==================
+toggle between classes (tog: between .enabled and .disabled)
+==================
+
+on click toggle between .enabled and .disabled
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (class_literal)
+                (class_literal)))))))))
+
+==================
+toggle display (tog: toggle *display)
+==================
+
+on click toggle *display on the next <div/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (style_property))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+toggle @disabled until htmx (cook: disable button)
+==================
+
+on click toggle @disabled until htmx:afterOnLoad
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (attribute_literal))
+                (event_name
+                  (colon_identifier
+                    (identifier)
+                    (identifier)))))))))))
+
+==================
+set variable (docs: set x to 10)
+==================
+
+set x to 10
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+set and log (set: set x to 'foo' then log x)
+==================
+
+on click set x to 'foo' then log x
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (identifier))
+                (expression
+                  (string))))
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+set property (set: set my.style.color)
+==================
+
+on click set my.style.color to 'red'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)
+                    (identifier)))
+                (expression
+                  (string))))))))))
+
+==================
+set global (docs: scoping modifiers)
+==================
+
+set global myGlobal to true
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (scope_modifier)
+          (expression
+            (identifier))
+          (expression
+            (boolean)))))))
+
+==================
+set element (docs: scoping modifiers)
+==================
+
+set element myElementVar to true
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (scope_modifier)
+          (expression
+            (identifier))
+          (expression
+            (boolean)))))))
+
+==================
+set local (docs: scoping modifiers)
+==================
+
+set local x to 0
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (scope_modifier)
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+set scoped vars (docs: $foo and :bar)
+==================
+
+set $foo to 10
+set :bar to 20
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+set attribute (docs: set @my-attr to 10)
+==================
+
+set @my-attr to 10
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (attribute_literal))
+          (expression
+            (number)))))))
+
+==================
+set member target (set: me.innerHTML)
+==================
+
+set me.innerHTML to "hello"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (special_identifier)
+            (member_access
+              (identifier)))
+          (expression
+            (string)))))))
+
+==================
+set attribute target (set: me@disabled)
+==================
+
+set me@disabled to true
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (special_identifier)
+            (attr_access
+              (attribute_name)))
+          (expression
+            (boolean)))))))
+
+==================
+set possessive target (poss: the window's location)
+==================
+
+on click set the window's location to 'https://duck.com'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (the_expression
+                    (identifier))
+                  (possessive_access
+                    (identifier)))
+                (expression
+                  (string))))))))))
+
+==================
+put into (docs: put 'cool!' into me)
+==================
+
+put 'cool!' into me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put before (put: put before me)
+==================
+
+put "<hr/>" before me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put after (put: put after me)
+==================
+
+put "<hr/>" after me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put at start of (put: at start of me)
+==================
+
+put "Hello " at start of me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put at the end of (put: at the end of me)
+==================
+
+put "!" at the end of me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put into id.innerHTML (expr: id literals)
+==================
+
+on click put 'Clicked!' into #example.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (id_literal)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+call function (call: call myJavascriptFunction())
+==================
+
+on click call myJavascriptFunction()
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list))))))))))
+
+==================
+call alert (docs: calling functions)
+==================
+
+call alert('hello world!')
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (identifier)
+            (argument_list
+              (expression
+                (string)))))))))
+
+==================
+get command (docs: get)
+==================
+
+get the nextInteger() then log it
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (the_expression
+              (identifier))
+            (argument_list))))
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+send event (send: send doIt to #div1)
+==================
+
+on click send doIt(answer:42) to #div1
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (send_command
+                (event_name
+                  (identifier))
+                (named_argument_list
+                  (named_argument
+                    (identifier)
+                    (expression
+                      (number))))
+                (expression
+                  (id_literal))))))))))
+
+==================
+trigger event (send: trigger doIt)
+==================
+
+on click trigger doIt(answer:42)
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (send_command
+                (event_name
+                  (identifier))
+                (named_argument_list
+                  (named_argument
+                    (identifier)
+                    (expression
+                      (number))))))))))))
+
+==================
+send with named args (docs: send with arguments)
+==================
+
+on click send showMessage(message:'Foo!') to the next <output/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (send_command
+                (event_name
+                  (identifier))
+                (named_argument_list
+                  (named_argument
+                    (identifier)
+                    (expression
+                      (string))))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+fetch basic (fetch: fetch /example)
+==================
+
+on click fetch /example
+  put it into my innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (fetch_command
+                (naked_string)))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+fetch as json with POST (fetch: as json)
+==================
+
+on click fetch /test as json with method:"POST"
+  put `${its result}` into my innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (fetch_command
+                (naked_string)
+                (identifier)
+                (fetch_options
+                  (named_argument
+                    (identifier)
+                    (expression
+                      (string))))))
+            (command_statement
+              (put_command
+                (expression
+                  (backtick_string
+                    (template_substitution
+                      (interpolation_start)
+                      (expression
+                        (pronoun_possessive_primary
+                          (identifier)))
+                      (interpolation_end))))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+fetch then put (docs: fetch /demo)
+==================
+
+fetch /demo then put it into my.innerHTML
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)))
+      (command_statement
+        (put_command
+          (expression
+            (special_identifier))
+          (expression
+            (pronoun_possessive_primary
+              (identifier))))))))
+
+==================
+fetch as json simple (docs: fetch)
+==================
+
+fetch /api/data as json
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)
+          (identifier))))))
+
+==================
+fetch with timeout (fetch: timeout)
+==================
+
+on click fetch /example with timeout:300ms
+  put the result into my innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (fetch_command
+                (naked_string)
+                (fetch_options
+                  (named_argument
+                    (identifier)
+                    (expression
+                      (duration))))))
+            (command_statement
+              (put_command
+                (expression
+                  (the_expression
+                    (special_identifier)))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+if command (docs: if x > 10)
+==================
+
+if x > 10
+  log "Greater than 10"
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+if-else (docs: if-else)
+==================
+
+on click increment :x
+  if :x <= 3
+    put :x into the next <output/>
+  else
+    put '3 is the max...' into the next <output/>
+  end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)))
+            (command_statement
+              (if_statement
+                (expression
+                  (comparison_expression
+                    (identifier)
+                    (comparison_operator)
+                    (number)))
+                (command_sequence
+                  (command_statement
+                    (put_command
+                      (expression
+                        (identifier))
+                      (expression
+                        (the_expression
+                          (query_literal))))))
+                (else_clause
+                  (command_sequence
+                    (command_statement
+                      (put_command
+                        (expression
+                          (string))
+                        (expression
+                          (the_expression
+                            (query_literal)))))))))))))))
+
+==================
+if-otherwise (docs: otherwise keyword)
+==================
+
+on click increment :x
+  if :x < 3
+    put :x into the next <output/>
+  otherwise
+    put '3 is the max...' into the next <output/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)))
+            (command_statement
+              (if_statement
+                (expression
+                  (comparison_expression
+                    (identifier)
+                    (comparison_operator)
+                    (number)))
+                (command_sequence
+                  (command_statement
+                    (put_command
+                      (expression
+                        (identifier))
+                      (expression
+                        (the_expression
+                          (query_literal))))))
+                (else_clause
+                  (command_sequence
+                    (command_statement
+                      (put_command
+                        (expression
+                          (string))
+                        (expression
+                          (the_expression
+                            (query_literal)))))))))))))))
+
+==================
+unless modifier (docs: unless)
+==================
+
+on click set error to functionCouldReturnError()
+  log error unless no error
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (identifier))
+                (expression
+                  (identifier)
+                  (argument_list))))
+            (command_statement
+              (log_command
+                (expression
+                  (identifier)))
+              (expression
+                (unary_expression
+                  (identifier))))))))))
+
+==================
+if match (docs: if I match .bordered)
+==================
+
+on click toggle .red unless I match .bordered
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal)))
+              (expression
+                (comparison_expression
+                  (special_identifier)
+                  (comparison_operator)
+                  (class_literal))))))))))
+
+==================
+repeat for in (docs: loops)
+==================
+
+repeat for x in [1, 2, 3]
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (identifier)
+            (expression
+              (array_literal
+                (expression
+                  (number))
+                (expression
+                  (number))
+                (expression
+                  (number)))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+for shorthand (docs: loops)
+==================
+
+for x in [1, 2, 3]
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (identifier)
+          (expression
+            (array_literal
+              (expression
+                (number))
+              (expression
+                (number))
+              (expression
+                (number))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+repeat in implicit it (docs: loops)
+==================
+
+repeat in [1, 2, 3]
+  log it
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (expression
+              (array_literal
+                (expression
+                  (number))
+                (expression
+                  (number))
+                (expression
+                  (number)))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+repeat while (docs: loops)
+==================
+
+repeat while x < 10
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (expression
+              (comparison_expression
+                (identifier)
+                (comparison_operator)
+                (number))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+repeat until (docs: loops)
+==================
+
+repeat until x is 10
+  log x
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (expression
+              (comparison_expression
+                (identifier)
+                (comparison_operator)
+                (number))))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+repeat N times (docs: loops)
+==================
+
+repeat 3 times
+  log 'looping'
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (number))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+repeat with index (docs: loops)
+==================
+
+for x in [1, 2, 3] index i
+  log i
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (identifier)
+          (expression
+            (array_literal
+              (expression
+                (number))
+              (expression
+                (number))
+              (expression
+                (number))))
+          (repeat_index
+            (identifier))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+repeat forever (docs: loops)
+==================
+
+repeat forever
+  if I match :focus
+    break
+  end
+  wait 2s
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause)
+          (command_sequence
+            (command_statement
+              (if_statement
+                (expression
+                  (comparison_expression
+                    (special_identifier)
+                    (comparison_operator)
+                    (identifier)))
+                (command_sequence
+                  (command_statement
+                    (break_command)))))
+            (command_statement
+              (wait_command
+                (time_literal
+                  (duration))))))))))
+
+==================
+repeat until event (docs: async loops)
+==================
+
+on pointerdown
+  repeat until event pointerup from the document
+    set rand to Math.random() * 360
+    transition *background-color to `hsl($rand 100% 90%)` over 250ms
+  end
+  transition *background-color to initial
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (repeat_statement
+                (repeat_clause
+                  (event_predicate
+                    (identifier)
+                    (expression
+                      (the_expression
+                        (identifier)))))
+                (command_sequence
+                  (command_statement
+                    (set_command
+                      (expression
+                        (identifier))
+                      (expression
+                        (math_expression
+                          (identifier)
+                          (member_access
+                            (identifier))
+                          (argument_list)
+                          (number)))))
+                  (command_statement
+                    (transition_command
+                      (transition_inline
+                        (style_property_name
+                          (style_property))
+                        (expression
+                          (backtick_string))
+                        (expression
+                          (duration))))))))
+            (command_statement
+              (transition_command
+                (transition_inline
+                  (style_property_name
+                    (style_property))
+                  (expression
+                    (identifier)))))))))))
+
+==================
+break (docs: break)
+==================
+
+repeat 3 times
+  break
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (number))
+          (command_sequence
+            (command_statement
+              (break_command))))))))
+
+==================
+continue (docs: continue)
+==================
+
+repeat 3 times
+  continue
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (number))
+          (command_sequence
+            (command_statement
+              (continue_command))))))))
+
+==================
+log (docs: log)
+==================
+
+log "Hello Console!"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (string)))))))
+
+==================
+log variable (docs: log me)
+==================
+
+log me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+log multiple values (docs: log x, y)
+==================
+
+on click log 'clicked', 'clacked'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))
+                (expression
+                  (string))))))))))
+
+==================
+log with logger (docs: log x with fn)
+==================
+
+on click log 'clicked' with console.debug
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))
+                (expression
+                  (identifier)
+                  (member_access
+                    (identifier)))))))))))
+
+==================
+return (docs: return 42)
+==================
+
+return 42
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (return_command
+          (expression
+            (number)))))))
+
+==================
+throw (docs: throw)
+==================
+
+throw "Bad Value"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (throw_command
+          (expression
+            (string)))))))
+
+==================
+halt the event (docs: halting events)
+==================
+
+halt the event
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (halt_command
+          (expression
+            (the_expression
+              (special_identifier))))))))
+
+==================
+halt (docs: halt)
+==================
+
+halt
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (halt_command)))))
+
+==================
+wait time (wait: wait 2s)
+==================
+
+wait 2s then remove me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (wait_command
+          (time_literal
+            (duration))))
+      (command_statement
+        (remove_command
+          (expression
+            (special_identifier)))))))
+
+==================
+wait for event (wait: wait for transitionend)
+==================
+
+on click add .example then wait for transitionend
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))
+            (command_statement
+              (wait_command
+                (wait_event
+                  (event_name
+                    (identifier)))))))))))
+
+==================
+wait add then wait then remove (wait: example)
+==================
+
+on click add .example then wait 2s then remove .example
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))
+            (command_statement
+              (wait_command
+                (time_literal
+                  (duration))))
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+settle (docs: settling)
+==================
+
+add .fade-out then settle
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (add_command
+          (expression
+            (class_literal))))
+      (command_statement
+        (settle_command)))))
+
+==================
+transition opacity (cook: fade & remove)
+==================
+
+on click transition opacity to 0 then remove me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (transition_command
+                (transition_inline
+                  (style_property_name
+                    (identifier))
+                  (expression
+                    (number)))))
+            (command_statement
+              (remove_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+transition with over (tran: over duration)
+==================
+
+transition *background-color to `hsl($rand 100% 90%)` over 250ms
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (transition_command
+          (transition_inline
+            (style_property_name
+              (style_property))
+            (expression
+              (backtick_string))
+            (expression
+              (duration))))))))
+
+==================
+transition to initial (tran: to initial)
+==================
+
+transition *background-color to initial
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (transition_command
+          (transition_inline
+            (style_property_name
+              (style_property))
+            (expression
+              (identifier))))))))
+
+==================
+increment (docs: increment x)
+==================
+
+set x to 1
+increment x
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number))))
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier))))))
+
+==================
+increment by (inc: increment by 2)
+==================
+
+on click increment :x by 2 then put it into the next <output/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)
+                (identifier)
+                (number)))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+increment attribute (docs: increment @data-counter)
+==================
+
+on click
+  increment @data-counter
+  if @data-counter as Int is greater than 4
+    add @disabled
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (attribute_literal)))
+            (command_statement
+              (if_statement
+                (expression
+                  (comparison_expression
+                    (attribute_literal)
+                    (as_expression
+                      (identifier))
+                    (comparison_operator)
+                    (number)))
+                (command_sequence
+                  (command_statement
+                    (add_command
+                      (expression
+                        (attribute_literal)))))))))))))
+
+==================
+decrement (docs: decrement)
+==================
+
+decrement counter
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier))))))
+
+==================
+hide (hide: hide me)
+==================
+
+on click hide
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command))))))))
+
+==================
+hide with opacity (hide: hide with opacity)
+==================
+
+on click hide with opacity
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (identifier))))))))))
+
+==================
+hide another (hide: hide #anotherDiv)
+==================
+
+on click hide #anotherDiv
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (id_literal))))))))))
+
+==================
+show (show: show element)
+==================
+
+show #anotherDiv
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (show_command
+          (expression
+            (id_literal)))))))
+
+==================
+show with when (cook: show when contains)
+==================
+
+on keyup
+  show <blockquote/> in #quotes when its textContent contains my value
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (show_command
+                (expression
+                  (query_literal))
+                (expression
+                  (id_literal))
+                (expression
+                  (comparison_expression
+                    (pronoun_possessive_primary
+                      (identifier))
+                    (comparison_operator)
+                    (pronoun_possessive_primary
+                      (identifier))))))))))))
+
+==================
+make a URL (docs: make command)
+==================
+
+make a URL from "/path/", "https://origin.example.com"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (make_command
+          (identifier)
+          (expression
+            (string))
+          (expression
+            (string)))))))
+
+==================
+make with called (docs: make called)
+==================
+
+make a URL from "/path/", "https://origin.example.com" called myURL
+log myURL
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (make_command
+          (identifier)
+          (expression
+            (string))
+          (expression
+            (string))
+          (identifier)))
+      (command_statement
+        (log_command
+          (expression
+            (identifier)))))))
+
+==================
+make DOM element (docs: make <a.navlink/>)
+==================
+
+make an <a.navlink/> then put it after me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (make_command
+          (query_literal)))
+      (command_statement
+        (put_command
+          (expression
+            (special_identifier))
+          (expression
+            (special_identifier)))))))
+
+==================
+go to url (go: go to url)
+==================
+
+on click go to url https://duck.com
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)
+                (naked_string)))))))))
+
+==================
+go to top of body (go: scroll)
+==================
+
+on click go to the top of the body
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)
+                (identifier)))))))))
+
+==================
+go back (go: go back)
+==================
+
+go back
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier))))))
+
+==================
+take class (ref: take .active from .tabs)
+==================
+
+take .active from .tabs
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (class_literal)
+          (class_literal))))))
+
+==================
+tell command (docs: tell <p/> add .highlight)
+==================
+
+on click tell <p/> in me add .highlight
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (tell_command
+                (expression
+                  (query_literal)
+                  (in_expression
+                    (special_identifier)))
+                (command_sequence
+                  (command_statement
+                    (add_command
+                      (expression
+                        (class_literal)))))))))))))
+
+==================
+tell set (docs: tell <details/>)
+==================
+
+tell <details/> in .article set you.open to false
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (tell_command
+          (expression
+            (query_literal)
+            (in_expression
+              (class_literal)))
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (special_identifier)
+                  (member_access
+                    (identifier)))
+                (expression
+                  (boolean))))))))))
+
+==================
+tell with end (docs: tell <p/> ... end)
+==================
+
+on click tell <p/> in me
+  add .highlight
+  log your textContent
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (tell_command
+                (expression
+                  (query_literal)
+                  (in_expression
+                    (special_identifier)))
+                (command_sequence
+                  (command_statement
+                    (add_command
+                      (expression
+                        (class_literal))))
+                  (command_statement
+                    (log_command
+                      (expression
+                        (pronoun_possessive_primary
+                          (identifier))))))))))))))
+
+==================
+measure (ref: measure me then log it)
+==================
+
+measure me then log it
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (special_identifier)))
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+append to string (app: append to string)
+==================
+
+set fullName to "John"
+append " Connor" to fullName
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (string))))
+      (command_statement
+        (generic_command
+          (identifier)
+          (string)
+          (identifier))))))
+
+==================
+append to array (app: append to array)
+==================
+
+set resultArray to []
+append 1 to resultArray
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (array_literal))))
+      (command_statement
+        (generic_command
+          (identifier)
+          (number)
+          (identifier))))))
+
+==================
+append to HTML (app: append to element)
+==================
+
+append "<i>More HTML here</i>" to #myDIV
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (string)
+          (id_literal))))))
+
+==================
+async command (ref: async fetch)
+==================
+
+async fetch /example
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (async_command
+          (fetch_command
+            (naked_string)))))))
+
+==================
+beep (ref: beep!)
+==================
+
+beep! <.foo/>
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (beep_command
+          (expression
+            (query_literal)))))))
+
+==================
+js inline (js-c: js...end)
+==================
+
+on click
+  js
+    if ('clipboard' in window.navigator) {
+      return navigator.clipboard.readText()
+    }
+  end
+  put it in my.innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (js_command
+                (js_body)))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+js with params (js-c: js(me, text)...end)
+==================
+
+on click set text to #input.value
+  js(me, text)
+    if ('clipboard' in window.navigator) {
+      return navigator.clipboard.writeText(text)
+    }
+  end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (expression
+                  (identifier))
+                (expression
+                  (id_literal)
+                  (member_access
+                    (identifier)))))
+            (command_statement
+              (js_command
+                (param_list
+                  (identifier)
+                  (identifier))
+                (js_body)))))))))
+
+==================
+pseudo-command: reload (pc: reload())
+==================
+
+reload() the location of the window
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (invocation_command
+          (identifier)
+          (argument_list)
+          (expression
+            (of_expression
+              (the_expression
+                (identifier))
+              (the_expression
+                (identifier)))))))))
+
+==================
+pseudo-command: setAttribute (pc: setAttribute())
+==================
+
+setAttribute('foo', 'bar') on me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (invocation_command
+          (identifier)
+          (argument_list
+            (expression
+              (string))
+            (expression
+              (string)))
+          (expression
+            (special_identifier)))))))
+
+==================
+pseudo-command: basic call (docs)
+==================
+
+myFunc(42)
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (invocation_command
+          (identifier)
+          (argument_list
+            (expression
+              (number))))))))
+
+==================
+pick match (ref: pick)
+==================
+
+pick match of "(\w+)" from str
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (string)
+          (identifier))))))
+
+==================
+fetch as html (fetch: as html)
+==================
+
+fetch /page as html then put it into my innerHTML
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)
+          (identifier)))
+      (command_statement
+        (put_command
+          (expression
+            (special_identifier))
+          (expression
+            (pronoun_possessive_primary
+              (identifier))))))))
+
+==================
+fetch as a json (fetch: as a json)
+==================
+
+fetch /data as a json
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)
+          (identifier))))))
+
+==================
+fetch with object literal (fetch: inline object)
+==================
+
+fetch /test { method: "POST" }
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (naked_string)
+          (object_literal
+            (object_pair
+              (identifier)
+              (expression
+                (string)))))))))
+
+==================
+go to the bottom (go: scroll bottom)
+==================
+
+go to the bottom of the body
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+==================
+go to the middle (go: scroll middle)
+==================
+
+go to the middle of the body
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+==================
+go to top smoothly (go: smoothly)
+==================
+
+go to the top of the body smoothly
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+==================
+go to top instantly (go: instantly)
+==================
+
+go to the top of the body instantly
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))))))
+
+==================
+halt default (halt: halt default)
+==================
+
+on click halt default
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (halt_command
+                (expression
+                  (identifier))))))))))
+
+==================
+hide with display (hide: *display)
+==================
+
+on click hide me with *display
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (style_property))))))))))
+
+==================
+hide with visibility (hide: *visibility)
+==================
+
+on click hide me with *visibility
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (style_property))))))))))
+
+==================
+hide when (hide: when condition)
+==================
+
+on click hide when x > 0
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (comparison_expression
+                    (identifier)
+                    (comparison_operator)
+                    (number)))))))))))
+
+==================
+show when (show: when condition)
+==================
+
+on click show when x > 0
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (show_command
+                (expression
+                  (comparison_expression
+                    (identifier)
+                    (comparison_operator)
+                    (number)))))))))))
+
+==================
+pick matches plural (pick: matches)
+==================
+
+pick matches of "(\w+)" from str
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (string)
+          (identifier))))))
+
+==================
+put in alias (put: in as alias for into)
+==================
+
+put "hello" in me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put at the start of (put: at the start of)
+==================
+
+put "Hello " at the start of me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+put at end of (put: at end of without the)
+==================
+
+put "!" at end of me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (put_command
+          (expression
+            (string))
+          (expression
+            (special_identifier)))))))
+
+==================
+transition using (tran: using easing string)
+==================
+
+on click transition opacity to 0 using "all 1s ease-in"
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (transition_command
+                (transition_inline
+                  (style_property_name
+                    (identifier))
+                  (expression
+                    (number))
+                  (expression
+                    (string)))))))))))
+
+==================
+transition from value (tran: from to)
+==================
+
+on click transition opacity from 1 to 0 over 500ms
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (transition_command
+                (transition_inline
+                  (style_property_name
+                    (identifier))
+                  (expression
+                    (number))
+                  (expression
+                    (number))
+                  (expression
+                    (duration)))))))))))
+
+==================
+wait for event from (wait: from element)
+==================
+
+on click wait for click from #myButton
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (wait_command
+                (wait_event
+                  (event_name
+                    (identifier))
+                  (expression
+                    (id_literal)))))))))))
+
+==================
+wait for event or event (wait: or event)
+==================
+
+on click wait for mouseup or touchend
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (wait_command
+                (wait_event
+                  (event_name
+                    (identifier)))
+                (wait_event
+                  (event_name
+                    (identifier)))))))))))
+
+==================
+wait for event or time (wait: or timeout)
+==================
+
+on click wait for done or 5s
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (wait_command
+                (wait_event
+                  (event_name
+                    (identifier)))
+                (time_literal
+                  (duration))))))))))
+
+==================
+toggle between in (tog: between ... in)
+==================
+
+on click toggle between .enabled and .disabled in #wrapper
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (class_literal)
+                (class_literal)
+                (expression
+                  (id_literal))))))))))
+
+==================
+toggle until from (tog: until event from)
+==================
+
+on click toggle .active until mouseleave from #menu
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (event_name
+                  (identifier))
+                (expression
+                  (id_literal))))))))))
+
+==================
+toggle my opacity (tog: my *opacity)
+==================
+
+on click toggle my *opacity
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (pronoun_possessive_primary
+                    (style_property)))))))))))
+
+==================
+toggle the visibility (tog: the *visibility)
+==================
+
+on click toggle the *visibility
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (the_expression
+                    (style_property)))))))))))
+
+==================
+send on target (send: on alternative to to)
+==================
+
+on click send refresh on #panel
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (send_command
+                (event_name
+                  (identifier))
+                (expression
+                  (id_literal))))))))))
+
+==================
+tell with yourself (tell: yourself pronoun)
+==================
+
+on click tell <li/>
+  add .selected
+  remove yourself
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (tell_command
+                (expression
+                  (query_literal))
+                (command_sequence
+                  (command_statement
+                    (add_command
+                      (expression
+                        (class_literal))))
+                  (command_statement
+                    (remove_command
+                      (expression
+                        (special_identifier)))))))))))))
+
+==================
+if then single-line (if: then form)
+==================
+
+if x > 0 then log "positive"
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+if else if chain (if: multiple else if)
+==================
+
+if x < 0
+  log "negative"
+else if x == 0
+  log "zero"
+else if x > 0
+  log "positive"
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string)))))
+          (else_if_clause
+            (expression
+              (comparison_expression
+                (identifier)
+                (comparison_operator)
+                (number)))
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (string))))))
+          (else_if_clause
+            (expression
+              (comparison_expression
+                (identifier)
+                (comparison_operator)
+                (number)))
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (string)))))))))))
+
+==================
+make with args (make: from keyword)
+==================
+
+make a Set from a, b, c
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (make_command
+          (identifier)
+          (expression
+            (identifier))
+          (expression
+            (identifier))
+          (expression
+            (identifier)))))))
+
+==================
+log basic (log: log me)
+==================
+
+log me
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (log_command
+          (expression
+            (special_identifier)))))))
+
+==================
+fetch backtick url as JSON (fetch: template url)
+==================
+
+fetch `/users/${userId}/profile` as JSON
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (fetch_command
+          (backtick_string
+            (template_substitution
+              (interpolation_start)
+              (expression
+                (identifier))
+              (interpolation_end)))
+          (identifier))))))
+
+==================
+hide me (hide: explicit me target)
+==================
+
+on click hide me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (hide_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+toggle bare style (tog: toggle *opacity)
+==================
+
+on click toggle *opacity
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (style_property))))))))))
+
+==================
+continue (docs: continue)
+==================
+
+repeat 3 times
+  continue
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (number))
+          (command_sequence
+            (command_statement
+              (continue_command))))))))
+
+==================
+add object literal (add: { color: 'red' } to me)
+==================
+
+on click add { color: 'red' } to me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (object_literal
+                    (object_pair
+                      (identifier)
+                      (expression
+                        (string)))))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+if-else single-line (docs: if x > 0 log x else log 'nope')
+==================
+
+if x > 0 log x else log 'nope'
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (if_statement
+          (expression
+            (comparison_expression
+              (identifier)
+              (comparison_operator)
+              (number)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier)))))
+          (else_clause
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (string)))))))))))
+
+==================
+get command (docs: get prompt)
+==================
+
+get prompt('Enter your name')
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (call_command
+          (expression
+            (identifier)
+            (argument_list
+              (expression
+                (string)))))))))
+
+==================
+decrement by (docs: decrement by 2)
+==================
+
+decrement counter by 2
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (generic_command
+          (identifier)
+          (identifier)
+          (identifier)
+          (number))))))
+
+==================
+return bare (docs: return no expr)
+==================
+
+return
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (return_command)))))
+
+==================
+set object on (set: set {...} on me)
+==================
+
+on click set { disabled: true, innerText: "Done" } on me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (set_command
+                (object_literal
+                  (object_pair
+                    (identifier)
+                    (expression
+                      (boolean)))
+                  (object_pair
+                    (identifier)
+                    (expression
+                      (string))))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+add with where (add: where clause)
+==================
+
+on click add [@disabled='true'] to <button/> where it is not me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (attribute_query_literal
+                    (attribute_name)
+                    (expression
+                      (string))))
+                (expression
+                  (query_literal))
+                (expression
+                  (comparison_expression
+                    (special_identifier)
+                    (comparison_operator)
+                    (special_identifier)))))))))))
+
+==================
+show inline (show: show:inline shorthand)
+==================
+
+show:inline
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (show_command
+          (expression
+            (identifier)))))))
+
+==================
+show with opacity (show: with *opacity)
+==================
+
+show with *opacity
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (show_command
+          (expression
+            (style_property)))))))
+
+==================
+repeat for with index (rep: repeat for ... index)
+==================
+
+repeat for x in [1, 2, 3] index i
+  log i
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (repeat_statement
+          (repeat_clause
+            (identifier)
+            (expression
+              (array_literal
+                (expression
+                  (number))
+                (expression
+                  (number))
+                (expression
+                  (number))))
+            (repeat_index
+              (identifier)))
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))

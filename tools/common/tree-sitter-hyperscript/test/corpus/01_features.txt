@@ -1,0 +1,1318 @@
+==================
+on click (docs intro: toggle .red on me)
+==================
+
+on click toggle .red on me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (toggle_command
+                (expression
+                  (class_literal))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+on click call alert (on: examples)
+==================
+
+on click call alert('You clicked me!')
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list
+                    (expression
+                      (string))))))))))))
+
+==================
+on event with params (on: on anEvent(foo) log foo)
+==================
+
+on anEvent(foo) log foo
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (param_list
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+on with from (on: from #inc)
+==================
+
+on click from #inc
+  increment my textContent
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (expression
+              (id_literal))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)
+                (identifier)))))))))
+
+==================
+on every (docs: every modifier)
+==================
+
+on every click add .clicked
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+on with queue all (docs: event queueing)
+==================
+
+on click queue all
+  increment :count
+  wait 1s then put it into the next <output/>
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)))
+            (command_statement
+              (wait_command
+                (time_literal
+                  (duration))))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (the_expression
+                    (query_literal)))))))))))
+
+==================
+on with queue none (docs: queue none)
+==================
+
+on click queue none
+  log 'clicked'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on with filter (on: mousedown[button==1])
+==================
+
+on mousedown[button==1] add .clicked
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (filter_clause
+              (expression
+                (comparison_expression
+                  (identifier)
+                  (comparison_operator)
+                  (number))))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+on with count (on: on click 1)
+==================
+
+on click 1
+  log 'first click only'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (count_filter
+              (number))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on with count range (on: on click 2 to 10)
+==================
+
+on click 2 to 10
+  log 'click'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (count_filter
+              (number)
+              (number))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on with count unbounded (on: 11 and on)
+==================
+
+on click 11 and on
+  log 'click'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (count_filter
+              (number))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on debounced (on: debounced at 500ms)
+==================
+
+on keyup debounced at 500ms
+  log 'debounced'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (rate_limit
+              (duration))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on throttled (on: throttled at 500ms)
+==================
+
+on mousemove throttled at 500ms
+  log 'throttled'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (rate_limit
+              (duration))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on click or touchstart (on: multiple events)
+==================
+
+on click or touchstart
+  fetch /example then put it into my innerHTML
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier)))
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (fetch_command
+                (naked_string)))
+            (command_statement
+              (put_command
+                (expression
+                  (special_identifier))
+                (expression
+                  (pronoun_possessive_primary
+                    (identifier)))))))))))
+
+==================
+on from elsewhere (on: from elsewhere)
+==================
+
+on click from elsewhere
+  remove .active
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (expression
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))))))))))
+
+==================
+on exception handler (on: exception)
+==================
+
+on click call mightThrow()
+on exception(error) log error
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list)))))))
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (param_list
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (identifier))))))))))
+
+==================
+on mutation (on: synthetic mutation)
+==================
+
+on mutation of @foo put "Mutated" into me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (attribute_literal)))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (put_command
+                (expression
+                  (string))
+                (expression
+                  (special_identifier))))))))))
+
+==================
+on intersection (on: synthetic intersection)
+==================
+
+on intersection(intersecting) having threshold 0.5
+  if intersecting transition opacity to 1
+  else transition opacity to 0
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (param_list
+              (identifier))
+            (having_clause
+              (identifier)
+              (expression
+                (number)))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (if_statement
+                (expression
+                  (identifier))
+                (command_sequence
+                  (command_statement
+                    (transition_command
+                      (transition_inline
+                        (style_property_name
+                          (identifier))
+                        (expression
+                          (number))))))
+                (else_clause
+                  (command_sequence
+                    (command_statement
+                      (transition_command
+                        (transition_inline
+                          (style_property_name
+                            (identifier))
+                          (expression
+                            (number)))))))))))))))
+
+==================
+on mouseenter and mouseleave (on: examples)
+==================
+
+on mouseenter add .visible to #help end
+on mouseleave remove .visible from #help end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal)))))))
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (class_literal))
+                (expression
+                  (id_literal))))))))))
+
+==================
+on with in modifier (cook: disable all buttons)
+==================
+
+on every htmx:beforeSend in <button:not(.no-disable)/>
+  tell it
+    toggle [@disabled='true'] until htmx:afterOnLoad
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (colon_identifier
+                (identifier)
+                (identifier)))
+            (expression
+              (query_literal))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (tell_command
+                (expression
+                  (special_identifier))
+                (command_sequence
+                  (command_statement
+                    (toggle_command
+                      (expression
+                        (attribute_query_literal
+                          (attribute_name)
+                          (expression
+                            (string))))
+                      (event_name
+                        (colon_identifier
+                          (identifier)
+                          (identifier))))))))))))))
+
+==================
+init block (docs: init blocks)
+==================
+
+init transition my opacity to 100% over 3s
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (init_feature
+        (feature_body
+          (command_sequence
+            (command_statement
+              (transition_command
+                (transition_inline
+                  (style_property_name
+                    (identifier))
+                  (expression
+                    (css_measurement))
+                  (expression
+                    (duration)))))))))))
+
+==================
+init remove (on: init remove me)
+==================
+
+on click from #inc
+  increment my textContent
+init
+  remove me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))
+            (expression
+              (id_literal))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (generic_command
+                (identifier)
+                (identifier)
+                (identifier))))))
+      (init_feature
+        (feature_body
+          (command_sequence
+            (command_statement
+              (remove_command
+                (expression
+                  (special_identifier))))))))))
+
+==================
+def function (docs: functions)
+==================
+
+def waitAndReturn()
+  wait 2s
+  return "I waited..."
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (def_feature
+        (identifier)
+        (param_list)
+        (feature_body
+          (command_sequence
+            (command_statement
+              (wait_command
+                (time_literal
+                  (duration))))
+            (command_statement
+              (return_command
+                (expression
+                  (string))))))))))
+
+==================
+def with params (docs: def increment)
+==================
+
+def increment(i)
+  return i + 1
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (def_feature
+        (identifier)
+        (param_list
+          (identifier))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (return_command
+                (expression
+                  (math_expression
+                    (identifier)
+                    (number)))))))))))
+
+==================
+def namespaced (docs: function namespacing)
+==================
+
+def utils.increment(i)
+  return i + 1
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (def_feature
+        (dotted_identifier
+          (identifier)
+          (identifier))
+        (param_list
+          (identifier))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (return_command
+                (expression
+                  (math_expression
+                    (identifier)
+                    (number)))))))))))
+
+==================
+def with catch (docs: exception handling)
+==================
+
+def example
+  call mightThrowAnException()
+catch e
+  log e
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (def_feature
+        (identifier)
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list))))))
+        (catch_block
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (identifier)))))))))))
+
+==================
+on with finally (docs: finally blocks)
+==================
+
+on click
+  add @disabled to me
+  fetch /example
+  put the result after me
+finally
+  remove @disabled from me
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (attribute_literal))
+                (expression
+                  (special_identifier))))
+            (command_statement
+              (fetch_command
+                (naked_string)))
+            (command_statement
+              (put_command
+                (expression
+                  (the_expression
+                    (special_identifier)))
+                (expression
+                  (special_identifier))))))
+        (finally_block
+          (feature_body
+            (command_sequence
+              (command_statement
+                (remove_command
+                  (expression
+                    (attribute_literal))
+                  (expression
+                    (special_identifier)))))))))))
+
+==================
+behavior (beh: Removable)
+==================
+
+behavior Removable(removeButton)
+  on click from removeButton
+    remove me
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (behavior_feature
+        (identifier)
+        (param_list
+          (identifier))
+        (behavior_body
+          (on_feature
+            (event_spec
+              (event_binding
+                (event_name
+                  (identifier))
+                (expression
+                  (identifier))))
+            (feature_body
+              (command_sequence
+                (command_statement
+                  (remove_command
+                    (expression
+                      (special_identifier))))))))))))
+
+==================
+behavior with init (beh: with init guard)
+==================
+
+behavior Removable(removeButton)
+  init
+    if no removeButton set the removeButton to me
+  end
+  on click from removeButton
+    remove me
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (behavior_feature
+        (identifier)
+        (param_list
+          (identifier))
+        (behavior_body
+          (init_feature
+            (feature_body
+              (command_sequence
+                (command_statement
+                  (if_statement
+                    (expression
+                      (unary_expression
+                        (identifier)))
+                    (command_sequence
+                      (command_statement
+                        (set_command
+                          (expression
+                            (the_expression
+                              (identifier)))
+                          (expression
+                            (special_identifier))))))))))
+          (on_feature
+            (event_spec
+              (event_binding
+                (event_name
+                  (identifier))
+                (expression
+                  (identifier))))
+            (feature_body
+              (command_sequence
+                (command_statement
+                  (remove_command
+                    (expression
+                      (special_identifier))))))))))))
+
+==================
+install behavior (beh: install)
+==================
+
+install Removable(removeButton: #close-banner)
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (install_command
+          (identifier)
+          (named_argument_list
+            (named_argument
+              (identifier)
+              (expression
+                (id_literal)))))))))
+
+==================
+js feature top-level (js-f: function exposure)
+==================
+
+js
+  function regexFind(re, group, str) {
+    return new RegExp(re).exec(str)[group];
+  }
+  return { regexFind };
+end
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (js_command
+          (js_body))))))
+
+==================
+set feature element-scoped (ref: set feature)
+==================
+
+set :count to 0
+
+---
+
+(source_file
+  (command_script
+    (command_sequence_top
+      (command_statement
+        (set_command
+          (expression
+            (identifier))
+          (expression
+            (number)))))))
+
+==================
+eventsource (es: ChatUpdates)
+==================
+
+eventsource ChatUpdates from http://myserver.com/chat-updates
+  on newMessage as json
+    log it
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (eventsource_feature
+        (identifier)
+        (naked_string)
+        (event_handler
+          (event_name
+            (identifier))
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (special_identifier)))))))))))
+
+==================
+socket (sock: MySocket)
+==================
+
+socket MySocket ws://myserver.com/example
+  on message as json
+    log message
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (socket_feature
+        (identifier)
+        (naked_string)
+        (event_handler
+          (event_name
+            (identifier))
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (identifier)))))))))))
+
+==================
+worker (docs: workers)
+==================
+
+worker Incrementer
+  js
+    self.onmessage = function(e) {
+      postMessage(e.data + 1);
+    }
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (worker_feature
+        (identifier)
+        (js_command
+          (js_body))))))
+
+==================
+combined on features (docs: multiple features)
+==================
+
+on click if true log 'Clicked!'
+on mouseenter log 'Mouse entered!'
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (if_statement
+                (expression
+                  (boolean))
+                (command_sequence
+                  (command_statement
+                    (log_command
+                      (expression
+                        (string))))))))))
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+on with catch (docs: exception handling)
+==================
+
+on click
+  call mightThrowAnException()
+catch e
+  log e
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (on_feature
+        (event_spec
+          (event_binding
+            (event_name
+              (identifier))))
+        (feature_body
+          (command_sequence
+            (command_statement
+              (call_command
+                (expression
+                  (identifier)
+                  (argument_list))))))
+        (catch_block
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (identifier)))))))))))
+
+==================
+init immediately (init: immediately modifier)
+==================
+
+init immediately
+  log "ready"
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (init_feature
+        (feature_body
+          (command_sequence
+            (command_statement
+              (log_command
+                (expression
+                  (string))))))))))
+
+==================
+def with finally (def: finally block)
+==================
+
+def loadExample ()
+  add @disabled to me
+  fetch /example
+  put the result after me
+finally
+  remove @disabled from me
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (def_feature
+        (identifier)
+        (param_list)
+        (feature_body
+          (command_sequence
+            (command_statement
+              (add_command
+                (expression
+                  (attribute_literal))
+                (expression
+                  (special_identifier))))
+            (command_statement
+              (fetch_command
+                (naked_string)))
+            (command_statement
+              (put_command
+                (expression
+                  (the_expression
+                    (special_identifier)))
+                (expression
+                  (special_identifier))))))
+        (finally_block
+          (feature_body
+            (command_sequence
+              (command_statement
+                (remove_command
+                  (expression
+                    (attribute_literal))
+                  (expression
+                    (special_identifier)))))))))))
+
+==================
+behavior without params (beh: no params)
+==================
+
+behavior Pulsing
+  on click
+    add .pulse
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (behavior_feature
+        (identifier)
+        (behavior_body
+          (on_feature
+            (event_spec
+              (event_binding
+                (event_name
+                  (identifier))))
+            (feature_body
+              (command_sequence
+                (command_statement
+                  (add_command
+                    (expression
+                      (class_literal))))))))))))
+
+==================
+eventsource multiple handlers (es: two on blocks)
+==================
+
+eventsource ChatUpdates from http://myserver.com/chat-updates
+  on newMessage as json
+    log it
+  end
+
+  on updateMessage as json
+    log it
+  end
+
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (eventsource_feature
+        (identifier)
+        (naked_string)
+        (event_handler
+          (event_name
+            (identifier))
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (special_identifier)))))))
+        (event_handler
+          (event_name
+            (identifier))
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (special_identifier)))))))))))
+
+==================
+socket with timeout (sock: with timeout)
+==================
+
+socket MySocket ws://myserver.com/example with timeout 5s
+  on message as json
+    log message
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (socket_feature
+        (identifier)
+        (naked_string)
+        (time_literal
+          (duration))
+        (event_handler
+          (event_name
+            (identifier))
+          (identifier)
+          (feature_body
+            (command_sequence
+              (command_statement
+                (log_command
+                  (expression
+                    (identifier)))))))))))
+
+==================
+worker with external scripts (work: external scripts)
+==================
+
+worker Miner("/scripts/mine-crypto.js")
+  js
+    var miner = new CryptoMiner();
+    return { miner }
+  end
+end
+
+---
+
+(source_file
+  (feature_script
+    (feature_sequence
+      (worker_feature
+        (identifier)
+        (argument_list
+          (expression
+            (string)))
+        (js_command
+          (js_body))))))
