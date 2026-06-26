@@ -1113,27 +1113,25 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		stepStreamId = null;
 		root.classList.add('hs-paused');
 
-		// Show the paused element in the editor
+		// Show the paused element in the editor, then highlight the current line.
+		// selectElement mounts Monaco asynchronously, so the highlight must wait
+		// for editorReady — otherwise it lands on the stale/old editor and is lost
+		// (this is why the paused line often showed no highlight on first break).
+		// line == source line == display line now that normalizeScript preserves
+		// line numbers, so applyLineDecoration needs no offset.
+		var line = command.startToken && command.startToken.line;
 		if (pausedElement && pausedElement !== selectedElement) {
-			selectElement(pausedElement);
+			var editorReady = selectElement(pausedElement);
 			for (var i of $$('.d-el-item')) {
 				i.classList.toggle('selected', i._ref === pausedElement);
 			}
-		}
-
-		// Highlight current line in Monaco
-		if (monacoEditor && command.startToken) {
-			var line = command.startToken.line;
-			// For implicit returns, show line past the last real command
-			debugDecorations = monacoEditor.deltaDecorations(debugDecorations, [{
-				range: new window.monaco.Range(line, 1, line, 1),
-				options: {
-					isWholeLine: true,
-					className: 'hs-dbg-current-line',
-					glyphMarginClassName: 'hs-dbg-current-glyph',
-				}
-			}]);
-			monacoEditor.revealLineInCenter(line);
+			if (editorReady && typeof editorReady.then === 'function') {
+				editorReady.then(function() { applyLineDecoration(line); });
+			} else {
+				applyLineDecoration(line);
+			}
+		} else {
+			applyLineDecoration(line);
 		}
 
 		updateToolbarState();
@@ -1594,27 +1592,30 @@ function createPanel(_hyperscript, ttd, timeline, domRestorer, recorder) {
 		var lines = raw.split('\n');
 		if (lines.length <= 1) return raw.trim();
 
-		// Trim leading/trailing blank lines
-		while (lines.length && !lines[0].trim()) lines.shift();
-		while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-		if (!lines.length) return '';
+		// Line numbers must stay 1:1 with the source so Monaco lines match the
+		// tokenizer's token.line (used for breakpoints and the paused-line
+		// highlight). So we de-indent horizontally only and never add/remove
+		// lines: leading/trailing blank lines are kept as empty lines.
+		var first = 0;
+		while (first < lines.length && !lines[first].trim()) first++;
+		if (first === lines.length) return lines.map(function() { return ''; }).join('\n');
 
-		// Find the minimum indent of lines 2+ (continuation lines)
-		// These have HTML-level indentation we want to strip
+		// Find the minimum indent of the continuation lines (after the first
+		// real line). These carry HTML-level indentation we want to strip.
 		var minIndent = Infinity;
-		for (var i = 1; i < lines.length; i++) {
+		for (var i = first + 1; i < lines.length; i++) {
 			if (!lines[i].trim()) continue;
 			var indent = lines[i].match(/^(\s*)/)[1].length;
 			if (indent < minIndent) minIndent = indent;
 		}
 		if (minIndent === Infinity) minIndent = 0;
 
-		// First line: strip its own leading whitespace
-		var result = [lines[0].trim()];
-
-		// Remaining lines: strip the common indent, then add 2-space indent
-		for (var i = 1; i < lines.length; i++) {
-			if (!lines[i].trim()) { result.push(''); continue; }
+		var result = [];
+		for (var i = 0; i < lines.length; i++) {
+			if (i < first || !lines[i].trim()) { result.push(''); continue; }
+			// First real line: strip its own leading whitespace.
+			if (i === first) { result.push(lines[i].trim()); continue; }
+			// Continuation lines: strip the common indent, then add 2-space indent.
 			result.push('  ' + lines[i].substring(minIndent));
 		}
 
