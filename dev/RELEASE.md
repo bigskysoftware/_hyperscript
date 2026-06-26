@@ -1,10 +1,9 @@
 # Release checklist
 
 * Ensure `CHANGELOG.md` is updated with the new version + date
-* Bump the version BY HAND in both places (the bundle version is not derived
-  from the build, so both must be kept in sync):
-  * `package.json` (`version`) -- then `npm install` to sync `package-lock.json`
+* Bump the version BY HAND in two places:
   * `src/_hyperscript.js` (the `version:` field)
+  * `package.json` (`version`), run `npm install` to sync `package-lock.json`
 * Build dist: `npm run dist`
 * Update SHAs: `npm run update-sha`
   * reads the version from `package.json` and writes `www/_data/integrity.json`
