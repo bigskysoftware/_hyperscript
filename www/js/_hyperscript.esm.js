@@ -1735,7 +1735,7 @@ var config = {
   attributes: "_, script, data-script",
   defaultTransition: "all 500ms ease-in",
   disableSelector: "[disable-scripting], [data-disable-scripting]",
-  fetchThrowsOn: [/4.*/, /5.*/],
+  fetchThrowsOn: [/^4/, /^5/],
   hideShowStrategies: {},
   logAll: false,
   mutatingMethods: {
@@ -3770,7 +3770,7 @@ var HtmxCompat = class _HtmxCompat {
       _hyperscript2.process(evt.target);
       self2.#processingFromHtmx = false;
     });
-    if (typeof htmx !== "undefined") {
+    if (typeof globalScope2.htmx?.process === "function") {
       _hyperscript2.addAfterProcessHook(function(elt) {
         if (!self2.#processingFromHtmx) htmx.process(elt);
       });
@@ -6151,7 +6151,12 @@ var FetchCommand = class _FetchCommand extends Command {
   }
   static parse(parser) {
     if (!parser.matchToken("fetch")) return;
-    var url = parser.parseURLOrExpression();
+    parser.pushFollow("as");
+    try {
+      var url = parser.parseURLOrExpression();
+    } finally {
+      parser.popFollow();
+    }
     if (parser.matchToken("as")) {
       var conversionInfo = _FetchCommand.parseConversionInfo(parser);
     }
@@ -10503,8 +10508,8 @@ if (typeof document !== "undefined") {
         return res.text();
       })
     );
-    scriptTexts.forEach((sc) => _hyperscript(sc));
     ready(() => {
+      scriptTexts.forEach((sc) => _hyperscript(sc));
       _hyperscript.process(document.documentElement);
       document.dispatchEvent(new Event("hyperscript:ready"));
       new HtmxCompat(globalScope, _hyperscript).init();

@@ -1736,7 +1736,7 @@
     attributes: "_, script, data-script",
     defaultTransition: "all 500ms ease-in",
     disableSelector: "[disable-scripting], [data-disable-scripting]",
-    fetchThrowsOn: [/4.*/, /5.*/],
+    fetchThrowsOn: [/^4/, /^5/],
     hideShowStrategies: {},
     logAll: false,
     mutatingMethods: {
@@ -3771,7 +3771,7 @@
         _hyperscript2.process(evt.target);
         self2.#processingFromHtmx = false;
       });
-      if (typeof htmx !== "undefined") {
+      if (typeof globalScope2.htmx?.process === "function") {
         _hyperscript2.addAfterProcessHook(function(elt) {
           if (!self2.#processingFromHtmx) htmx.process(elt);
         });
@@ -6152,7 +6152,12 @@
     }
     static parse(parser) {
       if (!parser.matchToken("fetch")) return;
-      var url = parser.parseURLOrExpression();
+      parser.pushFollow("as");
+      try {
+        var url = parser.parseURLOrExpression();
+      } finally {
+        parser.popFollow();
+      }
       if (parser.matchToken("as")) {
         var conversionInfo = _FetchCommand.parseConversionInfo(parser);
       }
@@ -9584,7 +9589,9 @@
       this.start = setCmd;
     }
     install(target, source, args, runtime2) {
-      this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      queueMicrotask(() => {
+        this.start && this.start.execute(runtime2.makeContext(target, this, target, null));
+      });
     }
     static parse(parser) {
       let setCmd = parser.parseElement("setCommand");
@@ -10502,8 +10509,8 @@
           return res.text();
         })
       );
-      scriptTexts.forEach((sc) => _hyperscript(sc));
       ready(() => {
+        scriptTexts.forEach((sc) => _hyperscript(sc));
         _hyperscript.process(document.documentElement);
         document.dispatchEvent(new Event("hyperscript:ready"));
         new HtmxCompat(globalScope, _hyperscript).init();
@@ -10829,7 +10836,7 @@
 					decrement @data-hist
 				else if event.key is 'ArrowDown' and @data-hist < 0
 					increment @data-hist
-				end end
+				end
 				set #console-input.value to hdb.consoleHistory[hdb.consoleHistory.length + @data-hist as Int]
 					or oldContent
 				halt default
