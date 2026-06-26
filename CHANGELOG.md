@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.92 - 2026-06-26
+
+Bugfixes and follow-ups from the 0.9.90/0.9.91 release:
+
+### Fixes
+
+- `fetch` no longer swallows a trailing `as` conversion when the URL is a template string, quoted string, or variable - the conversion now applies to the response, not the URL (e.g. `fetch `/x?q=${y}` as JSON`)
+- htmx-compat: only install the after-process hook when the real htmx is present (checks `htmx.process` is a function)
+- hdb: fix a parse error in the console history handler caused by a duplicate `end`
+- Defer external script parsing until after DOMContentLoaded
+- Defer component initialization until after processing so all vars are available
+
+### Features
+
+- Reactive DOM queries backed by a single global MutationObserver
+- External component support - load component bundles by URL
+- `where` clause now allowed directly after an `in` expression
+- `eventsource` sends `Accept: text/event-stream` for `Stream` conversions
+
 ## 0.9.91 - 2026-04-14
 
 Bugfixes from the 0.9.90 release:

@@ -11,8 +11,8 @@ The `eventsource` feature gives you a declarative way to work with [Server Sent 
 The `eventsource` feature is an extension and must be included separately, *after* hyperscript itself:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/ext/eventsource.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.92/dist/_hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.92/dist/ext/eventsource.min.js"></script>
 ```
 
 Or if you're using npm: `import 'hyperscript.org/dist/ext/eventsource.js'` after importing hyperscript.
@@ -212,6 +212,9 @@ This is useful for one-shot SSE streams (AI chat responses, progress updates, fi
 ~~~ hyperscript
 fetch /api/generate as Stream
 ~~~
+
+The extension automatically adds an `Accept: text/event-stream` header to the
+request so the server knows to respond with an SSE stream.
 
 The result is a stream object. Named events from the server are dispatched on the current element, and unnamed messages can be iterated with a `for` loop:
 

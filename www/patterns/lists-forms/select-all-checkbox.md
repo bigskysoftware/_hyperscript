@@ -2,7 +2,7 @@
 layout: pattern.njk
 title: Select All Checkbox
 description: A header checkbox that selects all rows in a table, with an indeterminate state when only some are checked.
-tags: [forms, dom, interaction]
+tags: [forms, dom, reactivity]
 difficulty: intermediate
 ---
 
@@ -15,16 +15,15 @@ the header shows an indeterminate ("&minus;") state.
   <tr>
     <th>
       <input type="checkbox"
-        _="set :checkboxes to <input[type=checkbox]/> in the next <tbody/>
-           on change
-             set checked of the :checkboxes to my checked
-           on change from the next <tbody/>
-             if no :checkboxes where it is checked
-               set my indeterminate to false
-               set my checked to false
-             else if no :checkboxes where it is not checked
-               set my indeterminate to false
-               set my checked to true
+        _="on change
+             set checked of <input[type=checkbox]/> in the next <tbody/> to my checked
+           live
+             set checked to <:checked/> in the next <tbody/>
+             set all to <input[type=checkbox]/> in the next <tbody/>
+             if checked is empty
+               set my indeterminate to false then set my checked to false
+             else if checked.length equals all.length
+               set my indeterminate to false then set my checked to true
              else
                set my indeterminate to true
              end">
@@ -68,14 +67,11 @@ th { background: #f5f5f5; }
 </style>
 {% endexample %}
 
-All the logic lives on the header checkbox with two event handlers:
+All the logic lives on the header checkbox:
 
-- **`on click`** bulk-sets every row checkbox to match the header using
-  [`set`](/commands/set) `checked of <input[type=checkbox]/> in the next <tbody/> to my checked`.
+- **`on change`** bulk-sets every row checkbox to match the header.
 
-- **`on change from the next <tbody/>`** catches bubbled change events from
-  any row checkbox. It grabs all the checkboxes with a query literal, then uses
-  `where its checked` and `where not its checked` to filter them. If none are checked,
-  uncheck the header. If none are unchecked, check it. Otherwise, set `indeterminate`.
-
-No IDs needed - `the next <tbody/>` targets the sibling tbody relative to the header.
+- **`live`** reactively queries the DOM for checked and total checkboxes
+  in the tbody. When any row checkbox changes, the queries re-evaluate
+  and the header updates its checked/indeterminate state automatically.
+  No event delegation needed -- the `live` block watches the DOM directly.

@@ -267,11 +267,11 @@ test.describe('the component extension', () => {
 			</script>
 			<test-styled></test-styled>
 		`)
-		// The wrapped style tag should sit immediately after the template
+		// The wrapped style tag lives in document.head, tagged with
+		// data-hyperscript-component so it's findable for cleanup/inspection.
 		const styleText = await page.evaluate(() => {
-			const tmpl = document.querySelector('script[component="test-styled"]')
-			const next = tmpl && tmpl.nextElementSibling
-			return next && next.tagName === 'STYLE' ? next.textContent : null
+			const s = document.head.querySelector('style[data-hyperscript-component="test-styled"]')
+			return s ? s.textContent : null
 		})
 		expect(styleText).toContain('@scope (test-styled)')
 		expect(styleText).toContain('.inner')
@@ -316,6 +316,48 @@ test.describe('the component extension', () => {
 		`)
 		await expect.poll(() => find('test-plain-card span').textContent()).toBe('hello')
 		await evaluate(() => { delete window.$testLabel })
+	})
+
+	test('injects a FOUCE-guard style so undefined custom elements are hidden', async ({page, html}) => {
+		// The guard is injected lazily on the first processNode call, so
+		// triggering any html() is enough to materialize it.
+		await html('')
+		const guard = await page.evaluate(() => {
+			const s = document.head.querySelector('style[data-hyperscript-component="fouce-guard"]')
+			return s ? s.textContent : null
+		})
+		expect(guard).toContain(':not(:defined)')
+		expect(guard).toContain('visibility: hidden')
+	})
+
+	test('loads components from an external bundle via script[type=text/hyperscript-component]', async ({page, html}) => {
+		// Serve a fake bundle containing two component definitions
+		await page.route('**/test-bundle.html', route => {
+			route.fulfill({
+				contentType: 'text/html',
+				body: `
+					<script type="text/hyperscript-template" component="bundle-greeting"
+					        _="init set ^who to attrs.name">
+						<span class="g">Hello, ${"\x24"}{^who}!</span>
+					</script>
+					<script type="text/hyperscript-template" component="bundle-badge">
+						<span class="b">BADGE</span>
+					</script>
+				`
+			})
+		})
+
+		await html(`
+			<script type="text/hyperscript-component" src="/test-bundle.html"></script>
+			<div _="init set $bundlePerson to 'Carson'">
+				<bundle-greeting name="$bundlePerson"></bundle-greeting>
+				<bundle-badge></bundle-badge>
+			</div>
+		`)
+
+		// Both components should eventually render once the bundle resolves
+		await expect.poll(() => page.locator('bundle-greeting .g').textContent()).toBe('Hello, Carson!')
+		await expect.poll(() => page.locator('bundle-badge .b').textContent()).toBe('BADGE')
 	})
 
 })

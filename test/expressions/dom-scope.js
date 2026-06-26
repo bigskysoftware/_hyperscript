@@ -170,7 +170,7 @@ test.describe('the dom scope (^var)', () => {
 		await expect(find('output')).toHaveText('2')
 	})
 
-	test('always reacts to ^var changes', async ({html, find}) => {
+	test('live reacts to ^var changes', async ({html, find}) => {
 		await html(
 			`<div _="init set ^name to 'alice'">` +
 			`  <button _="on click set ^name to 'bob'">rename</button>` +

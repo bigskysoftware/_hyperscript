@@ -196,6 +196,24 @@ test.describe("the fetch command", () => {
 		await expect(find('div')).toHaveText("the body");
 	});
 
+	test("does not throw on 204 No Content", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 204, body: '' });
+		});
+		await html("<div _='on click fetch /test then put \"ok\" into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("ok");
+	});
+
+	test("does not throw on 304 Not Modified", async ({html, find, page}) => {
+		await page.route('**/test', async (route) => {
+			await route.fulfill({ status: 304, body: '' });
+		});
+		await html("<div _='on click fetch /test then put \"ok\" into me'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText("ok");
+	});
+
 	test("as response does not throw on 404", async ({html, find, page}) => {
 		await page.route('**/test', async (route) => {
 			await route.fulfill({ status: 404, body: 'not found' });
@@ -216,6 +234,33 @@ test.describe("the fetch command", () => {
 		await html("<div _=\"on click fetch /test as Response then put (it as JSON).name into me\"></div>");
 		await find('div').dispatchEvent('click');
 		await expect(find('div')).toHaveText("Joe");
+	});
+
+	test("template string URL does not swallow a trailing as conversion", async ({html, find, mock}) => {
+		await mock('GET', '/test*', '{"foo":1}', {status: 200, contentType: 'application/json'});
+		await html(
+			"<div _='on click fetch `/test?bar=${1}` as JSON then get result as JSONString then put it into my.innerHTML'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('{"foo":1}');
+	});
+
+	test("quoted string URL does not swallow a trailing as conversion", async ({html, find, mock}) => {
+		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
+		await html(
+			"<div _='on click fetch \"/test\" as JSON then get result as JSONString then put it into my.innerHTML'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('{"foo":1}');
+	});
+
+	test("variable URL does not swallow a trailing as conversion", async ({html, find, mock}) => {
+		await mock('GET', '/test', '{"foo":1}', {status: 200, contentType: 'application/json'});
+		await html(
+			"<div _='on click set $u to \"/test\" then fetch $u as JSON then get result as JSONString then put it into my.innerHTML'></div>"
+		);
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('{"foo":1}');
 	});
 
 });

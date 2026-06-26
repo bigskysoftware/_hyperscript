@@ -501,6 +501,11 @@ export class Runtime {
             }
         }
 
+        resolveQuery(root, css) {
+            if (this.reactivity.isTracking) this.reactivity.trackQuery(root);
+            return root.querySelectorAll(css);
+        }
+
         resolveAttribute(root, property) {
             if (this.reactivity.isTracking) this.reactivity.trackAttribute(root, property);
             return this.#flatGet(root, property, (root, property) => root.getAttribute && root.getAttribute(property))

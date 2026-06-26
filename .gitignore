@@ -5,7 +5,6 @@
 node_modules/
 coverage/
 coverage-reports/
-dist/
 tmp/
 test/.bundle/
 test-results/

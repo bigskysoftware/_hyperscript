@@ -31,7 +31,7 @@ export class HtmxCompat {
         });
 
         // hyperscript -> htmx: notify htmx about hyperscript-inserted content
-        if (typeof htmx !== 'undefined') {
+        if (typeof globalScope.htmx?.process === 'function') {
             _hyperscript.addAfterProcessHook(function (elt) {
                 if (!self.#processingFromHtmx) htmx.process(elt);
             });

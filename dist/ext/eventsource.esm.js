@@ -398,6 +398,11 @@ streamConversion._rawResponse = true;
 function eventsourcePlugin(_hyperscript) {
   _hyperscript.addFeature(EventSourceFeature.keyword, EventSourceFeature.parse.bind(EventSourceFeature));
   _hyperscript.config.conversions.Stream = streamConversion;
+  addEventListener("hyperscript:beforeFetch", function(evt) {
+    if (evt.detail.conversion === "Stream") {
+      evt.detail.headers["Accept"] = "text/event-stream";
+    }
+  });
 }
 if (typeof self !== "undefined" && self._hyperscript) {
   self._hyperscript.use(eventsourcePlugin);

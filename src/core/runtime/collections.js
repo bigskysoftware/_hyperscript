@@ -45,9 +45,10 @@ export class ElementCollection {
         return query [Symbol.iterator]();
     }
 
+    /** @returns {NodeList} all elements matching this.css under the root node */
     selectMatches() {
-        let query = this._runtime.getRootNode(this.relativeToElement).querySelectorAll(this.css);
-        return query;
+        var root = this._runtime.getRootNode(this.relativeToElement);
+        return this._runtime.resolveQuery(root, this.css);
     }
 }
 
