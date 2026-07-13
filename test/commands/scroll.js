@@ -99,4 +99,18 @@ test.describe("the scroll command", () => {
 		var scrollLeft = await evaluate(() => document.querySelector('#box').scrollLeft);
 		expect(scrollLeft).toBeGreaterThanOrEqual(290);
 	});
+
+	test("scroll to X in <container> keeps the container clause", async ({evaluate}) => {
+		// the target must not swallow the trailing "in <container>" as an in-expression
+		var info = await evaluate(() => {
+			var p = _hyperscript.internals.createParser(_hyperscript.internals.tokenizer.tokenize("scroll to #foo in #pane"));
+			var cmd = p.requireElement("command");
+			return {
+				target: cmd.args.target && cmd.args.target.constructor.name,
+				hasContainer: !!cmd.args.container,
+			};
+		});
+		expect(info.target).toBe("_IdRef");
+		expect(info.hasContainer).toBe(true);
+	});
 });

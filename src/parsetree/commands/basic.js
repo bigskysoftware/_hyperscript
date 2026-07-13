@@ -690,16 +690,24 @@ function _parseScrollModifiers(parser) {
     if (verticalPosition || horizontalPosition) {
         parser.requireToken("of");
     }
-    var target = parser.requireElement("unaryExpression");
+    // push "in" as a follow so the target/offset expression doesn't swallow the
+    // trailing "in <container>" clause (same class of bug as fetch's "as")
+    parser.pushFollow("in");
+    var target;
+    try {
+        target = parser.requireElement("unaryExpression");
+    } finally {
+        parser.popFollow();
+    }
 
     var plusOrMinus = parser.matchAnyOpToken("+", "-");
     var offset;
     if (plusOrMinus) {
-        parser.pushFollow("px");
+        var follows = parser.pushFollows("px", "in");
         try {
             offset = parser.requireElement("expression");
         } finally {
-            parser.popFollow();
+            parser.popFollows(follows);
         }
     }
     parser.matchToken("px");
