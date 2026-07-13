@@ -743,7 +743,7 @@ function _resolveScroll(ctx, to, offset, plusOrMinus, scrollOptions, container) 
 
         // "scroll to #item in #container" - scroll within a specific container
         if (container) {
-            var ctr = container instanceof Element ? container : container;
+            var ctr = container;
             var top = target.offsetTop - ctr.offsetTop;
             var left = target.offsetLeft - ctr.offsetLeft;
             if (plusOrMinus) {
