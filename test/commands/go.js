@@ -18,6 +18,12 @@ test.describe("the go command", () => {
 		// no error on parse = success
 	});
 
+	test("go to expression URL in new window parses", async ({error}) => {
+		// the "in new window" modifier must not be swallowed by the URL expression
+		var msg = await error("on click go to @data-url in new window");
+		expect(msg).toBe(null);
+	});
+
 	test("go to element scrolls", async ({html, find, evaluate}) => {
 		await html(
 			"<div style='height: 2000px'></div>" +

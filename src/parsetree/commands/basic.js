@@ -893,7 +893,14 @@ export class GoCommand extends Command {
         }
 
         // new: go [to] <url-or-expression> [in new window]
-        var target = parser.parseURLOrExpression();
+        // push "in" as a follow so the URL expression doesn't swallow the
+        // trailing "in new window" modifier (same class of bug as fetch's "as")
+        parser.pushFollow("in");
+        try {
+            var target = parser.parseURLOrExpression();
+        } finally {
+            parser.popFollow();
+        }
         var newWindow = false;
         if (parser.matchToken("in")) {
             parser.requireToken("new");
