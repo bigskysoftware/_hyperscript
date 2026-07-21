@@ -234,14 +234,16 @@ export class AddCommand extends Command {
             });
         } else if (this.variant === "attribute") {
             var attributeRef = this.attributeRef;
+            // a value-less attribute ref (`@data-test`) adds a bare attribute
+            var attributeValue = attributeRef.value ?? "";
             if (this.when) {
                 result = runtime.implicitLoopWhen(to, this.when, context,
-                    function (t) { t.setAttribute(attributeRef.name, attributeRef.value); },
+                    function (t) { t.setAttribute(attributeRef.name, attributeValue); },
                     function (t) { t.removeAttribute(attributeRef.name); }
                 );
             } else {
                 runtime.implicitLoop(to, function (t) {
-                    t.setAttribute(attributeRef.name, attributeRef.value);
+                    t.setAttribute(attributeRef.name, attributeValue);
                 });
             }
         } else {

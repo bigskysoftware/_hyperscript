@@ -57,6 +57,13 @@ test.describe("the add command", () => {
 		await expect(find('div')).toHaveAttribute('foo', 'bar');
 	});
 
+	test("adding a value-less attribute adds a bare attribute, not 'undefined'", async ({html, find}) => {
+		await html(`<div _='on click add @data-test'></div>`);
+		await expect(find('div')).not.toHaveAttribute('data-test');
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveAttribute('data-test', '');
+	});
+
 	test("can add css properties", async ({html, find}) => {
 		await html("<div style='color: blue' _='on click add {color: red; font-family: monospace}'></div>");
 		await expect(find('div')).toHaveCSS('color', 'rgb(0, 0, 255)');
