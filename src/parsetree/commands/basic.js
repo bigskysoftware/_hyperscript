@@ -617,8 +617,12 @@ export class FetchCommand extends Command {
 
     resolve(context, { url, options }) {
         var detail = options || {};
+        if (detail.params != null) {
+            url = this.appendQueryParams(url, detail.params);
+        }
         detail.sender = context.me;
         detail.headers = detail.headers || {};
+        detail.body = this.normalizeBody(detail.body);
         detail.conversion = this.conversion || this.conversionType;
         var abortController = new AbortController();
         var abortListener = () => abortController.abort();
@@ -680,6 +684,59 @@ export class FetchCommand extends Command {
             .finally(() => {
                 context.me.removeEventListener('fetch:abort', abortListener);
             });
+    }
+
+    appendEntries(target, value) {
+        let entries;
+        if (value instanceof URLSearchParams || value instanceof FormData || value instanceof Map) {
+            entries = value.entries();
+        } else if (Array.isArray(value)) {
+            entries = value;
+        } else {
+            entries = Object.entries(value);
+        }
+        for (var [key, val] of entries) {
+            if (val != null) {
+                if (Array.isArray(val)) {
+                    for (var item of val) if (item != null) target.append(key, item);
+                } else {
+                    target.append(key, val);
+                }
+            }
+        }
+        return target;
+    }
+
+    appendQueryParams(url, params) {
+        let qs;
+        if (typeof params === "string") {
+            qs = params.replace(/^\?/, "");
+        } else {
+            qs = this.appendEntries(new URLSearchParams(), params).toString();
+        }
+        if (!qs) {
+            return url;
+        }
+        if (url.indexOf("?") === -1) {
+            return url + "?" + qs;
+        }
+        if (url.endsWith("?") || url.endsWith("&")) {
+            return url + qs;
+        } else {
+            return url + "&" + qs;
+        }
+    }
+
+    normalizeBody(body) {
+        if (body == null) return body;
+        if (typeof body === "string" || body instanceof FormData || body instanceof URLSearchParams
+            || body instanceof Blob || body instanceof ArrayBuffer || ArrayBuffer.isView(body)
+            || (typeof ReadableStream !== "undefined" && body instanceof ReadableStream)) {
+            return body;
+        }
+        let formData = new FormData();
+        this.appendEntries(formData, body);
+        return formData;
     }
 }
 

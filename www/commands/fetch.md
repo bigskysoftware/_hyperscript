@@ -32,15 +32,23 @@ fetch /api/users with { method:"POST", body:"name=Joe" }
 
 Common options:
 
-| Option | Description |
-|--------|-------------|
-| `method` | HTTP method (`"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, etc.). Defaults to `"GET"` |
-| `headers` | An object of request headers |
-| `body` | Request body - a string, `FormData`, `Blob`, etc. |
-| `credentials` | `"omit"`, `"same-origin"`, or `"include"` |
-| `cache` | `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, `"only-if-cached"` |
-| `mode` | `"cors"`, `"no-cors"`, `"same-origin"` |
-| `timeout` | Hyperscript-specific: milliseconds before the request is aborted |
+| Option        | Description                                                                              |
+|---------------|------------------------------------------------------------------------------------------|
+| `method`      | HTTP method (`"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, etc.). Defaults to `"GET"`          |
+| `headers`     | An object of request headers                                                             |
+| `body`        | Request body - object, `Map`, `FormData`, etc.                                           |
+| `params`      | Query parameters - object, `Map`, `FormData`, `URLSearchParams`, string, etc.            |
+| `credentials` | `"omit"`, `"same-origin"`, or `"include"`                                                |
+| `cache`       | `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, `"only-if-cached"` |
+| `mode`        | `"cors"`, `"no-cors"`, `"same-origin"`                                                   |
+| `timeout`     | Hyperscript-specific: milliseconds before the request is aborted                         |
+
+Adding query parameters (works with any method; `null` values are dropped):
+
+```hyperscript
+fetch /api/search with params:{q:$term, page:2, tag:null}
+-- requests /api/search?q=...&page=2
+```
 
 Posting a form's values:
 

@@ -263,4 +263,99 @@ test.describe("the fetch command", () => {
 		await expect(find('div')).toHaveText('{"foo":1}');
 	});
 
+	// -- params option -------------------------------------------------------
+	// Echo the request query string back so we can assert what got appended.
+	async function echoQuery(page) {
+		await page.route('**/echo*', route => route.fulfill({
+			status: 200, contentType: 'text/plain', body: new URL(route.request().url()).search,
+		}));
+	}
+
+	test("params object is appended to the url as a query string", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click fetch /echo with params: {a: 1, b: \"two\"} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1&b=two');
+	});
+
+	test("params omits null and undefined values", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click fetch /echo with params: {a: 1, b: null, c: 3} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1&c=3');
+	});
+
+	test("params array values become repeated keys", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click fetch /echo with params: {a: [1, 2], b: 3} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1&a=2&b=3');
+	});
+
+	test("params merges with an existing query string in the url", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click fetch `/echo?x=9` with params: {a: 1} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?x=9&a=1');
+	});
+
+	test("params accepts a Map", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click set $m to {a: 1, b: 2} as Map then fetch /echo with params: $m then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1&b=2');
+	});
+
+	test("params works alongside a POST body", async ({page, html, find}) => {
+		await page.route('**/echo*', route => route.fulfill({
+			status: 200, contentType: 'text/plain',
+			body: new URL(route.request().url()).search + '|' + route.request().postData(),
+		}));
+		await html("<div _='on click fetch /echo with method: \"POST\", body: \"hello\", params: {a: 1} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1|hello');
+	});
+
+	test("params accepts an already-encoded query string", async ({page, html, find}) => {
+		await echoQuery(page);
+		await html("<div _='on click fetch /echo with params: \"?a=1&b=2\" then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('?a=1&b=2');
+	});
+
+	// -- body rich types (symmetric with params) -----------------------------
+	// Echo the request body and its content-type.
+	async function echoBody(page) {
+		await page.route('**/echo*', route => route.fulfill({
+			status: 200, contentType: 'text/plain',
+			body: (route.request().headers()['content-type'] || '') + '|' + (route.request().postData() || ''),
+		}));
+	}
+
+	test("object body becomes multipart FormData (fetch sets the content-type)", async ({page, html, find}) => {
+		await echoBody(page);
+		await html("<div _='on click fetch /echo with method: \"POST\", body: {a: 1, b: \"two\"} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toContainText('multipart/form-data');
+		await expect(find('div')).toContainText('name="a"');
+		await expect(find('div')).toContainText('name="b"');
+		await expect(find('div')).toContainText('two');
+	});
+
+	test("Map body becomes multipart FormData", async ({page, html, find}) => {
+		await echoBody(page);
+		await html("<div _='on click set $m to {a: 1, b: 2} as Map then fetch /echo with method: \"POST\", body: $m then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toContainText('multipart/form-data');
+		await expect(find('div')).toContainText('name="a"');
+		await expect(find('div')).toContainText('name="b"');
+	});
+
+	test("string body passes through untouched", async ({page, html, find}) => {
+		await echoBody(page);
+		await html("<div _='on click fetch /echo with method: \"POST\", body: \"raw=payload\", headers: {\"Content-Type\": \"text/plain\"} then put it into my.innerHTML'></div>");
+		await find('div').dispatchEvent('click');
+		await expect(find('div')).toHaveText('text/plain|raw=payload');
+	});
+
 });
