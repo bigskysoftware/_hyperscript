@@ -91,73 +91,43 @@ if (mismatched.length) {
 }
 
 // -----------------------------------------------------------------------------
-// Check 2: SRI integrity attributes match the current dist files
+// Check 2: www/_data/integrity.json is the single source of truth for the
+// version + SRI hashes the site injects into CDN snippets. Verify it matches
+// package.json (version) and a fresh hash of dist/ (SRIs).
 // -----------------------------------------------------------------------------
 
-section('Checking SHA-384 integrity attributes across www/...')
+section('Checking www/_data/integrity.json matches package.json + dist/...')
 
 function sri(path) {
     return 'sha384-' + createHash('sha384').update(readFileSync(path)).digest('base64')
 }
 
-const sriMap = {
-    '_hyperscript.min.js':     sri(join(distDir, '_hyperscript.min.js')),
-    '_hyperscript.js':         sri(join(distDir, '_hyperscript.js')),
-    '_hyperscript.esm.min.js': sri(join(distDir, '_hyperscript.esm.min.js')),
-    '_hyperscript.esm.js':     sri(join(distDir, '_hyperscript.esm.js')),
+const integrityPath = join(repoRoot, 'www', '_data', 'integrity.json')
+let integrity
+try {
+    integrity = JSON.parse(readFileSync(integrityPath, 'utf8'))
+} catch (e) {
+    fail(`cannot read www/_data/integrity.json (run \`npm run update-sha\`): ${e.message}`)
 }
-// Match the *longest* candidate first so esm.min.js is checked before min.js.
-const sriNames = Object.keys(sriMap).sort((a, b) => b.length - a.length)
 
-// Any `integrity="sha384-..."` or `integrity='sha384-...'` anywhere in the file,
-// paired with whatever `src=...` (or `href=...`) sits in the same tag. This
-// catches both plain <script src="..." integrity="..."> tags in markdown AND
-// install-snippet-style escaped attribute embeds like
-// `data-install='<script src="..." integrity="..."></script>'` in index.njk.
-const tagRe = /(?:src|href)\s*=\s*["']([^"']+)["'][^<>]*?integrity\s*=\s*["'](sha384-[^"']+)["']|integrity\s*=\s*["'](sha384-[^"']+)["'][^<>]*?(?:src|href)\s*=\s*["']([^"']+)["']/g
-
-function walkWww(dir, out) {
-    for (const name of readdirSync(dir)) {
-        if (name === '_site' || name.startsWith('.')) continue
-        const full = join(dir, name)
-        const st = statSync(full)
-        if (st.isDirectory()) walkWww(full, out)
-        else if (/\.(md|njk|html)$/.test(name)) out.push(full)
+if (integrity) {
+    const pkgVersion = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')).version
+    const expected = {
+        version: pkgVersion,
+        min:     sri(join(distDir, '_hyperscript.min.js')),
+        full:    sri(join(distDir, '_hyperscript.js')),
+        esmMin:  sri(join(distDir, '_hyperscript.esm.min.js')),
+        esm:     sri(join(distDir, '_hyperscript.esm.js')),
     }
-    return out
-}
-
-const wwwDir = join(repoRoot, 'www')
-const sourceFiles = walkWww(wwwDir, [])
-let totalFound = 0
-const sriFailuresBefore = failures
-
-for (const file of sourceFiles) {
-    const content = readFileSync(file, 'utf8')
-    tagRe.lastIndex = 0
-    let m
-    while ((m = tagRe.exec(content)) !== null) {
-        const url = m[1] || m[4]
-        const actualSri = m[2] || m[3]
-        if (!url || !actualSri) continue
-        const filename = sriNames.find(name => url.endsWith('/' + name) || url.endsWith(name))
-        if (!filename) continue
-        totalFound++
-        const expected = sriMap[filename]
-        if (actualSri !== expected) {
-            const rel = relative(repoRoot, file)
-            fail(`${rel}: ${filename} integrity mismatch`)
-            console.error(`      in file:  ${actualSri}`)
-            console.error(`      expected: ${expected}`)
-            console.error(`      url:      ${url}`)
+    const before = failures
+    for (const key of Object.keys(expected)) {
+        if (integrity[key] !== expected[key]) {
+            fail(`integrity.json ${key} stale (run \`npm run update-sha\`)`)
+            console.error(`      in file:  ${integrity[key]}`)
+            console.error(`      expected: ${expected[key]}`)
         }
     }
-}
-
-if (totalFound === 0) {
-    fail('no integrity="sha384-..." attributes found under www/')
-} else if (failures === sriFailuresBefore) {
-    ok(`all ${totalFound} integrity attributes in www/ match (${sourceFiles.length} files scanned)`)
+    if (failures === before) ok(`integrity.json matches package.json@${pkgVersion} and dist/`)
 }
 
 // -----------------------------------------------------------------------------

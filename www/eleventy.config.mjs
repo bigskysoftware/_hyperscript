@@ -1,4 +1,6 @@
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 import markdownItAttrs from "markdown-it-attrs";
 import markdownItAnchor from "markdown-it-anchor";
 import markdownItDeflist from "markdown-it-deflist";
@@ -7,7 +9,28 @@ import MarkdownIt from "markdown-it";
 import syntaxHighlight from "@11ty/eleventy-plugin-syntaxhighlight";
 import { addWidgets } from "./_build/widgets.mjs";
 
+// Single source of truth for the version/SRI shown in CDN snippets across docs.
+// Generated from package.json by `npm run update-sha` (writes _data/integrity.json).
+const integrity = JSON.parse(
+    readFileSync(fileURLToPath(new URL("./_data/integrity.json", import.meta.url)), "utf8")
+);
+const CDN_TOKENS = {
+    "__VERSION__": integrity.version,
+    "__SRI_MIN__": integrity.min,
+    "__SRI_FULL__": integrity.full,
+    "__SRI_ESM_MIN__": integrity.esmMin,
+    "__SRI_ESM__": integrity.esm,
+};
+
 export default function(config) {
+    // Replace CDN version/SRI tokens in rendered output (engine-agnostic, so it
+    // works inside code blocks without clashing with hyperscript or template syntax).
+    config.addTransform("cdnVersion", (content) => {
+        for (const [token, value] of Object.entries(CDN_TOKENS)) {
+            content = content.split(token).join(value);
+        }
+        return content;
+    });
     config.addPassthroughCopy("css");
     config.addPassthroughCopy("fonts");
     config.addPassthroughCopy("img");

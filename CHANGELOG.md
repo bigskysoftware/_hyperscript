@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.92 - 2026-06-26
+## 0.9.93 - 2026-06-26
 
 Bugfixes and follow-ups from the 0.9.90/0.9.91 release:
 
