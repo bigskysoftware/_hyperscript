@@ -6187,8 +6187,12 @@
     }
     resolve(context, { url, options }) {
       var detail = options || {};
+      if (detail.params != null) {
+        url = this.appendQueryParams(url, detail.params);
+      }
       detail.sender = context.me;
       detail.headers = detail.headers || {};
+      detail.body = this.normalizeBody(detail.body);
       detail.conversion = this.conversion || this.conversionType;
       var abortController = new AbortController();
       var abortListener = () => abortController.abort();
@@ -6245,6 +6249,54 @@
         context.me.removeEventListener("fetch:abort", abortListener);
       });
     }
+    appendEntries(target, value) {
+      let entries;
+      if (value instanceof URLSearchParams || value instanceof FormData || value instanceof Map) {
+        entries = value.entries();
+      } else if (Array.isArray(value)) {
+        entries = value;
+      } else {
+        entries = Object.entries(value);
+      }
+      for (var [key, val] of entries) {
+        if (val != null) {
+          if (Array.isArray(val)) {
+            for (var item of val) if (item != null) target.append(key, item);
+          } else {
+            target.append(key, val);
+          }
+        }
+      }
+      return target;
+    }
+    appendQueryParams(url, params) {
+      let qs;
+      if (typeof params === "string") {
+        qs = params.replace(/^\?/, "");
+      } else {
+        qs = this.appendEntries(new URLSearchParams(), params).toString();
+      }
+      if (!qs) {
+        return url;
+      }
+      if (url.indexOf("?") === -1) {
+        return url + "?" + qs;
+      }
+      if (url.endsWith("?") || url.endsWith("&")) {
+        return url + qs;
+      } else {
+        return url + "&" + qs;
+      }
+    }
+    normalizeBody(body) {
+      if (body == null) return body;
+      if (typeof body === "string" || body instanceof FormData || body instanceof URLSearchParams || body instanceof Blob || body instanceof ArrayBuffer || ArrayBuffer.isView(body) || typeof ReadableStream !== "undefined" && body instanceof ReadableStream) {
+        return body;
+      }
+      let formData = new FormData();
+      this.appendEntries(formData, body);
+      return formData;
+    }
   };
   function _parseScrollModifiers(parser) {
     parser.matchToken("the");
@@ -6253,15 +6305,21 @@
     if (verticalPosition || horizontalPosition) {
       parser.requireToken("of");
     }
-    var target = parser.requireElement("unaryExpression");
+    parser.pushFollow("in");
+    var target;
+    try {
+      target = parser.requireElement("unaryExpression");
+    } finally {
+      parser.popFollow();
+    }
     var plusOrMinus = parser.matchAnyOpToken("+", "-");
     var offset;
     if (plusOrMinus) {
-      parser.pushFollow("px");
+      var follows = parser.pushFollows("px", "in");
       try {
         offset = parser.requireElement("expression");
       } finally {
-        parser.popFollow();
+        parser.popFollows(follows);
       }
     }
     parser.matchToken("px");
@@ -6288,7 +6346,7 @@
     ctx.meta.runtime.implicitLoop(to, function(target) {
       if (target === window) target = document.body;
       if (container) {
-        var ctr = container instanceof Element ? container : container;
+        var ctr = container;
         var top = target.offsetTop - ctr.offsetTop;
         var left = target.offsetLeft - ctr.offsetLeft;
         if (plusOrMinus) {
@@ -6407,7 +6465,12 @@
         var scroll = _parseScrollModifiers(parser);
         return new _GoCommand(scroll.target, scroll.offset, false, false, scroll.plusOrMinus, scroll.scrollOptions);
       }
-      var target = parser.parseURLOrExpression();
+      parser.pushFollow("in");
+      try {
+        var target = parser.parseURLOrExpression();
+      } finally {
+        parser.popFollow();
+      }
       var newWindow = false;
       if (parser.matchToken("in")) {
         parser.requireToken("new");
@@ -7702,13 +7765,14 @@
         });
       } else if (this.variant === "attribute") {
         var attributeRef = this.attributeRef;
+        var attributeValue = attributeRef.value ?? "";
         if (this.when) {
           result = runtime2.implicitLoopWhen(
             to,
             this.when,
             context,
             function(t) {
-              t.setAttribute(attributeRef.name, attributeRef.value);
+              t.setAttribute(attributeRef.name, attributeValue);
             },
             function(t) {
               t.removeAttribute(attributeRef.name);
@@ -7716,7 +7780,7 @@
           );
         } else {
           runtime2.implicitLoop(to, function(t) {
-            t.setAttribute(attributeRef.name, attributeRef.value);
+            t.setAttribute(attributeRef.name, attributeValue);
           });
         }
       } else {
@@ -10481,7 +10545,7 @@
       processNode: (elt) => runtime.processNode(elt),
       // deprecated alias
       cleanup: (elt) => runtime.cleanup(elt),
-      version: "0.9.93"
+      version: "0.9.94"
     }
   );
   function ready(fn) {

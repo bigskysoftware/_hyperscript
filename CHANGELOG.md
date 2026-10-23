@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.94 - 2026-10-23
+
+### Fixes
+
+- `go to <expr> in new window` now parses properly
+- `scroll to <target> in <container>` no longer loses the container clause
+- `add` of a value-less attribute no longer sets the value to `"undefined"`
+
+### Features
+
+- `fetch` now supports a `params` option for explicit query parameters
+- `fetch` now converts an object or `Map` `body` to `FormData` instead of the string `[object Object]`
+
 ## 0.9.93 - 2026-06-26
 
 Bugfixes and follow-ups from the 0.9.90/0.9.91 release:

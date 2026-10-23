@@ -1,7 +1,7 @@
 {
-    "version": "0.9.93",
-    "min": "sha384-/6HsqTiz02YfFBUhzTwlH/yxe68DhfnkdHiWytM3nxAzs/yvG+3FZY0f4KLnNoov",
-    "full": "sha384-UQZFVRy+PoNK5zgJ/73HI8vQ9AKb11MG4HGpG4QM0reL+Icmx96aTPUnYjEF7hOn",
-    "esmMin": "sha384-qoWFh1VMSuaXuWwwQOHhgAHzgeVPzHUjqbU9qJvDjwfxkB4GxRF2OoKmkSarixlQ",
-    "esm": "sha384-1Qso/EWETNLawNIwZOr/s34cICRmUcLcw5509JyG2cZCQOf3U6i6lA8kzrolSK6M"
+    "version": "0.9.94",
+    "min": "sha384-Vhc5IAlz1zenO+d5PjrPP8UuDzlMX30xrv2aMzX0DWZ15ZUvqX7RBqvRTEsavX4R",
+    "full": "sha384-UJv+KPshOSSRcp05UQv4NyI7D2fo1h3ORhBbfSdsJ7eqwqLpKcItMlADeZCkNRky",
+    "esmMin": "sha384-34DDfw4vJILTzjh5u0xTHhPLxcRjbgd+NGvRI2VX0JAzscS+N7PImS1pZYDlwf07",
+    "esm": "sha384-1Ovz5o0sfVV7MXon9ruC4tqz/LIO/LgsqlVtNZUInarAPFvrIo+HOxRbiil0C3PG"
 }
